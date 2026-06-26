@@ -68,3 +68,21 @@ Arquivo criado:
 
 ```text
 apps/api/app/data_processing/profiling/column_type_detector.py
+
+---
+
+## Fase 4 + Fase 5 implementadas
+
+### Objetivo final do produto
+
+O objetivo do Polaryix é permitir que empresas enviem arquivos de dados, recebam análise automática e criem dashboards personalizados com links únicos.
+
+Fluxo planejado:
+
+```text
+Usuário envia arquivo
+Sistema valida e analisa o dataset
+Sistema sugere KPIs, gráficos e insights
+Usuário monta o dashboard visualmente
+Sistema gera um link personalizado para o dashboard
+Dashboard pode ser usado por empresas, clientes e equipes

@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,6 +13,11 @@ class Settings(BaseSettings):
 
     max_upload_size_mb: int = 25
     max_rows_preview: int = 1000
+
+    allowed_origins: list[str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
 
     allowed_extensions: set[str] = {
         ".csv",

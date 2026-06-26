@@ -1,0 +1,118 @@
+{
+  "dataset_id": "308b26466411425daabe11c356dbdfe7",
+  "original_filename": "vendas_sujas.csv",
+  "stored_filename": "461b730932fa4624892f4d7825704f53.csv",
+  "extension": ".csv",
+  "content_type": "text/csv",
+  "size_bytes": 586,
+  "profile": {
+    "rows": 10,
+    "columns": 6,
+    "duplicate_rows": 0,
+    "column_profiles": [
+      {
+        "name": "id",
+        "dtype": "int64",
+        "semantic_type": "possible_id",
+        "type_confidence": 0.75,
+        "type_reason": "A coluna é numérica inteira e possui muitos valores únicos.",
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "unique_count": 10,
+        "sample_values": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+        ]
+      },
+      {
+        "name": "cliente",
+        "dtype": "str",
+        "semantic_type": "text",
+        "type_confidence": 0.6,
+        "type_reason": "Tipo original 'str' tratado como texto genérico.",
+        "missing_count": 1,
+        "missing_percentage": 10.0,
+        "unique_count": 7,
+        "sample_values": [
+          "joão silva",
+          "ANA SOUZA",
+          "Carlos Lima",
+          "joão silva",
+          "Fernanda Costa"
+        ]
+      },
+      {
+        "name": "cidade",
+        "dtype": "str",
+        "semantic_type": "text",
+        "type_confidence": 0.6,
+        "type_reason": "Tipo original 'str' tratado como texto genérico.",
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "unique_count": 6,
+        "sample_values": [
+          "salvador",
+          "Salvador",
+          "SALVADOR",
+          "salvador",
+          "Feira de Santana"
+        ]
+      },
+      {
+        "name": "data_compra",
+        "dtype": "str",
+        "semantic_type": "text",
+        "type_confidence": 0.6,
+        "type_reason": "Tipo original 'str' tratado como texto genérico.",
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "unique_count": 8,
+        "sample_values": [
+          "2025-01-15",
+          "15/01/2025",
+          "2025/01/16",
+          "2025-01-15",
+          "17-01-2025"
+        ]
+      },
+      {
+        "name": "valor",
+        "dtype": "str",
+        "semantic_type": "currency",
+        "type_confidence": 1.0,
+        "type_reason": "A maioria dos valores possui formato monetário.",
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "unique_count": 8,
+        "sample_values": [
+          "R$ 1.250,00",
+          "R$850,00",
+          "R$ 2.100,00",
+          "R$ 1.250,00",
+          "R$ 980,00"
+        ]
+      },
+      {
+        "name": "vendedor",
+        "dtype": "str",
+        "semantic_type": "category",
+        "type_confidence": 0.8,
+        "type_reason": "A coluna possui baixa cardinalidade e parece categórica.",
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "unique_count": 5,
+        "sample_values": [
+          "maria",
+          "Pedro",
+          "MARIA",
+          "maria",
+          "Pedro"
+        ]
+      }
+    ]
+  },
+  "created_at": "2026-06-26T18:03:26.356392+00:00"
+}
