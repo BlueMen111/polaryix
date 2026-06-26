@@ -7,6 +7,7 @@ Represents the context and container for multi-file analysis workflows.
 from .schemas import (
     AnalysisSessionFile,
     AnalysisSessionStatus,
+    AnalysisObjectiveCategory,
     CreateAnalysisSessionRequest,
     UpdateAnalysisSessionRequest,
     AnalysisSession,
@@ -17,6 +18,7 @@ from .schemas import (
 __all__ = [
     "AnalysisSessionFile",
     "AnalysisSessionStatus",
+    "AnalysisObjectiveCategory",
     "CreateAnalysisSessionRequest",
     "UpdateAnalysisSessionRequest",
     "AnalysisSession",

@@ -6,6 +6,7 @@ app/ai/guards/__init__.py
 app/api/__init__.py
 app/api/v1/__init__.py
 app/api/v1/routes/__init__.py
+app/api/v1/routes/analysis_sessions.py
 app/api/v1/routes/dashboards.py
 app/api/v1/routes/datasets.py
 app/api/v1/routes/health.py
@@ -35,6 +36,8 @@ app/data_processing/statistics/basic_statistics.py
 app/data_processing/validators/__init__.py
 app/data_processing/validators/file_validator.py
 app/domain/__init__.py
+app/domain/analysis_sessions/__init__.py
+app/domain/analysis_sessions/schemas.py
 app/domain/dashboards/__init__.py
 app/domain/dashboards/schemas.py
 app/domain/datasets/__init__.py
@@ -43,6 +46,7 @@ app/infrastructure/db/__init__.py
 app/infrastructure/db/session.py
 app/infrastructure/queue/__init__.py
 app/infrastructure/storage/__init__.py
+app/infrastructure/storage/analysis_sessions_storage.py
 app/infrastructure/storage/analysis_storage.py
 app/infrastructure/storage/dashboard_storage.py
 app/infrastructure/storage/local_storage.py

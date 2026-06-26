@@ -1,25 +1,19 @@
-import Link from "next/link";
+"use client";
 
-export default function HomePage() {
+import { AnalysisSessionForm } from "@/components/AnalysisSessionForm";
+import { useRouter } from "next/navigation";
+
+export default function UploadPage() {
+  const router = useRouter();
+
+  const handleSessionCreated = (sessionId: string) => {
+    // TODO: Navigate to session details page
+    console.log("Session created:", sessionId);
+  };
+
   return (
-    <main className="container">
-      <section className="card">
-        <h1>Polaryix</h1>
-        <p className="muted">
-          Envie arquivos CSV, XLSX, JSON, TXT ou Parquet, gere análises automáticas
-          e monte dashboards personalizados com links compartilháveis.
-        </p>
-
-        <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
-          <Link className="button" href="/upload">
-            Enviar dataset
-          </Link>
-
-          <Link className="button secondary" href="/datasets">
-            Ver datasets
-          </Link>
-        </div>
-      </section>
+    <main style={{ minHeight: "100vh", background: "#f5f5f5", paddingTop: "1rem" }}>
+      <AnalysisSessionForm onSessionCreated={handleSessionCreated} />
     </main>
   );
 }

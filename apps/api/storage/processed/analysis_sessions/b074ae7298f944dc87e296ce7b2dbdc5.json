@@ -1,0 +1,27 @@
+{
+  "id": "b074ae7298f944dc87e296ce7b2dbdc5",
+  "title": "Análise Concessionária",
+  "description": "Dados de uma concessionária com histórico de vendas, clientes e estoque",
+  "objective": "Entender por que as vendas diminuíram",
+  "objective_category": "comercial",
+  "files": [
+    {
+      "file_id": "4d191d20874c42918eab264624283b04",
+      "filename": "clientes.csv",
+      "size_bytes": 376,
+      "format": "csv",
+      "uploaded_at": "2026-06-26T19:02:40.864293+00:00",
+      "row_count": null,
+      "column_count": null,
+      "column_names": null
+    }
+  ],
+  "status": "draft",
+  "processing_steps": [],
+  "dashboard_specification": null,
+  "dashboard_id": null,
+  "created_at": "2026-06-26T19:00:25.251125+00:00",
+  "updated_at": "2026-06-26T19:02:40.864293+00:00",
+  "completed_at": null,
+  "error_message": null
+}
