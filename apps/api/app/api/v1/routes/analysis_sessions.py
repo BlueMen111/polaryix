@@ -47,6 +47,7 @@ def create_session(request: CreateAnalysisSessionRequest):
             objective_category=request.objective_category.value
             if request.objective_category
             else None,
+            category=request.category,
         )
 
         return AnalysisSessionResponse(
@@ -55,6 +56,7 @@ def create_session(request: CreateAnalysisSessionRequest):
             description=session_data["description"],
             objective=session_data["objective"],
             objective_category=session_data["objective_category"],
+            category=session_data.get("category"),
             files_count=len(session_data["files"]),
             status=session_data["status"],
             dashboard_id=session_data["dashboard_id"],
@@ -86,6 +88,7 @@ def list_sessions():
                 description=session["description"],
                 objective=session["objective"],
                 objective_category=session["objective_category"],
+                category=session.get("category"),
                 files_count=len(session["files"]),
                 status=session["status"],
                 dashboard_id=session["dashboard_id"],
@@ -124,6 +127,7 @@ def get_session(session_id: str):
             description=session_data["description"],
             objective=session_data["objective"],
             objective_category=session_data["objective_category"],
+            category=session_data.get("category"),
             files_count=len(session_data["files"]),
             status=session_data["status"],
             dashboard_id=session_data["dashboard_id"],
@@ -163,6 +167,7 @@ def update_session(
             description=session_data["description"],
             objective=session_data["objective"],
             objective_category=session_data["objective_category"],
+            category=session_data.get("category"),
             files_count=len(session_data["files"]),
             status=session_data["status"],
             dashboard_id=session_data["dashboard_id"],

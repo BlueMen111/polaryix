@@ -1,0 +1,16 @@
+data,vendedor,produto,quantidade,valor_unitario,valor_total,regiao
+2024-01-15,João Silva,Notebook Dell,2,3500,7000,Sudeste
+2024-01-16,Maria Santos,Monitor LG,5,800,4000,Sudeste
+2024-01-17,João Silva,Teclado Mecânico,10,250,2500,Sul
+2024-01-18,Ana Costa,Mouse Gamer,15,150,2250,Nordeste
+2024-01-19,Carlos Lima,Notebook HP,3,4200,12600,Sudeste
+2024-01-20,Maria Santos,Impressora,2,1800,3600,Sul
+2024-01-21,João Silva,Monitor Samsung,8,900,7200,Nordeste
+2024-01-22,Ana Costa,Notebook Dell,1,3500,3500,Sudeste
+2024-01-23,Carlos Lima,Teclado Mecânico,20,250,5000,Sul
+2024-01-24,Maria Santos,Mouse Gamer,30,150,4500,Nordeste
+2024-01-25,João Silva,Impressora,3,1800,5400,Sudeste
+2024-01-26,Ana Costa,Monitor LG,6,800,4800,Sul
+2024-01-27,Carlos Lima,Notebook HP,2,4200,8400,Nordeste
+2024-01-28,Maria Santos,Teclado Mecânico,25,250,6250,Sudeste
+2024-01-29,João Silva,Mouse Gamer,40,150,6000,Sul

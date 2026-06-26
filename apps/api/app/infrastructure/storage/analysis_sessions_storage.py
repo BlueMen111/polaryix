@@ -31,6 +31,7 @@ def create_analysis_session(
     description: str | None = None,
     objective: str | None = None,
     objective_category: str | None = None,
+    category: str | None = None,
 ) -> dict[str, Any]:
     """Cria e persiste uma nova sessão de análise."""
 
@@ -45,6 +46,7 @@ def create_analysis_session(
         "description": description,
         "objective": objective,
         "objective_category": objective_category,
+        "category": category,
         "files": [],
         "status": "draft",
         "processing_steps": [],

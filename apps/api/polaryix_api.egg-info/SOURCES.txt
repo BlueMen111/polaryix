@@ -7,6 +7,8 @@ app/api/__init__.py
 app/api/v1/__init__.py
 app/api/v1/routes/__init__.py
 app/api/v1/routes/analysis_sessions.py
+app/api/v1/routes/analysis_sessions_files.py
+app/api/v1/routes/analysis_sessions_progress.py
 app/api/v1/routes/dashboards.py
 app/api/v1/routes/datasets.py
 app/api/v1/routes/health.py

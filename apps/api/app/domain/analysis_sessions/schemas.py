@@ -68,6 +68,11 @@ class CreateAnalysisSessionRequest(BaseModel):
         None,
         description="Predefined category of analysis objective"
     )
+    category: str | None = Field(
+        None,
+        max_length=100,
+        description="Optional custom category"
+    )
 
 
 class UpdateAnalysisSessionRequest(BaseModel):
@@ -86,6 +91,10 @@ class UpdateAnalysisSessionRequest(BaseModel):
         max_length=2000
     )
     objective_category: AnalysisObjectiveCategory | None = None
+    category: str | None = Field(
+        None,
+        max_length=100
+    )
 
 
 class DashboardSpecification(BaseModel):
@@ -150,6 +159,7 @@ class AnalysisSessionResponse(BaseModel):
     description: str | None = None
     objective: str | None = None
     objective_category: AnalysisObjectiveCategory | None = None
+    category: str | None = None
     files_count: int
     status: AnalysisSessionStatus
     dashboard_id: str | None = None

@@ -1,0 +1,316 @@
+.showcase {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: 2px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: var(--accent-color);
+  transform: scaleX(0);
+  transition: transform 0.3s;
+}
+
+.card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+  border-color: var(--accent-color);
+}
+
+.card:hover::before {
+  transform: scaleX(1);
+}
+
+.card.active {
+  border-color: var(--accent-color);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.card.active::before {
+  transform: scaleX(1);
+}
+
+.cardIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+}
+
+.cardTitle {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 0.5rem 0;
+}
+
+.cardCategory {
+  font-size: 0.85rem;
+  color: var(--accent-color);
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cardDescription {
+  font-size: 0.95rem;
+  color: #666;
+  line-height: 1.5;
+  margin: 0 0 1rem 0;
+}
+
+.cardArrow {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  font-size: 1.5rem;
+  color: var(--accent-color);
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: all 0.3s;
+}
+
+.card:hover .cardArrow,
+.card.active .cardArrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.preview {
+  background: white;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e8ecf0;
+}
+
+.previewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid #ecf0f1;
+}
+
+.previewTitle {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.previewIcon {
+  font-size: 3rem;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+}
+
+.previewTitle h3 {
+  margin: 0;
+  font-size: 1.8rem;
+  color: #1a1a1a;
+}
+
+.previewTitle p {
+  margin: 0.25rem 0 0 0;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.tryButton {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.875rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.tryButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.previewContent {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+@media (max-width: 968px) {
+  .previewContent {
+    grid-template-columns: 1fr;
+  }
+}
+
+.metricsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.metricCard {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #f5f7ff 0%, #f8f9ff 100%);
+  border-radius: 12px;
+  border-left: 4px solid var(--accent-color);
+  transition: all 0.3s;
+}
+
+.metricCard:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.metricIcon {
+  font-size: 2rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.metricInfo {
+  flex: 1;
+}
+
+.metricInfo h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.95rem;
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.metricBar {
+  height: 8px;
+  background: #e8ecf0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.metricProgress {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 1s ease-out;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.chartPreview {
+  background: linear-gradient(135deg, #f5f7ff 0%, #f8f9ff 100%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid #e8ecf0;
+}
+
+.chartHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.chartHeader h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #1a1a1a;
+}
+
+.chartTabs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.chartTab {
+  padding: 0.5rem 1rem;
+  background: white;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid #e8ecf0;
+}
+
+.chartTab:hover {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.chartArea {
+  padding: 1rem 0;
+}
+
+.barChart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  height: 200px;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.bar {
+  flex: 1;
+  max-width: 40px;
+  border-radius: 8px 8px 0 0;
+  transition: all 0.3s;
+  animation: growUp 1s ease-out;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.bar:hover {
+  transform: scaleY(1.05);
+  filter: brightness(1.1);
+}
+
+@keyframes growUp {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.chartLabels {
+  display: flex;
+  justify-content: space-around;
+  gap: 0.5rem;
+}
+
+.chartLabels span {
+  flex: 1;
+  max-width: 40px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 500;
+}

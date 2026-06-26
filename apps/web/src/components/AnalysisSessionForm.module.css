@@ -1,14 +1,15 @@
 .container {
-  max-width: 600px;
+  max-width: 700px;
   margin: 0 auto;
   padding: 2rem 1rem;
 }
 
 .form {
   background: white;
-  border-radius: 8px;
-  padding: 2rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  padding: 2.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e8ecf0;
 }
 
 .form h2 {
@@ -18,10 +19,69 @@
   color: #1a1a1a;
 }
 
+.header {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid #ecf0f1;
+}
+
+.header h2 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  font-size: 1.8rem;
+  color: #1a1a1a;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 .description {
   color: #666;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.input,
+.textarea,
+.select {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
   font-size: 0.95rem;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.input:focus,
+.textarea:focus,
+.select:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.input:disabled,
+.textarea:disabled,
+.select:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.hint {
+  display: block;
+  margin-top: 0.5rem;
+  color: #7f8c8d;
+  font-size: 0.85rem;
+  font-style: italic;
 }
 
 .formGroup {
@@ -98,46 +158,49 @@
 .secondaryButton {
   padding: 0.875rem 1.5rem;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s;
   text-align: center;
   display: inline-block;
 }
 
 .primaryButton {
-  background-color: #3498db;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   width: 100%;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
 
 .primaryButton:hover:not(:disabled) {
-  background-color: #2980b9;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
 .primaryButton:disabled {
-  background-color: #bdc3c7;
+  background: linear-gradient(135deg, #bdc3c7 0%, #95a5a6 100%);
   cursor: not-allowed;
-  opacity: 0.7;
+  opacity: 0.6;
+  transform: none;
 }
 
 .secondaryButton {
-  background-color: #95a5a6;
-  color: white;
+  background: white;
+  color: #667eea;
+  border: 2px solid #667eea;
   flex: 1;
 }
 
 .secondaryButton:hover:not(:disabled) {
-  background-color: #7f8c8d;
+  background: #f0f4ff;
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
 }
 
 .secondaryButton:disabled {
-  opacity: 0.7;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
@@ -155,35 +218,56 @@
   color: #1a1a1a;
 }
 
+.uploadHeader {
+  margin-bottom: 1.5rem;
+}
+
+.uploadHeader h2 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-size: 1.8rem;
+  color: #1a1a1a;
+}
+
 .sessionInfo {
   background-color: #ecf0f1;
   padding: 0.75rem 1rem;
   border-radius: 4px;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.75rem;
   font-size: 0.9rem;
 }
 
+.uploadDescription {
+  color: #666;
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
 .dropZone {
-  border: 2px dashed #bdc3c7;
-  border-radius: 8px;
+  border: 2px dashed #c5cae9;
+  border-radius: 12px;
   padding: 3rem 1rem;
   text-align: center;
   cursor: pointer;
-  transition: all 0.2s;
-  background-color: #f8f9fa;
+  transition: all 0.3s;
+  background: linear-gradient(135deg, #f5f7ff 0%, #f8f9ff 100%);
   margin-bottom: 1.5rem;
   position: relative;
 }
 
 .dropZone:hover {
-  border-color: #3498db;
-  background-color: #f0f7ff;
+  border-color: #667eea;
+  background: linear-gradient(135deg, #e8ecff 0%, #f0f4ff 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.15);
 }
 
 .dropZone.dragActive {
-  border-color: #3498db;
-  background-color: #f0f7ff;
-  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+  border-color: #667eea;
+  background: linear-gradient(135deg, #e8ecff 0%, #f0f4ff 100%);
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+  transform: scale(1.02);
 }
 
 .dropZoneContent {
@@ -191,8 +275,43 @@
 }
 
 .uploadIcon {
-  font-size: 2.5rem;
+  font-size: 4rem;
   margin-bottom: 1rem;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.formatBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin: 1rem 0;
+}
+
+.formatBadge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 0.35rem 0.85rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: monospace;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.sizeLimit {
+  color: #7f8c8d;
+  font-size: 0.85rem;
+  margin-top: 0.5rem !important;
 }
 
 .dropZone h3 {
@@ -241,8 +360,9 @@
   align-items: center;
   justify-content: space-between;
   padding: 1rem;
-  border-bottom: 1px solid #e0e0e0;
-  transition: background-color 0.2s;
+  border-bottom: 1px solid #e8ecf0;
+  transition: all 0.2s;
+  background: white;
 }
 
 .fileItem:last-child {
@@ -250,14 +370,20 @@
 }
 
 .fileItem:hover {
-  background-color: #f0f0f0;
+  background: linear-gradient(135deg, #f5f7ff 0%, #f8f9ff 100%);
+  transform: translateX(4px);
+}
+
+.fileIcon {
+  font-size: 1.5rem;
+  margin-right: 0.75rem;
 }
 
 .fileInfo {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .fileName {
@@ -271,12 +397,23 @@
 }
 
 .uploadedBadge {
-  background-color: #27ae60;
+  background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
   color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
+  padding: 0.35rem 0.85rem;
+  border-radius: 20px;
   font-size: 0.8rem;
   font-weight: 600;
+  box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
 }
 
 .removeButton {
@@ -291,12 +428,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: 50%;
   transition: all 0.2s;
 }
 
 .removeButton:hover {
   background-color: #fadbd8;
+  transform: scale(1.1);
 }
 
 .buttonGroup {
@@ -382,10 +520,31 @@
   max-width: 200px;
 }
 
+.processingSection {
+  background: white;
+  border-radius: 8px;
+  padding: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.processingSection h2 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-size: 1.8rem;
+  color: #1a1a1a;
+}
+
+.processingInfo {
+  color: #666;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
 @media (max-width: 600px) {
   .form,
   .uploadSection,
-  .completeSection {
+  .completeSection,
+  .processingSection {
     padding: 1.5rem 1rem;
   }
 

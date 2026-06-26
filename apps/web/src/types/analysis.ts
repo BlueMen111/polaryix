@@ -42,10 +42,10 @@ export type AnalysisSession = {
 };
 
 export type CreateAnalysisSessionRequest = {
-  title: string;
-  description?: string;
-  objective?: string;
+  business_description: string;
+  analysis_objective: string;
   objective_category?: AnalysisObjectiveCategory;
+  category?: string;
 };
 
 export type FileUploadResponse = {
@@ -72,3 +72,13 @@ export const OBJECTIVE_CATEGORIES: { label: string; value: AnalysisObjectiveCate
 ];
 
 export const SUPPORTED_FORMATS = [".csv", ".xlsx", ".json", ".txt", ".parquet"];
+
+export type SessionProgress = {
+  session_id: string;
+  status: AnalysisSessionStatus;
+  progress_percentage: number;
+  current_step: string;
+  completed_steps: string[];
+  files_count: number;
+  error_message?: string;
+};

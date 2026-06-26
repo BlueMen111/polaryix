@@ -1,0 +1,291 @@
+.container {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-top: 24px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #ecf0f1;
+}
+
+.header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #1f2937;
+}
+
+.statusBadge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: white;
+}
+
+.progressSection {
+  margin-bottom: 24px;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
+  color: white;
+}
+
+.progressInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.progressPercentage {
+  font-size: 2rem;
+  font-weight: 700;
+  color: white;
+}
+
+.currentStep {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+}
+
+.progressBarContainer {
+  width: 100%;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.progressBar {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.3s ease;
+  background-color: white;
+}
+
+.stepsSection {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.stepsSection h4 {
+  margin: 0 0 16px 0;
+  font-size: 1rem;
+  color: #374151;
+  font-weight: 600;
+}
+
+.processingSteps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.processingStep {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+
+.stepCompleted {
+  background-color: #d4edda;
+  border-left: 4px solid #27ae60;
+}
+
+.stepCurrent {
+  background-color: #d1ecf1;
+  border-left: 4px solid #3498db;
+  animation: pulse 2s infinite;
+}
+
+.stepPending {
+  background-color: #f8f9fa;
+  border-left: 4px solid #bdc3c7;
+  opacity: 0.6;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.stepIcon {
+  font-size: 1.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+  border-radius: 50%;
+  flex-shrink:0;
+}
+
+.stepCompleted .stepIcon {
+  background-color: #27ae60;
+  color: white;
+}
+
+.stepCurrent .stepIcon {
+  background-color: #3498db;
+  color: white;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.stepContent {
+  flex: 1;
+}
+
+.stepLabel {
+  font-weight: 600;
+  color: #1a1a1a;
+  font-size: 0.95rem;
+}
+
+.stepSpinner {
+  margin-top: 0.5rem;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #3498db;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.detailsSection {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.detailsSection h4 {
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+  color: #374151;
+  font-weight: 600;
+}
+
+.detailsList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  padding: 1rem;
+}
+
+.detailItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.detailItem:last-child {
+  border-bottom: none;
+}
+
+.detailCheck {
+  color: #27ae60;
+  font-weight: bold;
+}
+
+.detailText {
+  color: #1a1a1a;
+  font-size: 0.9rem;
+}
+
+.successMessage {
+  margin-top: 24px;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
+  color: white;
+  text-align: center;
+}
+
+.successIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.successMessage p {
+  margin: 0.5rem 0;
+}
+
+.successSubtext {
+  opacity: 0.9;
+  font-size: 0.9rem;
+}
+
+.errorMessage {
+  margin-top: 16px;
+  padding: 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #991b1b;
+  font-size: 0.875rem;
+}
+
+.errorMessage p {
+  margin: 8px 0 0 0;
+}
+
+.refreshButton {
+  margin-top: 16px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.refreshButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}

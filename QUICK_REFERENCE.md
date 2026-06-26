@@ -1,3 +1,62 @@
+# QUICK_REFERENCE — Cheatsheet Rápido
+
+Status atual
+- Backend: API FastAPI (docs em `http://localhost:8000/docs`) — status: pronto para rodar localmente
+- Frontend: Next.js (upload) — rota principal `http://localhost:3000/upload`
+
+URLs úteis
+- API docs: `http://localhost:8000/docs`
+- Frontend upload: `http://localhost:3000/upload`
+
+Estrutura de pastas (resumida)
+- `apps/api/` — backend FastAPI
+- `web/` — frontend Next.js
+- `apps/api/storage/processed/analysis_sessions/` — sessões processadas (JSON)
+- `storage/quarantine/` — arquivos que falharam na validação
+
+Comandos úteis
+
+- Subir via Docker Compose (recomendado):
+
+```powershell
+docker compose up --build
+```
+
+- Rodar apenas backend local (virtualenv):
+
+```powershell
+cd apps/api
+.venv\Scripts\activate
+.venv\Scripts\python -m uvicorn app.main:app --reload --port 8000
+```
+
+- Rodar frontend (Next.js):
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Endpoints principais (resumo)
+- `POST /api/v1/analysis_sessions` — cria sessão
+- `POST /api/v1/analysis_sessions/{session_id}/files` — upload de arquivo
+- `GET /api/v1/analysis_sessions/{session_id}` — metadados da sessão
+- `GET /api/v1/analysis_sessions/{session_id}/status` — progresso de processamento
+
+Debug e troubleshooting rápido
+- Logs do backend: ver console do Uvicorn (ou logs do container)
+- Se upload falhar, checar `storage/quarantine` e o `error_message` no JSON da sessão em `storage/processed/analysis_sessions`
+- Timeouts/proxy: ajustar `client_max_body_size` no Nginx e limites de upload no backend
+
+Checklist para iniciar nova conversa (pronto para continuar)
+- ✅ Backend rodando: http://localhost:8000/docs
+- ✅ Frontend rodando: http://localhost:3000/upload
+- ✅ Upload testado e funcionando
+- ✅ Código salvo em arquivos
+- ✅ Contexto documentado (`CONTEXTO_CONTINUACAO.md`)
+
+Pronto para continuar em nova conversa! 🚀
 # ⚡ QUICK REFERENCE - Polaryix
 
 ## 🎯 Status Atual
