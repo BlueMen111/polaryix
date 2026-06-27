@@ -52,6 +52,32 @@ export async function convertFile(payload: {
   return { filename };
 }
 
+export async function convertFiles(payload: {
+  files: File[];
+  fromFormat: string;
+  toFormat: string;
+  isPremium: boolean;
+}): Promise<{ filename: string }> {
+  const formData = new FormData();
+
+  payload.files.forEach((file) => {
+    formData.append("files", file);
+  });
+
+  formData.append("from_format", payload.fromFormat);
+  formData.append("to_format", payload.toFormat);
+  formData.append("is_premium", String(payload.isPremium));
+
+  const response = await fetch(`${API_BASE_URL}/converter/convert-batch`, {
+    method: "POST",
+    body: formData,
+  });
+
+  const filename = await downloadBlobResponse(response, "polaryix-conversoes.zip");
+
+  return { filename };
+}
+
 export async function downloadFromLink(payload: {
   url: string;
   mediaType: "video" | "audio";

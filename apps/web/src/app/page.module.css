@@ -216,6 +216,17 @@
   backdrop-filter: blur(18px);
 }
 
+.converterSection {
+  position: relative;
+  z-index: 20;
+  overflow: visible;
+}
+
+.downloadSection {
+  position: relative;
+  z-index: 1;
+}
+
 .converterSection,
 .downloadSection {
   padding: 1.2rem;
@@ -302,7 +313,7 @@
 
 .formatMenu {
   position: absolute;
-  z-index: 30;
+  z-index: 200;
   top: calc(100% + 8px);
   left: 0;
   width: min(680px, 92vw);
@@ -438,6 +449,196 @@
   grid-template-columns: minmax(160px, 205px) 1fr;
   gap: 0.85rem;
   align-items: center;
+}
+
+.selectedFiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: -0.2rem;
+}
+
+.selectedFiles span {
+  max-width: min(260px, 100%);
+  border: 1px solid rgba(168, 183, 202, 0.14);
+  border-radius: 999px;
+  background: rgba(3, 8, 23, 0.42);
+  color: #dbe8f7;
+  font-size: 0.72rem;
+  font-weight: 800;
+  overflow: hidden;
+  padding: 0.4rem 0.65rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileQueue {
+  overflow: hidden;
+  border: 1px solid rgba(168, 183, 202, 0.14);
+  border-radius: 18px;
+  background: rgba(3, 8, 23, 0.44);
+}
+
+.fileQueue input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.fileQueueList {
+  display: grid;
+}
+
+.fileQueueItem {
+  display: grid;
+  grid-template-columns: 42px minmax(180px, 1fr) auto 92px 78px 86px 38px;
+  gap: 0.85rem;
+  align-items: center;
+  min-height: 64px;
+  border-bottom: 1px solid rgba(168, 183, 202, 0.1);
+  padding: 0.75rem 0.9rem;
+}
+
+.fileIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(34, 230, 185, 0.12);
+  color: #22e6b9;
+  display: grid;
+  place-items: center;
+  font-size: 0.66rem;
+  font-weight: 950;
+}
+
+.fileQueueItem strong {
+  min-width: 0;
+  color: #ffffff;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileTo,
+.fileQueueItem small {
+  color: #a8b7ca;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.fileQueueItem select,
+.queueConvertAll select {
+  min-height: 36px;
+  border: 1px solid rgba(168, 183, 202, 0.22);
+  border-radius: 8px;
+  background: rgba(3, 8, 23, 0.7);
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 900;
+  outline: none;
+  padding: 0 0.65rem;
+}
+
+.fileQueueItem em {
+  width: fit-content;
+  border: 1px solid rgba(34, 230, 185, 0.55);
+  border-radius: 999px;
+  color: #8ff8e3;
+  font-size: 0.64rem;
+  font-style: normal;
+  font-weight: 950;
+  padding: 0.22rem 0.42rem;
+  text-transform: uppercase;
+}
+
+.fileQueueItem button {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  background: transparent;
+  color: #a8b7ca;
+  cursor: pointer;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.fileQueueItem button:hover {
+  color: #ffffff;
+}
+
+.queueConvertAll {
+  min-height: 60px;
+  border-bottom: 1px solid rgba(168, 183, 202, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.8rem;
+}
+
+.queueConvertAll span {
+  color: #dbe8f7;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.fileQueueActions {
+  display: grid;
+  grid-template-columns: minmax(190px, 260px) 1fr minmax(200px, 270px);
+  align-items: center;
+  gap: 1rem;
+  background:
+    linear-gradient(90deg, rgba(3, 8, 23, 0.82), rgba(12, 22, 40, 0.72)),
+    url("/assets/background-noise.svg");
+  padding: 1rem;
+}
+
+.addFilesButton,
+.queueConvertButton {
+  min-height: 46px;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  font: inherit;
+  font-weight: 950;
+  padding: 0 1rem;
+}
+
+.addFilesButton {
+  background: #ffffff;
+  color: #03101b;
+}
+
+.fileQueueActions p {
+  margin: 0;
+  color: #a8b7ca;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.queueConvertButton {
+  background: linear-gradient(135deg, #20e0b0, #36c8ff);
+  color: #03101b;
+  box-shadow: 0 18px 34px rgba(32, 224, 176, 0.18);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.queueConvertButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 0 32px rgba(56, 200, 255, 0.26);
+}
+
+.queueConvertButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
 }
 
 .convertButton,
@@ -831,6 +1032,28 @@
 
   .previewCard {
     grid-template-columns: 1fr;
+  }
+
+  .fileQueueItem {
+    grid-template-columns: 34px minmax(0, 1fr) 72px 34px;
+    gap: 0.65rem;
+  }
+
+  .fileTo,
+  .fileQueueItem em {
+    display: none;
+  }
+
+  .fileQueueItem small {
+    grid-column: 2 / 3;
+  }
+
+  .fileQueueActions {
+    grid-template-columns: 1fr;
+  }
+
+  .queueConvertAll {
+    justify-content: flex-start;
   }
 }
 

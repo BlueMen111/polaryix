@@ -2,7 +2,7 @@
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Header } from "@/components/Header";
-import { LinkPreview, convertFile, downloadFromLink, getLinkPreview } from "@/lib/api";
+import { LinkPreview, convertFile, convertFiles, downloadFromLink, getLinkPreview } from "@/lib/api";
 import styles from "./page.module.css";
 
 const formatGroups = [
@@ -15,6 +15,7 @@ const formatGroups = [
 ];
 
 const allFormats = formatGroups.flatMap((group) => group.formats);
+const formatOptions = allFormats.map((format) => ({ value: format, label: format }));
 
 const comments = [
   "Converti meus arquivos em segundos. Muito mais prático.",
@@ -91,6 +92,7 @@ export default function HomePage() {
   const [toFormat, setToFormat] = useState("DDS");
   const [openPicker, setOpenPicker] = useState<"from" | "to" | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [fileName, setFileName] = useState("");
   const [status, setStatus] = useState("Selecione um arquivo para preparar a conversão.");
   const [downloadUrl, setDownloadUrl] = useState("");
@@ -101,10 +103,17 @@ export default function HomePage() {
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [isConverting, setIsConverting] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const conversionLabel = useMemo(() => `${fromFormat} > ${toFormat}`, [fromFormat, toFormat]);
   const acceptList = useMemo(() => allFormats.map((format) => `.${format.toLowerCase()}`).join(","), []);
+  const batchLimit = isPremium ? 10 : 2;
+  const totalSelectedSize = useMemo(() => selectedFiles.reduce((sum, file) => sum + file.size, 0), [selectedFiles]);
+
+  useEffect(() => {
+    setIsPremium(window.localStorage.getItem("polaryix:isPremium") === "true");
+  }, []);
 
   useEffect(() => {
     const normalizedUrl = downloadUrl.trim();
@@ -163,32 +172,73 @@ export default function HomePage() {
     setOpenPicker(null);
   }
 
-  function setFile(file: File | null) {
-    setSelectedFile(file);
-    setFileName(file?.name ?? "");
-    setStatus(file ? `${file.name} pronto para converter em ${toFormat}.` : "Selecione um arquivo para preparar a conversão.");
+  function setFiles(files: File[]) {
+    const limitedFiles = files.slice(0, batchLimit);
+    setSelectedFiles(limitedFiles);
+    setSelectedFile(limitedFiles[0] ?? null);
+    setFileName(limitedFiles.map((file) => file.name).join(", "));
+
+    if (files.length > batchLimit) {
+      setStatus(`Seu plano permite converter ${batchLimit} arquivo(s) por lote. Mantive os ${batchLimit} primeiros.`);
+      return;
+    }
+
+    if (limitedFiles.length > 1) {
+      setStatus(`${limitedFiles.length} arquivos prontos para converter em ${toFormat}. O download virá em ZIP.`);
+      return;
+    }
+
+    setStatus(
+      limitedFiles[0]
+        ? `${limitedFiles[0].name} pronto para converter em ${toFormat}.`
+        : "Selecione um arquivo para preparar a conversão."
+    );
+  }
+
+  function formatFileSize(bytes: number) {
+    if (bytes < 1024) {
+      return `${bytes} B`;
+    }
+
+    if (bytes < 1024 * 1024) {
+      return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  }
+
+  function removeSelectedFile(indexToRemove: number) {
+    setFiles(selectedFiles.filter((_, index) => index !== indexToRemove));
   }
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    setFile(event.target.files?.[0] ?? null);
+    setFiles(Array.from(event.target.files ?? []));
   }
 
   async function handleConvert() {
-    if (!selectedFile) {
+    if (selectedFiles.length === 0) {
       setStatus("Escolha um arquivo antes de iniciar a conversão.");
       fileInputRef.current?.click();
       return;
     }
 
     setIsConverting(true);
-    setStatus(`Convertendo ${conversionLabel}...`);
+    setStatus(selectedFiles.length > 1 ? `Convertendo ${selectedFiles.length} arquivos (${conversionLabel})...` : `Convertendo ${conversionLabel}...`);
 
     try {
-      const result = await convertFile({
-        file: selectedFile,
-        fromFormat,
-        toFormat,
-      });
+      const result =
+        selectedFiles.length > 1
+          ? await convertFiles({
+              files: selectedFiles,
+              fromFormat,
+              toFormat,
+              isPremium,
+            })
+          : await convertFile({
+              file: selectedFile as File,
+              fromFormat,
+              toFormat,
+            });
 
       setStatus(`Conversão concluída. Download iniciado: ${result.filename}`);
     } catch (error) {
@@ -305,30 +355,94 @@ export default function HomePage() {
                 />
               </div>
 
-              <button
-                type="button"
-                className={styles.dropzone}
-                onClick={() => fileInputRef.current?.click()}
-                onDragOver={(event) => {
-                  event.preventDefault();
-                }}
-                onDrop={(event) => {
-                  event.preventDefault();
-                  setFile(event.dataTransfer.files?.[0] ?? null);
-                }}
-              >
-                <input ref={fileInputRef} type="file" onChange={handleFileChange} accept={acceptList} />
-                <strong>Selecionar arquivo</strong>
-                <span>{fileName || "Arraste ou escolha uma imagem para converter"}</span>
-                <small>Fluxo atual: {conversionLabel}</small>
-              </button>
-
-              <div className={styles.actionRow}>
-                <button type="button" className={styles.convertButton} onClick={handleConvert} disabled={isConverting}>
-                  {isConverting ? "Convertendo..." : "Converter agora"}
+              {selectedFiles.length === 0 ? (
+                <button
+                  type="button"
+                  className={styles.dropzone}
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    setFiles(Array.from(event.dataTransfer.files ?? []));
+                  }}
+                >
+                  <input ref={fileInputRef} type="file" onChange={handleFileChange} accept={acceptList} multiple />
+                  <strong>Selecionar arquivo</strong>
+                  <span>Arraste ou escolha arquivos para converter</span>
+                  <small>Fluxo atual: {conversionLabel} · limite por lote: {batchLimit}</small>
                 </button>
+              ) : (
+                <div
+                  className={styles.fileQueue}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    setFiles([...selectedFiles, ...Array.from(event.dataTransfer.files ?? [])]);
+                  }}
+                >
+                  <input ref={fileInputRef} type="file" onChange={handleFileChange} accept={acceptList} multiple />
+                  <div className={styles.fileQueueList}>
+                    {selectedFiles.map((file, index) => (
+                      <article className={styles.fileQueueItem} key={`${file.name}-${file.size}-${index}`}>
+                        <span className={styles.fileIcon}>IMG</span>
+                        <strong>{file.name}</strong>
+                        <span className={styles.fileTo}>para</span>
+                        <select value={toFormat} onChange={(event) => setToFormat(event.target.value)}>
+                          {formatOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                        <em>Pronto</em>
+                        <small>{formatFileSize(file.size)}</small>
+                        <button type="button" onClick={() => removeSelectedFile(index)} aria-label={`Remover ${file.name}`}>
+                          ×
+                        </button>
+                      </article>
+                    ))}
+                  </div>
+
+                  <div className={styles.queueConvertAll}>
+                    <span>Converta todos para</span>
+                    <select value={toFormat} onChange={(event) => setToFormat(event.target.value)}>
+                      {formatOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className={styles.fileQueueActions}>
+                    <button type="button" className={styles.addFilesButton} onClick={() => fileInputRef.current?.click()}>
+                      + Adicionar mais arquivos
+                    </button>
+                    <p>
+                      {selectedFiles.length}/{batchLimit} arquivos · {formatFileSize(totalSelectedSize)}
+                    </p>
+                    <button type="button" className={styles.queueConvertButton} onClick={handleConvert} disabled={isConverting}>
+                      {isConverting ? "Convertendo..." : "Converter"}
+                      <span>→</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {selectedFiles.length === 0 ? (
+                <div className={styles.actionRow}>
+                  <button type="button" className={styles.convertButton} onClick={handleConvert} disabled={isConverting}>
+                    {isConverting ? "Convertendo..." : "Converter agora"}
+                  </button>
+                  <p className={styles.statusText}>{status}</p>
+                </div>
+              ) : (
                 <p className={styles.statusText}>{status}</p>
-              </div>
+              )}
             </div>
           </section>
 

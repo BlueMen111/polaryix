@@ -4,6 +4,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import zipfile
 from pathlib import Path
 from uuid import uuid4
 
@@ -39,6 +40,8 @@ VIDEO_FORMATS = {"MP4", "MOV", "AVI", "MKV", "WEBM", "M4V", "FLV", "WMV"}
 AUDIO_FORMATS = {"MP3", "WAV", "AAC", "OGG", "FLAC", "M4A", "WMA"}
 TEXT_FORMATS = {"TXT", "MD", "CSV", "JSON", "XML", "HTML"}
 ARCHIVE_FORMATS = {"ZIP"}
+FREE_BATCH_LIMIT = 2
+PREMIUM_BATCH_LIMIT = 10
 
 SUPPORTED_FORMATS = IMAGE_FORMATS.keys() | VIDEO_FORMATS | AUDIO_FORMATS | TEXT_FORMATS | ARCHIVE_FORMATS
 SAFE_URL_PATTERN = re.compile(r"^https?://", re.IGNORECASE)
@@ -200,8 +203,6 @@ def _convert_text(input_path: Path, output_path: Path) -> None:
 
 
 def _convert_to_zip(input_path: Path, output_path: Path, original_name: str) -> None:
-    import zipfile
-
     with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         archive.write(input_path, arcname=Path(original_name).name)
 
@@ -216,6 +217,39 @@ async def _save_upload(file: UploadFile, destination: Path) -> str:
 
     await file.seek(0)
     return safe_name
+
+
+def _convert_stored_file(
+    input_path: Path,
+    original_name: str,
+    source_format: str,
+    target_format: str,
+    workdir: Path,
+) -> tuple[Path, str]:
+    output_name = _output_filename(original_name, target_format)
+    output_path = workdir / f"{uuid4().hex}-{output_name}"
+
+    if source_format in IMAGE_FORMATS and target_format in IMAGE_FORMATS:
+        _convert_image(input_path, output_path, target_format)
+    elif target_format == "ZIP":
+        _convert_to_zip(input_path, output_path, original_name)
+    elif source_format in TEXT_FORMATS and target_format in TEXT_FORMATS:
+        _convert_text(input_path, output_path)
+    elif source_format in VIDEO_FORMATS | AUDIO_FORMATS and target_format in VIDEO_FORMATS | AUDIO_FORMATS:
+        _convert_media(input_path, output_path, target_format)
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Conversão {source_format} para {target_format} ainda não é suportada.",
+        )
+
+    if not output_path.exists() or output_path.stat().st_size == 0:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="A conversão não gerou um arquivo válido.",
+        )
+
+    return output_path, output_name
 
 
 @router.post("/convert-file")
@@ -234,28 +268,7 @@ async def convert_file(
             workdir = Path(temp_dir)
             input_path = workdir / f"input-{uuid4().hex}.{source_format.lower()}"
             safe_name = await _save_upload(file, input_path)
-            output_name = _output_filename(safe_name, target_format)
-            output_path = workdir / output_name
-
-            if source_format in IMAGE_FORMATS and target_format in IMAGE_FORMATS:
-                _convert_image(input_path, output_path, target_format)
-            elif target_format == "ZIP":
-                _convert_to_zip(input_path, output_path, safe_name)
-            elif source_format in TEXT_FORMATS and target_format in TEXT_FORMATS:
-                _convert_text(input_path, output_path)
-            elif source_format in VIDEO_FORMATS | AUDIO_FORMATS and target_format in VIDEO_FORMATS | AUDIO_FORMATS:
-                _convert_media(input_path, output_path, target_format)
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail=f"Conversão {source_format} para {target_format} ainda não é suportada.",
-                )
-
-            if not output_path.exists() or output_path.stat().st_size == 0:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="A conversão não gerou um arquivo válido.",
-                )
+            output_path, output_name = _convert_stored_file(input_path, safe_name, source_format, target_format, workdir)
 
             final_path = settings.processed_path / "conversions" / f"{uuid4().hex}-{output_name}"
             final_path.parent.mkdir(parents=True, exist_ok=True)
@@ -268,6 +281,64 @@ async def convert_file(
         final_path,
         media_type="application/octet-stream",
         filename=output_name,
+    )
+
+
+@router.post("/convert-batch")
+async def convert_batch(
+    files: list[UploadFile] = File(...),
+    from_format: str = Form(...),
+    to_format: str = Form(...),
+    is_premium: bool = Form(False),
+) -> FileResponse:
+    """Converte múltiplos arquivos e devolve um ZIP com os resultados."""
+
+    source_format = _normalize_format(from_format)
+    target_format = _normalize_format(to_format)
+    limit = PREMIUM_BATCH_LIMIT if is_premium else FREE_BATCH_LIMIT
+
+    if not files:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Envie pelo menos um arquivo.")
+
+    if len(files) > limit:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Limite de {limit} arquivos por lote para este plano.",
+        )
+
+    try:
+        with tempfile.TemporaryDirectory(prefix="polaryix-batch-") as temp_dir:
+            workdir = Path(temp_dir)
+            converted: list[tuple[Path, str]] = []
+
+            for index, file in enumerate(files, start=1):
+                input_path = workdir / f"input-{index}-{uuid4().hex}.{source_format.lower()}"
+                safe_name = await _save_upload(file, input_path)
+                converted.append(_convert_stored_file(input_path, safe_name, source_format, target_format, workdir))
+
+            zip_name = f"polaryix-conversoes-{uuid4().hex[:8]}.zip"
+            zip_path = workdir / zip_name
+
+            with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+                used_names: set[str] = set()
+                for output_path, output_name in converted:
+                    archive_name = output_name
+                    if archive_name in used_names:
+                        archive_name = f"{Path(output_name).stem}-{uuid4().hex[:6]}{Path(output_name).suffix}"
+                    used_names.add(archive_name)
+                    archive.write(output_path, arcname=archive_name)
+
+            final_path = settings.processed_path / "conversions" / zip_name
+            final_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(zip_path, final_path)
+
+    except FileSecurityError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    return FileResponse(
+        final_path,
+        media_type="application/zip",
+        filename=zip_name,
     )
 
 
