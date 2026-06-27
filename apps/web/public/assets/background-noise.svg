@@ -1,0 +1,10 @@
+<svg width="220" height="220" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg">
+  <filter id="n">
+    <feTurbulence type="fractalNoise" baseFrequency=".72" numOctaves="3" stitchTiles="stitch"/>
+    <feColorMatrix type="saturate" values="0"/>
+    <feComponentTransfer>
+      <feFuncA type="table" tableValues="0 .14"/>
+    </feComponentTransfer>
+  </filter>
+  <rect width="220" height="220" filter="url(#n)" opacity=".35"/>
+</svg>

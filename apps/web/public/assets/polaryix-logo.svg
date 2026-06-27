@@ -1,0 +1,32 @@
+<svg width="186" height="52" viewBox="0 0 186 52" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Polaryix</title>
+  <desc id="desc">Polaryix horizontal logo</desc>
+  <defs>
+    <linearGradient id="mark" x1="6" y1="6" x2="44" y2="46" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#38C8FF"/>
+      <stop offset="0.55" stop-color="#22E6B9"/>
+      <stop offset="1" stop-color="#6EA8FF"/>
+    </linearGradient>
+    <linearGradient id="text" x1="56" y1="13" x2="170" y2="39" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#D7F7FF"/>
+    </linearGradient>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.4" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.13 0 0 0 0 0.9 0 0 0 0 0.73 0 0 0 0.45 0"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#softGlow)">
+    <path d="M25.9 4.8 43.8 15.1v20.7L25.9 46.2 8 35.8V15.1L25.9 4.8Z" fill="url(#mark)" fill-opacity=".18" stroke="url(#mark)" stroke-width="2"/>
+    <path d="M25.9 11.2 38.2 18.3v14.2l-12.3 7.1-12.3-7.1V18.3l12.3-7.1Z" fill="#061326" stroke="#8DF8E5" stroke-width="1.4"/>
+    <path d="m17.5 20.7 8.4 4.9 8.5-4.9M25.9 25.6v9.9" stroke="#38C8FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="15.5" cy="16.8" r="2.6" fill="#fff"/>
+    <circle cx="35.8" cy="16.8" r="2.6" fill="#fff"/>
+    <path d="M20.2 35.7c2.7 1.7 8.2 1.7 11.4 0" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+  </g>
+  <path d="M59.4 37V14.8h9.7c4.9 0 8.1 2.9 8.1 7.2 0 4.4-3.2 7.3-8.1 7.3h-4.4V37h-5.3Zm5.3-12h4.1c2 0 3.1-1.1 3.1-2.9 0-1.8-1.1-2.9-3.1-2.9h-4.1V25Zm24.4 12.4c-5.2 0-8.8-3.6-8.8-8.6 0-5 3.6-8.6 8.8-8.6 5.1 0 8.7 3.6 8.7 8.6 0 5-3.6 8.6-8.7 8.6Zm0-4.4c2.1 0 3.5-1.7 3.5-4.2s-1.4-4.2-3.5-4.2c-2.2 0-3.6 1.7-3.6 4.2s1.4 4.2 3.6 4.2Zm12.2 4V13.7h5.1V37h-5.1Zm18.5.4c-5.2 0-8.8-3.6-8.8-8.6 0-5 3.6-8.6 8.8-8.6 5.1 0 8.7 3.6 8.7 8.6 0 5-3.6 8.6-8.7 8.6Zm0-4.4c2.1 0 3.5-1.7 3.5-4.2s-1.4-4.2-3.5-4.2c-2.2 0-3.6 1.7-3.6 4.2s1.4 4.2 3.6 4.2Zm12.1 4V20.6h4.9v2.7c.9-1.9 2.4-2.9 4.4-2.9.6 0 1.1.1 1.5.2v4.8c-.6-.2-1.2-.3-2-.3-2.4 0-3.8 1.4-3.8 4.1V37h-5Zm15.8 0V20.6h5.1V37h-5.1Zm2.5-18.5c-1.7 0-2.9-1.1-2.9-2.7 0-1.6 1.2-2.7 2.9-2.7s2.9 1.1 2.9 2.7c0 1.6-1.2 2.7-2.9 2.7Zm7.2 18.5 6.1-8.4-5.8-8h5.8l3 4.5 3-4.5h5.6l-5.8 7.9 6.2 8.5h-5.9l-3.3-4.9-3.3 4.9h-5.6Z" fill="url(#text)"/>
+</svg>
