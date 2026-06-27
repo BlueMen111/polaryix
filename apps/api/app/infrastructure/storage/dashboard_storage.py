@@ -64,7 +64,8 @@ def build_default_widgets_from_dataset(dataset: dict[str, Any]) -> list[Dashboar
     for kpi in profile.get("kpis", [])[:6]:
         widgets.append(
             DashboardWidget(
-                widget_type="kpi",
+                id=uuid4().hex,
+                type="kpi",
                 title=kpi["title"],
                 config=kpi,
             )
@@ -73,9 +74,51 @@ def build_default_widgets_from_dataset(dataset: dict[str, Any]) -> list[Dashboar
     for chart in profile.get("chart_suggestions", [])[:4]:
         widgets.append(
             DashboardWidget(
-                widget_type="chart",
+                id=uuid4().hex,
+                type="chart",
                 title=chart["title"],
                 config=chart,
+            )
+        )
+
+    if widgets:
+        return widgets
+
+    missing_total = sum(
+        int(column.get("missing_count", 0))
+        for column in profile.get("column_profiles", [])
+    )
+
+    fallback_kpis = [
+        {
+            "title": "Total de linhas",
+            "value": profile.get("rows", 0),
+            "description": "Quantidade de registros lidos no arquivo.",
+        },
+        {
+            "title": "Total de colunas",
+            "value": profile.get("columns", 0),
+            "description": "Quantidade de campos detectados no dataset.",
+        },
+        {
+            "title": "Linhas duplicadas",
+            "value": profile.get("duplicate_rows", 0),
+            "description": "Registros repetidos identificados na leitura inicial.",
+        },
+        {
+            "title": "Valores ausentes",
+            "value": missing_total,
+            "description": "Soma de valores vazios encontrados nas colunas.",
+        },
+    ]
+
+    for kpi in fallback_kpis:
+        widgets.append(
+            DashboardWidget(
+                id=uuid4().hex,
+                type="kpi",
+                title=kpi["title"],
+                config=kpi,
             )
         )
 
@@ -95,10 +138,7 @@ def create_dashboard(request: CreateDashboardRequest) -> dict[str, Any]:
     dashboard_id = uuid4().hex
     slug = _make_unique_slug(request.slug or request.title)
 
-    widgets = request.widgets
-
-    if widgets is None:
-        widgets = build_default_widgets_from_dataset(dataset)
+    widgets = build_default_widgets_from_dataset(dataset)
 
     payload: dict[str, Any] = {
         "id": dashboard_id,
@@ -132,6 +172,32 @@ def create_dashboard(request: CreateDashboardRequest) -> dict[str, Any]:
         raise DashboardStorageError("Não foi possível salvar o dashboard.") from exc
 
     return payload
+
+
+def save_dashboard_payload(dashboard: dict[str, Any]) -> dict[str, Any]:
+    """Atualiza um dashboard já criado em disco."""
+
+    _ensure_dirs()
+
+    dashboard_path = DASHBOARDS_DIR / f"{dashboard['id']}.json"
+    dashboard["updated_at"] = datetime.now(UTC).isoformat()
+
+    try:
+        dashboard_path.write_text(
+            json.dumps(dashboard, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+        if dashboard.get("is_public"):
+            public_path = PUBLIC_DIR / f"{dashboard['slug']}.json"
+            public_path.write_text(
+                json.dumps(dashboard, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+    except Exception as exc:
+        raise DashboardStorageError("Não foi possível atualizar o dashboard.") from exc
+
+    return dashboard
 
 
 def list_dashboards() -> list[dict[str, Any]]:

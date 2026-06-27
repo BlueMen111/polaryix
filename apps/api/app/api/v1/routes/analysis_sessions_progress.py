@@ -93,6 +93,10 @@ def get_session_progress(session_id: str) -> dict:
             "current_step": current_step,
             "completed_steps": completed_steps,
             "files_count": len(session_data.get("files", [])),
+            "dashboard_id": session_data.get("dashboard_id"),
+            "dashboard_url": (session_data.get("dashboard_specification") or {})
+            .get("metadata", {})
+            .get("public_url"),
             "error_message": session_data.get("error_message"),
         }
     

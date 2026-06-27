@@ -54,7 +54,8 @@ export type DatasetAnalysis = {
 
 export type DashboardWidget = {
   id: string;
-  widget_type: "kpi" | "chart" | string;
+  type?: "kpi" | "chart" | string;
+  widget_type?: "kpi" | "chart" | string;
   title: string;
   config: Record<string, unknown>;
 };
@@ -67,6 +68,38 @@ export type Dashboard = {
   is_public: boolean;
   widgets: DashboardWidget[];
   dataset: DatasetAnalysis;
+  analysis_context?: {
+    intent: {
+      summary: string;
+      roles: string[];
+      labels: string[];
+    };
+    files: {
+      filename: string;
+      rows: number;
+      columns: number;
+      roles: string[];
+      role_labels: string[];
+      relevance_score: number;
+      columns_detected: {
+        name: string;
+        role: string;
+        semantic_type: string;
+        confidence: number;
+        unique_count: number;
+        missing_percentage: number;
+        sample_values: string[];
+        relevance_score: number;
+      }[];
+    }[];
+    filters: {
+      column: string;
+      role: string;
+      label: string;
+      options: string[];
+      filename: string;
+    }[];
+  };
   public_url: string;
   created_at: string;
   updated_at: string;

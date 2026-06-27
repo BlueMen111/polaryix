@@ -1,0 +1,50 @@
+{
+  "dataset_id": "dca91b0a8778423588651aa4627b2054",
+  "original_filename": "product_category_name_translation.csv",
+  "stored_filename": "73bafa5c84854eab99017814fb70b99c.csv",
+  "extension": ".csv",
+  "content_type": "text/csv",
+  "size_bytes": 2613,
+  "profile": {
+    "rows": 71,
+    "columns": 2,
+    "duplicate_rows": 0,
+    "column_profiles": [
+      {
+        "name": "product_category_name",
+        "dtype": "object",
+        "semantic_type": "text",
+        "type_confidence": 0.6,
+        "type_reason": "Tipo original 'object' tratado como texto genérico.",
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "unique_count": 71,
+        "sample_values": [
+          "beleza_saude",
+          "informatica_acessorios",
+          "automotivo",
+          "cama_mesa_banho",
+          "moveis_decoracao"
+        ]
+      },
+      {
+        "name": "product_category_name_english",
+        "dtype": "object",
+        "semantic_type": "text",
+        "type_confidence": 0.6,
+        "type_reason": "Tipo original 'object' tratado como texto genérico.",
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "unique_count": 71,
+        "sample_values": [
+          "health_beauty",
+          "computers_accessories",
+          "auto",
+          "bed_bath_table",
+          "furniture_decor"
+        ]
+      }
+    ]
+  },
+  "created_at": "2026-06-26T22:42:58.653003+00:00"
+}

@@ -1,0 +1,50 @@
+.progressBox {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 10px;
+  background: rgba(30, 58, 95, 0.08);
+  color: #1e3a5f;
+  font-weight: 600;
+  margin: 1rem 0;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 3px solid rgba(30, 58, 95, 0.2);
+  border-top-color: #1e3a5f;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.fileName {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 400;
+}
+
+.error {
+  font-size: 0.85rem;
+  color: #dc3545;
+  font-weight: 500;
+}

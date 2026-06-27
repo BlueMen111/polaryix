@@ -1,0 +1,129 @@
+{
+  "id": "484e3a91cb154a7bb65c09771acf20ea",
+  "dataset_id": "b573b8f2fb454ac1a0350b5084bcd994",
+  "title": "Teste progresso Codex 4",
+  "slug": "teste-progresso-codex-4",
+  "is_public": true,
+  "widgets": [],
+  "dataset": {
+    "dataset_id": "b573b8f2fb454ac1a0350b5084bcd994",
+    "original_filename": "clientes.csv",
+    "stored_filename": "f26c84dfd7f74fc1aa7779d096b8ae9a.csv",
+    "extension": ".csv",
+    "content_type": "application/octet-stream",
+    "size_bytes": 376,
+    "profile": {
+      "rows": 5,
+      "columns": 6,
+      "duplicate_rows": 0,
+      "column_profiles": [
+        {
+          "name": "cliente_id",
+          "dtype": "int64",
+          "semantic_type": "possible_id",
+          "type_confidence": 0.75,
+          "type_reason": "A coluna é numérica inteira e possui muitos valores únicos.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 5,
+          "sample_values": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ]
+        },
+        {
+          "name": "nome",
+          "dtype": "object",
+          "semantic_type": "text",
+          "type_confidence": 0.6,
+          "type_reason": "Tipo original 'object' tratado como texto genérico.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 5,
+          "sample_values": [
+            "João Silva",
+            "Maria Santos",
+            "Pedro Oliveira",
+            "Ana Costa",
+            "Carlos Ferreira"
+          ]
+        },
+        {
+          "name": "email",
+          "dtype": "object",
+          "semantic_type": "email",
+          "type_confidence": 1.0,
+          "type_reason": "A maioria dos valores possui formato de e-mail.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 5,
+          "sample_values": [
+            "joao@example.com",
+            "maria@example.com",
+            "pedro@example.com",
+            "ana@example.com",
+            "carlos@example.com"
+          ]
+        },
+        {
+          "name": "cidade",
+          "dtype": "object",
+          "semantic_type": "text",
+          "type_confidence": 0.6,
+          "type_reason": "Tipo original 'object' tratado como texto genérico.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 5,
+          "sample_values": [
+            "São Paulo",
+            "Rio de Janeiro",
+            "Belo Horizonte",
+            "Curitiba",
+            "Salvador"
+          ]
+        },
+        {
+          "name": "vendas_totais",
+          "dtype": "int64",
+          "semantic_type": "possible_id",
+          "type_confidence": 0.75,
+          "type_reason": "A coluna é numérica inteira e possui muitos valores únicos.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 5,
+          "sample_values": [
+            "15000",
+            "22000",
+            "18500",
+            "25000",
+            "12000"
+          ]
+        },
+        {
+          "name": "data_primeira_compra",
+          "dtype": "object",
+          "semantic_type": "date",
+          "type_confidence": 1.0,
+          "type_reason": "A maioria dos valores parece representar datas.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 5,
+          "sample_values": [
+            "2020-01-15",
+            "2019-06-22",
+            "2021-03-10",
+            "2018-11-05",
+            "2022-02-28"
+          ]
+        }
+      ]
+    },
+    "created_at": "2026-06-26T22:32:05.257498+00:00"
+  },
+  "public_url": "/d/teste-progresso-codex-4",
+  "created_at": "2026-06-26T22:32:05.265088+00:00",
+  "updated_at": "2026-06-26T22:32:05.265088+00:00"
+}

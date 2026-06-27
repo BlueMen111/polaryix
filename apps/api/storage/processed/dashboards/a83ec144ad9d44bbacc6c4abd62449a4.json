@@ -1,0 +1,153 @@
+{
+  "id": "a83ec144ad9d44bbacc6c4abd62449a4",
+  "dataset_id": "dbabe9403f584562bf943f36972bccb2",
+  "title": "Dashboard operacional - 26/06/2026",
+  "slug": "dashboard-operacional-26062026-7",
+  "is_public": true,
+  "widgets": [
+    {
+      "id": "54bc9987c86049d9a2bd006ce2af7e2b",
+      "type": "kpi",
+      "title": "Total de linhas",
+      "config": {
+        "title": "Total de linhas",
+        "value": 103886,
+        "description": "Quantidade de registros lidos no arquivo."
+      }
+    },
+    {
+      "id": "7a52d39ffa8d4f098d0eebd31b56ae3e",
+      "type": "kpi",
+      "title": "Total de colunas",
+      "config": {
+        "title": "Total de colunas",
+        "value": 5,
+        "description": "Quantidade de campos detectados no dataset."
+      }
+    },
+    {
+      "id": "30a6e213a4284c479559d76a94c1762d",
+      "type": "kpi",
+      "title": "Linhas duplicadas",
+      "config": {
+        "title": "Linhas duplicadas",
+        "value": 0,
+        "description": "Registros repetidos identificados na leitura inicial."
+      }
+    },
+    {
+      "id": "b0c2cf0f4e234a4486529014d423c2f0",
+      "type": "kpi",
+      "title": "Valores ausentes",
+      "config": {
+        "title": "Valores ausentes",
+        "value": 0,
+        "description": "Soma de valores vazios encontrados nas colunas."
+      }
+    }
+  ],
+  "dataset": {
+    "dataset_id": "dbabe9403f584562bf943f36972bccb2",
+    "original_filename": "olist_order_payments_dataset.csv",
+    "stored_filename": "766d74d5ba63456da94b63cd9e04f676.csv",
+    "extension": ".csv",
+    "content_type": "text/csv",
+    "size_bytes": 5777138,
+    "profile": {
+      "rows": 103886,
+      "columns": 5,
+      "duplicate_rows": 0,
+      "column_profiles": [
+        {
+          "name": "order_id",
+          "dtype": "object",
+          "semantic_type": "text",
+          "type_confidence": 0.6,
+          "type_reason": "Tipo original 'object' tratado como texto genérico.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 99440,
+          "sample_values": [
+            "b81ef226f3fe1789b1e8b2acac839d17",
+            "a9810da82917af2d9aefd1278f1dcfa0",
+            "25e8ea4e93396b6fa0d3dd708e76c1bd",
+            "ba78997921bbcdc1373bb41e913ab953",
+            "42fdf880ba16b47b59251dd489d4441a"
+          ]
+        },
+        {
+          "name": "payment_sequential",
+          "dtype": "int64",
+          "semantic_type": "integer",
+          "type_confidence": 0.9,
+          "type_reason": "A coluna possui tipo inteiro nativo.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 29,
+          "sample_values": [
+            "1",
+            "1",
+            "1",
+            "1",
+            "1"
+          ]
+        },
+        {
+          "name": "payment_type",
+          "dtype": "object",
+          "semantic_type": "category",
+          "type_confidence": 0.8,
+          "type_reason": "A coluna possui baixa cardinalidade e parece categórica.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 5,
+          "sample_values": [
+            "credit_card",
+            "credit_card",
+            "credit_card",
+            "credit_card",
+            "credit_card"
+          ]
+        },
+        {
+          "name": "payment_installments",
+          "dtype": "int64",
+          "semantic_type": "integer",
+          "type_confidence": 0.9,
+          "type_reason": "A coluna possui tipo inteiro nativo.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 24,
+          "sample_values": [
+            "8",
+            "1",
+            "1",
+            "8",
+            "2"
+          ]
+        },
+        {
+          "name": "payment_value",
+          "dtype": "float64",
+          "semantic_type": "decimal",
+          "type_confidence": 0.9,
+          "type_reason": "A coluna possui tipo decimal nativo.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 29077,
+          "sample_values": [
+            "99.33",
+            "24.39",
+            "65.71",
+            "107.78",
+            "128.45"
+          ]
+        }
+      ]
+    },
+    "created_at": "2026-06-27T00:07:25.730212+00:00"
+  },
+  "public_url": "/d/dashboard-operacional-26062026-7",
+  "created_at": "2026-06-27T00:07:25.748851+00:00",
+  "updated_at": "2026-06-27T00:07:25.748851+00:00"
+}

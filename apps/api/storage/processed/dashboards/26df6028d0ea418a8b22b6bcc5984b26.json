@@ -1,0 +1,146 @@
+{
+  "id": "26df6028d0ea418a8b22b6bcc5984b26",
+  "dataset_id": "c8d2736a6d884ad2af7b8294c8f3bd53",
+  "title": "Dashboard financeiro - 26/06/2026",
+  "slug": "dashboard-financeiro-26062026-5",
+  "is_public": true,
+  "widgets": [],
+  "dataset": {
+    "dataset_id": "c8d2736a6d884ad2af7b8294c8f3bd53",
+    "original_filename": "olist_order_reviews_dataset.csv",
+    "stored_filename": "c3b19f61592c4e8b95570237afbb2624.csv",
+    "extension": ".csv",
+    "content_type": "text/csv",
+    "size_bytes": 14451670,
+    "profile": {
+      "rows": 99224,
+      "columns": 7,
+      "duplicate_rows": 0,
+      "column_profiles": [
+        {
+          "name": "review_id",
+          "dtype": "object",
+          "semantic_type": "text",
+          "type_confidence": 0.6,
+          "type_reason": "Tipo original 'object' tratado como texto genérico.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 98410,
+          "sample_values": [
+            "7bc2406110b926393aa56f80a40eba40",
+            "80e641a11e56f04c1ad469d5645fdfde",
+            "228ce5500dc1d8e020d8d1322874b6f0",
+            "e64fb393e7b32834bb789ff8bb30750e",
+            "f7c4243c7fe1938f181bec41a392bdeb"
+          ]
+        },
+        {
+          "name": "order_id",
+          "dtype": "object",
+          "semantic_type": "text",
+          "type_confidence": 0.6,
+          "type_reason": "Tipo original 'object' tratado como texto genérico.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 98673,
+          "sample_values": [
+            "73fc7af87114b39712e6da79b0a377eb",
+            "a548910a1c6147796b98fdf73dbeba33",
+            "f9e4b658b201a9f2ecdecbb34bed034b",
+            "658677c97b385a9be170737859d3511b",
+            "8e6bfb81e283fa7e4f11123a3fb894f1"
+          ]
+        },
+        {
+          "name": "review_score",
+          "dtype": "int64",
+          "semantic_type": "integer",
+          "type_confidence": 0.9,
+          "type_reason": "A coluna possui tipo inteiro nativo.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 5,
+          "sample_values": [
+            "4",
+            "5",
+            "5",
+            "5",
+            "5"
+          ]
+        },
+        {
+          "name": "review_comment_title",
+          "dtype": "object",
+          "semantic_type": "text",
+          "type_confidence": 0.6,
+          "type_reason": "Tipo original 'object' tratado como texto genérico.",
+          "missing_count": 87656,
+          "missing_percentage": 88.34,
+          "unique_count": 4527,
+          "sample_values": [
+            "recomendo",
+            "Super recomendo",
+            "Não chegou meu produto ",
+            "Ótimo",
+            "Muito bom."
+          ]
+        },
+        {
+          "name": "review_comment_message",
+          "dtype": "object",
+          "semantic_type": "text",
+          "type_confidence": 0.6,
+          "type_reason": "Tipo original 'object' tratado como texto genérico.",
+          "missing_count": 58247,
+          "missing_percentage": 58.7,
+          "unique_count": 36159,
+          "sample_values": [
+            "Recebi bem antes do prazo estipulado.",
+            "Parabéns lojas lannister adorei comprar pela Internet seguro e prático Parabéns a todos feliz Páscoa",
+            "aparelho eficiente. no site a marca do aparelho esta impresso como 3desinfector e ao chegar esta com outro nome...atualizar com a marca correta uma vez que é o mesmo aparelho",
+            "Mas um pouco ,travando...pelo valor ta Boa.\r\n",
+            "Vendedor confiável, produto ok e entrega antes do prazo."
+          ]
+        },
+        {
+          "name": "review_creation_date",
+          "dtype": "object",
+          "semantic_type": "date",
+          "type_confidence": 1.0,
+          "type_reason": "A maioria dos valores parece representar datas.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 636,
+          "sample_values": [
+            "2018-01-18 00:00:00",
+            "2018-03-10 00:00:00",
+            "2018-02-17 00:00:00",
+            "2017-04-21 00:00:00",
+            "2018-03-01 00:00:00"
+          ]
+        },
+        {
+          "name": "review_answer_timestamp",
+          "dtype": "object",
+          "semantic_type": "date",
+          "type_confidence": 1.0,
+          "type_reason": "A maioria dos valores parece representar datas.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 98248,
+          "sample_values": [
+            "2018-01-18 21:46:59",
+            "2018-03-11 03:05:13",
+            "2018-02-18 14:36:24",
+            "2017-04-21 22:02:06",
+            "2018-03-02 10:26:53"
+          ]
+        }
+      ]
+    },
+    "created_at": "2026-06-26T22:42:56.689449+00:00"
+  },
+  "public_url": "/d/dashboard-financeiro-26062026-5",
+  "created_at": "2026-06-26T22:42:56.703237+00:00",
+  "updated_at": "2026-06-26T22:42:56.703237+00:00"
+}

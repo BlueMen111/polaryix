@@ -144,6 +144,9 @@ def add_file_to_session(
     row_count: int | None = None,
     column_count: int | None = None,
     column_names: list[str] | None = None,
+    dataset_id: str | None = None,
+    analysis_context: dict[str, Any] | None = None,
+    user_description: str | None = None,
 ) -> dict[str, Any]:
     """Adiciona um arquivo a uma sessão de análise."""
 
@@ -161,6 +164,9 @@ def add_file_to_session(
         "row_count": row_count,
         "column_count": column_count,
         "column_names": column_names,
+        "dataset_id": dataset_id,
+        "analysis_context": analysis_context,
+        "user_description": user_description,
     }
 
     session_data["files"].append(file_entry)

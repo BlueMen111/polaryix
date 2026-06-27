@@ -1,0 +1,1189 @@
+{
+  "id": "8af7151a79cc44a7812493d4e4a40e43",
+  "dataset_id": "5d50268488a5451aaeae00d3f2b572b7",
+  "title": "Dashboard operacional - 26/06/2026",
+  "slug": "dashboard-operacional-26062026-6",
+  "is_public": true,
+  "widgets": [
+    {
+      "id": "ec9a0ae983604488a50c5c6e81c65d62",
+      "type": "kpi",
+      "title": "Registros analisados",
+      "config": {
+        "value": "103.886",
+        "description": "Linhas usadas como base principal do dashboard."
+      }
+    },
+    {
+      "id": "475b0553dfdd4c4bbadd4492a5337481",
+      "type": "kpi",
+      "title": "Receita total estimada",
+      "config": {
+        "value": "R$ 16.008.872,12",
+        "description": "Soma da coluna payment_value."
+      }
+    },
+    {
+      "id": "ddc1ba03ed84490d8067d2eb79569269",
+      "type": "kpi",
+      "title": "Ticket médio",
+      "config": {
+        "value": "R$ 154,10",
+        "description": "Média da coluna payment_value."
+      }
+    },
+    {
+      "id": "d3249567527045d09c11f2326c4df09d",
+      "type": "bar",
+      "title": "Receita por forma de pagamento",
+      "config": {
+        "description": "Soma de payment_value por payment_type.",
+        "items": [
+          {
+            "label": "credit_card",
+            "value": 12542084.19
+          },
+          {
+            "label": "boleto",
+            "value": 2869361.27
+          },
+          {
+            "label": "voucher",
+            "value": 379436.87
+          },
+          {
+            "label": "debit_card",
+            "value": 217989.79
+          },
+          {
+            "label": "not_defined",
+            "value": 0.0
+          }
+        ],
+        "value_format": "currency"
+      }
+    }
+  ],
+  "dataset": {
+    "dataset_id": "5d50268488a5451aaeae00d3f2b572b7",
+    "original_filename": "olist_geolocation_dataset.csv",
+    "stored_filename": "c5227712b302498c84f79c36be6fb43c.csv",
+    "extension": ".csv",
+    "content_type": "text/csv",
+    "size_bytes": 61273883,
+    "profile": {
+      "rows": 1000163,
+      "columns": 5,
+      "duplicate_rows": 261831,
+      "column_profiles": [
+        {
+          "name": "geolocation_zip_code_prefix",
+          "dtype": "int64",
+          "semantic_type": "integer",
+          "type_confidence": 0.9,
+          "type_reason": "A coluna possui tipo inteiro nativo.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 19015,
+          "sample_values": [
+            "1037",
+            "1046",
+            "1046",
+            "1041",
+            "1035"
+          ]
+        },
+        {
+          "name": "geolocation_lat",
+          "dtype": "float64",
+          "semantic_type": "decimal",
+          "type_confidence": 0.9,
+          "type_reason": "A coluna possui tipo decimal nativo.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 717360,
+          "sample_values": [
+            "-23.54562128115268",
+            "-23.54608112703553",
+            "-23.54612896641469",
+            "-23.5443921648681",
+            "-23.541577961711493"
+          ]
+        },
+        {
+          "name": "geolocation_lng",
+          "dtype": "float64",
+          "semantic_type": "decimal",
+          "type_confidence": 0.9,
+          "type_reason": "A coluna possui tipo decimal nativo.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 717613,
+          "sample_values": [
+            "-46.63929204800168",
+            "-46.64482029837157",
+            "-46.64295148361138",
+            "-46.63949930627844",
+            "-46.64160722329613"
+          ]
+        },
+        {
+          "name": "geolocation_city",
+          "dtype": "object",
+          "semantic_type": "text",
+          "type_confidence": 0.6,
+          "type_reason": "Tipo original 'object' tratado como texto genérico.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 8011,
+          "sample_values": [
+            "sao paulo",
+            "sao paulo",
+            "sao paulo",
+            "sao paulo",
+            "sao paulo"
+          ]
+        },
+        {
+          "name": "geolocation_state",
+          "dtype": "object",
+          "semantic_type": "category",
+          "type_confidence": 0.8,
+          "type_reason": "A coluna possui baixa cardinalidade e parece categórica.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 27,
+          "sample_values": [
+            "SP",
+            "SP",
+            "SP",
+            "SP",
+            "SP"
+          ]
+        }
+      ]
+    },
+    "created_at": "2026-06-27T00:07:23.163456+00:00"
+  },
+  "public_url": "/d/dashboard-operacional-26062026-6",
+  "created_at": "2026-06-27T00:07:23.175909+00:00",
+  "updated_at": "2026-06-27T00:07:27.842349+00:00",
+  "engine": {
+    "primary_file": "olist_order_payments_dataset.csv",
+    "metric_column": "payment_value",
+    "relationships": []
+  },
+  "analysis_context": {
+    "intent": {
+      "summary": "Esses são arquivos de uma empresa vendedora de produtos on-line.\n\nolist_customers_dataset.csv\tcustomer_id, customer_unique_id, customer_zip_code_prefix, customer_city, customer_state\tIdentifica os clientes e sua localização, permitindo análises geográficas e de recorrência.\nolist_geolocation_dataset.csv\tgeolocation_zip_code_prefix, geolocation_lat, geolocation_lng, geolocation_city, geolocation_state\tContém coordenadas geográficas dos CEPs, úteis para mapas, distâncias e logística.\nolist_order_i",
+      "roles": [
+        "sales",
+        "seller",
+        "customer",
+        "product",
+        "date",
+        "payment",
+        "location"
+      ],
+      "labels": [
+        "Vendas / pedidos",
+        "Vendedores",
+        "Clientes",
+        "Produtos",
+        "Datas e períodos",
+        "Pagamentos",
+        "Localização"
+      ]
+    },
+    "files": [
+      {
+        "filename": "olist_order_payments_dataset.csv",
+        "rows": 103886,
+        "columns": 5,
+        "roles": [
+          "date",
+          "payment",
+          "sales"
+        ],
+        "role_labels": [
+          "Datas e períodos",
+          "Pagamentos",
+          "Vendas / pedidos"
+        ],
+        "relevance_score": 50,
+        "columns_detected": [
+          {
+            "name": "order_id",
+            "role": "sales",
+            "semantic_type": "text",
+            "confidence": 0.6,
+            "unique_count": 99440,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "b81ef226f3fe1789b1e8b2acac839d17",
+              "a9810da82917af2d9aefd1278f1dcfa0",
+              "25e8ea4e93396b6fa0d3dd708e76c1bd",
+              "ba78997921bbcdc1373bb41e913ab953",
+              "42fdf880ba16b47b59251dd489d4441a"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "payment_sequential",
+            "role": "payment",
+            "semantic_type": "integer",
+            "confidence": 0.9,
+            "unique_count": 29,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "1",
+              "1",
+              "1",
+              "1",
+              "1"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "payment_type",
+            "role": "payment",
+            "semantic_type": "category",
+            "confidence": 0.8,
+            "unique_count": 5,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "credit_card",
+              "credit_card",
+              "credit_card",
+              "credit_card",
+              "credit_card"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "payment_installments",
+            "role": "payment",
+            "semantic_type": "integer",
+            "confidence": 0.9,
+            "unique_count": 24,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "8",
+              "1",
+              "1",
+              "8",
+              "2"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "payment_value",
+            "role": "payment",
+            "semantic_type": "decimal",
+            "confidence": 0.9,
+            "unique_count": 29077,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "99.33",
+              "24.39",
+              "65.71",
+              "107.78",
+              "128.45"
+            ],
+            "relevance_score": 7
+          }
+        ]
+      },
+      {
+        "filename": "olist_customers_dataset.csv",
+        "rows": 99441,
+        "columns": 5,
+        "roles": [
+          "customer",
+          "date"
+        ],
+        "role_labels": [
+          "Clientes",
+          "Datas e períodos"
+        ],
+        "relevance_score": 45,
+        "columns_detected": [
+          {
+            "name": "customer_id",
+            "role": "customer",
+            "semantic_type": "text",
+            "confidence": 0.6,
+            "unique_count": 99441,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "06b8999e2fba1a1fbc88172c00ba8bc7",
+              "18955e83d337fd6b2def6b18a428ac77",
+              "4e7b3e00288586ebd08712fdd0374a03",
+              "b2b6027bc5c5109e529d4dc6358b12c3",
+              "4f2d8ab171c80ec8364f7c12e35b23ad"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "customer_unique_id",
+            "role": "customer",
+            "semantic_type": "text",
+            "confidence": 0.6,
+            "unique_count": 96096,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "861eff4711a542e4b93843c6dd7febb0",
+              "290c77bc529b7ac935b93aa66c333dc3",
+              "060e732b5b29e8181a18229c7b0b2b5e",
+              "259dac757896d24d7702b9acbbff3f3c",
+              "345ecd01c38d18a9036ed96c73b8d066"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "customer_zip_code_prefix",
+            "role": "customer",
+            "semantic_type": "integer",
+            "confidence": 0.9,
+            "unique_count": 14994,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "14409",
+              "9790",
+              "1151",
+              "8775",
+              "13056"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "customer_city",
+            "role": "customer",
+            "semantic_type": "text",
+            "confidence": 0.6,
+            "unique_count": 4119,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "franca",
+              "sao bernardo do campo",
+              "sao paulo",
+              "mogi das cruzes",
+              "campinas"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "customer_state",
+            "role": "customer",
+            "semantic_type": "category",
+            "confidence": 0.8,
+            "unique_count": 27,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "SP",
+              "SP",
+              "SP",
+              "SP",
+              "SP"
+            ],
+            "relevance_score": 7
+          }
+        ]
+      },
+      {
+        "filename": "olist_geolocation_dataset.csv",
+        "rows": 1000163,
+        "columns": 5,
+        "roles": [
+          "date",
+          "location"
+        ],
+        "role_labels": [
+          "Datas e períodos",
+          "Localização"
+        ],
+        "relevance_score": 45,
+        "columns_detected": [
+          {
+            "name": "geolocation_zip_code_prefix",
+            "role": "location",
+            "semantic_type": "integer",
+            "confidence": 0.9,
+            "unique_count": 19015,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "1037",
+              "1046",
+              "1046",
+              "1041",
+              "1035"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "geolocation_lat",
+            "role": "location",
+            "semantic_type": "decimal",
+            "confidence": 0.9,
+            "unique_count": 717360,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "-23.54562128115268",
+              "-23.54608112703553",
+              "-23.54612896641469",
+              "-23.5443921648681",
+              "-23.541577961711493"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "geolocation_lng",
+            "role": "location",
+            "semantic_type": "decimal",
+            "confidence": 0.9,
+            "unique_count": 717613,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "-46.63929204800168",
+              "-46.64482029837157",
+              "-46.64295148361138",
+              "-46.63949930627844",
+              "-46.64160722329613"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "geolocation_city",
+            "role": "location",
+            "semantic_type": "text",
+            "confidence": 0.6,
+            "unique_count": 8011,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "sao paulo",
+              "sao paulo",
+              "sao paulo",
+              "sao paulo",
+              "sao paulo"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "geolocation_state",
+            "role": "location",
+            "semantic_type": "category",
+            "confidence": 0.8,
+            "unique_count": 27,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "SP",
+              "SP",
+              "SP",
+              "SP",
+              "SP"
+            ],
+            "relevance_score": 7
+          }
+        ]
+      },
+      {
+        "filename": "olist_customers_dataset.csv",
+        "rows": 99441,
+        "columns": 5,
+        "roles": [
+          "customer",
+          "date"
+        ],
+        "role_labels": [
+          "Clientes",
+          "Datas e períodos"
+        ],
+        "relevance_score": 45,
+        "columns_detected": [
+          {
+            "name": "customer_id",
+            "role": "customer",
+            "semantic_type": "text",
+            "confidence": 0.6,
+            "unique_count": 99441,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "06b8999e2fba1a1fbc88172c00ba8bc7",
+              "18955e83d337fd6b2def6b18a428ac77",
+              "4e7b3e00288586ebd08712fdd0374a03",
+              "b2b6027bc5c5109e529d4dc6358b12c3",
+              "4f2d8ab171c80ec8364f7c12e35b23ad"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "customer_unique_id",
+            "role": "customer",
+            "semantic_type": "text",
+            "confidence": 0.6,
+            "unique_count": 96096,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "861eff4711a542e4b93843c6dd7febb0",
+              "290c77bc529b7ac935b93aa66c333dc3",
+              "060e732b5b29e8181a18229c7b0b2b5e",
+              "259dac757896d24d7702b9acbbff3f3c",
+              "345ecd01c38d18a9036ed96c73b8d066"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "customer_zip_code_prefix",
+            "role": "customer",
+            "semantic_type": "integer",
+            "confidence": 0.9,
+            "unique_count": 14994,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "14409",
+              "9790",
+              "1151",
+              "8775",
+              "13056"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "customer_city",
+            "role": "customer",
+            "semantic_type": "text",
+            "confidence": 0.6,
+            "unique_count": 4119,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "franca",
+              "sao bernardo do campo",
+              "sao paulo",
+              "mogi das cruzes",
+              "campinas"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "customer_state",
+            "role": "customer",
+            "semantic_type": "category",
+            "confidence": 0.8,
+            "unique_count": 27,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "SP",
+              "SP",
+              "SP",
+              "SP",
+              "SP"
+            ],
+            "relevance_score": 7
+          }
+        ]
+      },
+      {
+        "filename": "olist_geolocation_dataset.csv",
+        "rows": 1000163,
+        "columns": 5,
+        "roles": [
+          "date",
+          "location"
+        ],
+        "role_labels": [
+          "Datas e períodos",
+          "Localização"
+        ],
+        "relevance_score": 45,
+        "columns_detected": [
+          {
+            "name": "geolocation_zip_code_prefix",
+            "role": "location",
+            "semantic_type": "integer",
+            "confidence": 0.9,
+            "unique_count": 19015,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "1037",
+              "1046",
+              "1046",
+              "1041",
+              "1035"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "geolocation_lat",
+            "role": "location",
+            "semantic_type": "decimal",
+            "confidence": 0.9,
+            "unique_count": 717360,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "-23.54562128115268",
+              "-23.54608112703553",
+              "-23.54612896641469",
+              "-23.5443921648681",
+              "-23.541577961711493"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "geolocation_lng",
+            "role": "location",
+            "semantic_type": "decimal",
+            "confidence": 0.9,
+            "unique_count": 717613,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "-46.63929204800168",
+              "-46.64482029837157",
+              "-46.64295148361138",
+              "-46.63949930627844",
+              "-46.64160722329613"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "geolocation_city",
+            "role": "location",
+            "semantic_type": "text",
+            "confidence": 0.6,
+            "unique_count": 8011,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "sao paulo",
+              "sao paulo",
+              "sao paulo",
+              "sao paulo",
+              "sao paulo"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "geolocation_state",
+            "role": "location",
+            "semantic_type": "category",
+            "confidence": 0.8,
+            "unique_count": 27,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "SP",
+              "SP",
+              "SP",
+              "SP",
+              "SP"
+            ],
+            "relevance_score": 7
+          }
+        ]
+      },
+      {
+        "filename": "olist_customers_dataset.csv",
+        "rows": 99441,
+        "columns": 5,
+        "roles": [
+          "customer",
+          "date"
+        ],
+        "role_labels": [
+          "Clientes",
+          "Datas e períodos"
+        ],
+        "relevance_score": 45,
+        "columns_detected": [
+          {
+            "name": "customer_id",
+            "role": "customer",
+            "semantic_type": "text",
+            "confidence": 0.6,
+            "unique_count": 99441,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "06b8999e2fba1a1fbc88172c00ba8bc7",
+              "18955e83d337fd6b2def6b18a428ac77",
+              "4e7b3e00288586ebd08712fdd0374a03",
+              "b2b6027bc5c5109e529d4dc6358b12c3",
+              "4f2d8ab171c80ec8364f7c12e35b23ad"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "customer_unique_id",
+            "role": "customer",
+            "semantic_type": "text",
+            "confidence": 0.6,
+            "unique_count": 96096,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "861eff4711a542e4b93843c6dd7febb0",
+              "290c77bc529b7ac935b93aa66c333dc3",
+              "060e732b5b29e8181a18229c7b0b2b5e",
+              "259dac757896d24d7702b9acbbff3f3c",
+              "345ecd01c38d18a9036ed96c73b8d066"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "customer_zip_code_prefix",
+            "role": "customer",
+            "semantic_type": "integer",
+            "confidence": 0.9,
+            "unique_count": 14994,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "14409",
+              "9790",
+              "1151",
+              "8775",
+              "13056"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "customer_city",
+            "role": "customer",
+            "semantic_type": "text",
+            "confidence": 0.6,
+            "unique_count": 4119,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "franca",
+              "sao bernardo do campo",
+              "sao paulo",
+              "mogi das cruzes",
+              "campinas"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "customer_state",
+            "role": "customer",
+            "semantic_type": "category",
+            "confidence": 0.8,
+            "unique_count": 27,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "SP",
+              "SP",
+              "SP",
+              "SP",
+              "SP"
+            ],
+            "relevance_score": 7
+          }
+        ]
+      },
+      {
+        "filename": "olist_geolocation_dataset.csv",
+        "rows": 1000163,
+        "columns": 5,
+        "roles": [
+          "date",
+          "location"
+        ],
+        "role_labels": [
+          "Datas e períodos",
+          "Localização"
+        ],
+        "relevance_score": 45,
+        "columns_detected": [
+          {
+            "name": "geolocation_zip_code_prefix",
+            "role": "location",
+            "semantic_type": "integer",
+            "confidence": 0.9,
+            "unique_count": 19015,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "1037",
+              "1046",
+              "1046",
+              "1041",
+              "1035"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "geolocation_lat",
+            "role": "location",
+            "semantic_type": "decimal",
+            "confidence": 0.9,
+            "unique_count": 717360,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "-23.54562128115268",
+              "-23.54608112703553",
+              "-23.54612896641469",
+              "-23.5443921648681",
+              "-23.541577961711493"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "geolocation_lng",
+            "role": "location",
+            "semantic_type": "decimal",
+            "confidence": 0.9,
+            "unique_count": 717613,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "-46.63929204800168",
+              "-46.64482029837157",
+              "-46.64295148361138",
+              "-46.63949930627844",
+              "-46.64160722329613"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "geolocation_city",
+            "role": "location",
+            "semantic_type": "text",
+            "confidence": 0.6,
+            "unique_count": 8011,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "sao paulo",
+              "sao paulo",
+              "sao paulo",
+              "sao paulo",
+              "sao paulo"
+            ],
+            "relevance_score": 7
+          },
+          {
+            "name": "geolocation_state",
+            "role": "location",
+            "semantic_type": "category",
+            "confidence": 0.8,
+            "unique_count": 27,
+            "missing_percentage": 0.0,
+            "sample_values": [
+              "SP",
+              "SP",
+              "SP",
+              "SP",
+              "SP"
+            ],
+            "relevance_score": 7
+          }
+        ]
+      }
+    ],
+    "filters": [
+      {
+        "column": "payment_type",
+        "role": "payment",
+        "label": "Pagamento",
+        "options": [
+          "boleto",
+          "credit_card",
+          "debit_card",
+          "not_defined",
+          "voucher"
+        ],
+        "filename": "olist_order_payments_dataset.csv"
+      },
+      {
+        "column": "payment_sequential",
+        "role": "payment",
+        "label": "Pagamentos",
+        "options": [
+          "1",
+          "1",
+          "1",
+          "1",
+          "1"
+        ],
+        "filename": "olist_order_payments_dataset.csv"
+      },
+      {
+        "column": "payment_type",
+        "role": "payment",
+        "label": "Pagamentos",
+        "options": [
+          "credit_card",
+          "credit_card",
+          "credit_card",
+          "credit_card",
+          "credit_card"
+        ],
+        "filename": "olist_order_payments_dataset.csv"
+      },
+      {
+        "column": "payment_installments",
+        "role": "payment",
+        "label": "Pagamentos",
+        "options": [
+          "8",
+          "1",
+          "1",
+          "8",
+          "2"
+        ],
+        "filename": "olist_order_payments_dataset.csv"
+      },
+      {
+        "column": "payment_value",
+        "role": "payment",
+        "label": "Pagamentos",
+        "options": [
+          "99.33",
+          "24.39",
+          "65.71",
+          "107.78",
+          "128.45"
+        ],
+        "filename": "olist_order_payments_dataset.csv"
+      },
+      {
+        "column": "customer_id",
+        "role": "customer",
+        "label": "Clientes",
+        "options": [
+          "06b8999e2fba1a1fbc88172c00ba8bc7",
+          "18955e83d337fd6b2def6b18a428ac77",
+          "4e7b3e00288586ebd08712fdd0374a03",
+          "b2b6027bc5c5109e529d4dc6358b12c3",
+          "4f2d8ab171c80ec8364f7c12e35b23ad"
+        ],
+        "filename": "olist_customers_dataset.csv"
+      },
+      {
+        "column": "customer_unique_id",
+        "role": "customer",
+        "label": "Clientes",
+        "options": [
+          "861eff4711a542e4b93843c6dd7febb0",
+          "290c77bc529b7ac935b93aa66c333dc3",
+          "060e732b5b29e8181a18229c7b0b2b5e",
+          "259dac757896d24d7702b9acbbff3f3c",
+          "345ecd01c38d18a9036ed96c73b8d066"
+        ],
+        "filename": "olist_customers_dataset.csv"
+      },
+      {
+        "column": "customer_zip_code_prefix",
+        "role": "customer",
+        "label": "Clientes",
+        "options": [
+          "14409",
+          "9790",
+          "1151",
+          "8775",
+          "13056"
+        ],
+        "filename": "olist_customers_dataset.csv"
+      },
+      {
+        "column": "customer_city",
+        "role": "customer",
+        "label": "Clientes",
+        "options": [
+          "franca",
+          "sao bernardo do campo",
+          "sao paulo",
+          "mogi das cruzes",
+          "campinas"
+        ],
+        "filename": "olist_customers_dataset.csv"
+      },
+      {
+        "column": "customer_state",
+        "role": "customer",
+        "label": "Clientes",
+        "options": [
+          "SP",
+          "SP",
+          "SP",
+          "SP",
+          "SP"
+        ],
+        "filename": "olist_customers_dataset.csv"
+      },
+      {
+        "column": "geolocation_zip_code_prefix",
+        "role": "location",
+        "label": "Localização",
+        "options": [
+          "1037",
+          "1046",
+          "1046",
+          "1041",
+          "1035"
+        ],
+        "filename": "olist_geolocation_dataset.csv"
+      },
+      {
+        "column": "geolocation_lat",
+        "role": "location",
+        "label": "Localização",
+        "options": [
+          "-23.54562128115268",
+          "-23.54608112703553",
+          "-23.54612896641469",
+          "-23.5443921648681",
+          "-23.541577961711493"
+        ],
+        "filename": "olist_geolocation_dataset.csv"
+      },
+      {
+        "column": "geolocation_lng",
+        "role": "location",
+        "label": "Localização",
+        "options": [
+          "-46.63929204800168",
+          "-46.64482029837157",
+          "-46.64295148361138",
+          "-46.63949930627844",
+          "-46.64160722329613"
+        ],
+        "filename": "olist_geolocation_dataset.csv"
+      },
+      {
+        "column": "geolocation_city",
+        "role": "location",
+        "label": "Localização",
+        "options": [
+          "sao paulo",
+          "sao paulo",
+          "sao paulo",
+          "sao paulo",
+          "sao paulo"
+        ],
+        "filename": "olist_geolocation_dataset.csv"
+      },
+      {
+        "column": "geolocation_state",
+        "role": "location",
+        "label": "Localização",
+        "options": [
+          "SP",
+          "SP",
+          "SP",
+          "SP",
+          "SP"
+        ],
+        "filename": "olist_geolocation_dataset.csv"
+      },
+      {
+        "column": "customer_id",
+        "role": "customer",
+        "label": "Clientes",
+        "options": [
+          "06b8999e2fba1a1fbc88172c00ba8bc7",
+          "18955e83d337fd6b2def6b18a428ac77",
+          "4e7b3e00288586ebd08712fdd0374a03",
+          "b2b6027bc5c5109e529d4dc6358b12c3",
+          "4f2d8ab171c80ec8364f7c12e35b23ad"
+        ],
+        "filename": "olist_customers_dataset.csv"
+      },
+      {
+        "column": "customer_unique_id",
+        "role": "customer",
+        "label": "Clientes",
+        "options": [
+          "861eff4711a542e4b93843c6dd7febb0",
+          "290c77bc529b7ac935b93aa66c333dc3",
+          "060e732b5b29e8181a18229c7b0b2b5e",
+          "259dac757896d24d7702b9acbbff3f3c",
+          "345ecd01c38d18a9036ed96c73b8d066"
+        ],
+        "filename": "olist_customers_dataset.csv"
+      },
+      {
+        "column": "customer_zip_code_prefix",
+        "role": "customer",
+        "label": "Clientes",
+        "options": [
+          "14409",
+          "9790",
+          "1151",
+          "8775",
+          "13056"
+        ],
+        "filename": "olist_customers_dataset.csv"
+      },
+      {
+        "column": "customer_city",
+        "role": "customer",
+        "label": "Clientes",
+        "options": [
+          "franca",
+          "sao bernardo do campo",
+          "sao paulo",
+          "mogi das cruzes",
+          "campinas"
+        ],
+        "filename": "olist_customers_dataset.csv"
+      },
+      {
+        "column": "customer_state",
+        "role": "customer",
+        "label": "Clientes",
+        "options": [
+          "SP",
+          "SP",
+          "SP",
+          "SP",
+          "SP"
+        ],
+        "filename": "olist_customers_dataset.csv"
+      },
+      {
+        "column": "geolocation_zip_code_prefix",
+        "role": "location",
+        "label": "Localização",
+        "options": [
+          "1037",
+          "1046",
+          "1046",
+          "1041",
+          "1035"
+        ],
+        "filename": "olist_geolocation_dataset.csv"
+      },
+      {
+        "column": "geolocation_lat",
+        "role": "location",
+        "label": "Localização",
+        "options": [
+          "-23.54562128115268",
+          "-23.54608112703553",
+          "-23.54612896641469",
+          "-23.5443921648681",
+          "-23.541577961711493"
+        ],
+        "filename": "olist_geolocation_dataset.csv"
+      },
+      {
+        "column": "geolocation_lng",
+        "role": "location",
+        "label": "Localização",
+        "options": [
+          "-46.63929204800168",
+          "-46.64482029837157",
+          "-46.64295148361138",
+          "-46.63949930627844",
+          "-46.64160722329613"
+        ],
+        "filename": "olist_geolocation_dataset.csv"
+      },
+      {
+        "column": "geolocation_city",
+        "role": "location",
+        "label": "Localização",
+        "options": [
+          "sao paulo",
+          "sao paulo",
+          "sao paulo",
+          "sao paulo",
+          "sao paulo"
+        ],
+        "filename": "olist_geolocation_dataset.csv"
+      }
+    ]
+  }
+}

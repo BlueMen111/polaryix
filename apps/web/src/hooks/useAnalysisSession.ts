@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useState } from "react";
 import { AnalysisSession, FileUploadResponse, CreateAnalysisSessionRequest, SessionProgress } from "@/types/analysis";
 
 interface UseAnalysisSessionResult {
@@ -9,7 +10,7 @@ interface UseAnalysisSessionResult {
   isLoading: boolean;
   error: string | null;
   createSession: (data: CreateAnalysisSessionRequest) => Promise<AnalysisSession>;
-  uploadFile: (sessionId: string, file: File) => Promise<FileUploadResponse>;
+  uploadFile: (sessionId: string, file: File, description?: string) => Promise<FileUploadResponse>;
   getProgress: (sessionId: string) => Promise<SessionProgress>;
   reset: () => void;
 }
@@ -22,13 +23,19 @@ export function useAnalysisSession(): UseAnalysisSessionResult {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const createSession = async (data: CreateAnalysisSessionRequest): Promise<AnalysisSession> => {
+  const createSession = useCallback(async (data: CreateAnalysisSessionRequest): Promise<AnalysisSession> => {
     setIsLoading(true);
     setError(null);
 
     try {
+      // Generate title from category and timestamp
+      const categoryName = data.objective_category || "análise";
+      const timestamp = new Date().toLocaleDateString("pt-BR");
+      const autoTitle = `Dashboard ${categoryName} - ${timestamp}`;
+
       // Map frontend fields to backend fields
       const backendData = {
+        title: autoTitle,
         description: data.business_description,
         objective: data.analysis_objective,
         objective_category: data.objective_category,
@@ -43,7 +50,10 @@ export function useAnalysisSession(): UseAnalysisSessionResult {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || "Erro ao criar sessão");
+        const errorMsg = typeof errorData.detail === 'string' 
+          ? errorData.detail 
+          : JSON.stringify(errorData.detail);
+        throw new Error(errorMsg || "Erro ao criar sessão");
       }
 
       const newSession: AnalysisSession = await response.json();
@@ -56,27 +66,59 @@ export function useAnalysisSession(): UseAnalysisSessionResult {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const uploadFile = async (sessionId: string, file: File): Promise<FileUploadResponse> => {
+  const uploadFile = useCallback(async (sessionId: string, file: File, description?: string): Promise<FileUploadResponse> => {
     setIsLoading(true);
     setError(null);
 
     try {
+      // Validação de tamanho no frontend (100MB)
+      const MAX_FILE_SIZE_MB = 100;
+      const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+      
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        throw new Error(`Arquivo muito grande. Limite máximo: ${MAX_FILE_SIZE_MB}MB.`);
+      }
+
       const formData = new FormData();
       formData.append("file", file);
+      if (description?.trim()) {
+        formData.append("file_description", description.trim());
+      }
+
+      console.log(`Uploading file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB) to session: ${sessionId}`);
 
       const response = await fetch(`${API_BASE_URL}/api/v1/analysis-sessions/${sessionId}/files`, {
         method: "POST",
         body: formData,
       });
 
+      const responseData = await response.json();
+      console.log("Upload response:", responseData);
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Erro ao fazer upload");
+        console.error("Upload error - Status:", response.status);
+        console.error("Upload error - Full Response:", responseData);
+        console.error("Upload error - Response JSON:", JSON.stringify(responseData, null, 2));
+        
+        let errorMsg = "";
+        if (responseData.detail) {
+          errorMsg = typeof responseData.detail === 'string' 
+            ? responseData.detail 
+            : JSON.stringify(responseData.detail);
+        } else if (responseData.message) {
+          errorMsg = responseData.message;
+        } else if (responseData.error) {
+          errorMsg = responseData.error;
+        } else {
+          errorMsg = `Erro HTTP ${response.status}: ${response.statusText || 'Erro desconhecido'}`;
+        }
+        
+        throw new Error(errorMsg);
       }
 
-      const result: FileUploadResponse = await response.json();
+      const result: FileUploadResponse = responseData;
 
       // Atualizar session com informações retornadas
       setSession((prev) =>
@@ -85,6 +127,7 @@ export function useAnalysisSession(): UseAnalysisSessionResult {
               ...prev,
               files_count: result.session.files_count,
               status: result.session.status,
+              dashboard_id: result.session.dashboard_id ?? prev.dashboard_id,
               updated_at: new Date().toISOString(),
             }
           : null
@@ -92,15 +135,15 @@ export function useAnalysisSession(): UseAnalysisSessionResult {
 
       return result;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Erro desconhecido";
+      const errorMessage = err instanceof Error ? err.message : "Erro ao fazer upload";
       setError(errorMessage);
       throw err;
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const getProgress = async (sessionId: string): Promise<SessionProgress> => {
+  const getProgress = useCallback(async (sessionId: string): Promise<SessionProgress> => {
     setIsLoading(true);
     setError(null);
 
@@ -122,14 +165,14 @@ export function useAnalysisSession(): UseAnalysisSessionResult {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const reset = () => {
+  const reset = useCallback(() => {
     setSession(null);
     setProgress(null);
     setError(null);
     setIsLoading(false);
-  };
+  }, []);
 
   return {
     session,

@@ -17,3 +17,4 @@ storage/reports/*
 .DS_Store
 Thumbs.db
 Novo(a) Documento de Texto.txt
+/apps/api/storage/quarantine

@@ -1,0 +1,61 @@
+{
+  "id": "83476c0c2a034389ba881d4ae35637a9",
+  "dataset_id": "ff07f12eb00a473eaa1a4c96b2d3a1cc",
+  "title": "Dashboard financeiro - 26/06/2026",
+  "slug": "dashboard-financeiro-26062026-18",
+  "is_public": true,
+  "widgets": [],
+  "dataset": {
+    "dataset_id": "ff07f12eb00a473eaa1a4c96b2d3a1cc",
+    "original_filename": "product_category_name_translation.csv",
+    "stored_filename": "a949472471254deb89b9659023f1de2a.csv",
+    "extension": ".csv",
+    "content_type": "text/csv",
+    "size_bytes": 2613,
+    "profile": {
+      "rows": 71,
+      "columns": 2,
+      "duplicate_rows": 0,
+      "column_profiles": [
+        {
+          "name": "product_category_name",
+          "dtype": "object",
+          "semantic_type": "text",
+          "type_confidence": 0.6,
+          "type_reason": "Tipo original 'object' tratado como texto genérico.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 71,
+          "sample_values": [
+            "beleza_saude",
+            "informatica_acessorios",
+            "automotivo",
+            "cama_mesa_banho",
+            "moveis_decoracao"
+          ]
+        },
+        {
+          "name": "product_category_name_english",
+          "dtype": "object",
+          "semantic_type": "text",
+          "type_confidence": 0.6,
+          "type_reason": "Tipo original 'object' tratado como texto genérico.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 71,
+          "sample_values": [
+            "health_beauty",
+            "computers_accessories",
+            "auto",
+            "bed_bath_table",
+            "furniture_decor"
+          ]
+        }
+      ]
+    },
+    "created_at": "2026-06-26T22:51:30.219654+00:00"
+  },
+  "public_url": "/d/dashboard-financeiro-26062026-18",
+  "created_at": "2026-06-26T22:51:30.227624+00:00",
+  "updated_at": "2026-06-26T22:51:30.227624+00:00"
+}

@@ -1,0 +1,50 @@
+{
+  "id": "ad3ebbe720e64f109af4ef9428223fef",
+  "title": "Dashboard financeiro - 26/06/2026",
+  "description": "Eu sou dono de uma empresa de negocios nacionais, tenho esses CVS's, ontem contem informações da empresa, e preciso montar um dashboard, informando as maiores vendas, menores vendas, os estados que mais venderam, quais vendedores mais venderam e quais itens foram mais vendidos.",
+  "objective": "preciso montar um dashboard, informando as maiores vendas, menores vendas, os estados que mais venderam, quais vendedores mais venderam e quais itens foram mais vendidos.",
+  "objective_category": "financeiro",
+  "category": "Financeiro",
+  "files": [
+    {
+      "file_id": "efd2f68a5d07494abafc391d695cf46f",
+      "filename": "olist_customers_dataset.csv",
+      "size_bytes": 9033957,
+      "format": "csv",
+      "uploaded_at": "2026-06-26T21:31:39.781120+00:00",
+      "row_count": 99441,
+      "column_count": 5,
+      "column_names": [
+        "customer_id",
+        "customer_unique_id",
+        "customer_zip_code_prefix",
+        "customer_city",
+        "customer_state"
+      ]
+    },
+    {
+      "file_id": "e0577fad4b2645e19e55b8b22c73b7e2",
+      "filename": "olist_customers_dataset.csv",
+      "size_bytes": 9033957,
+      "format": "csv",
+      "uploaded_at": "2026-06-26T21:33:11.771047+00:00",
+      "row_count": 99441,
+      "column_count": 5,
+      "column_names": [
+        "customer_id",
+        "customer_unique_id",
+        "customer_zip_code_prefix",
+        "customer_city",
+        "customer_state"
+      ]
+    }
+  ],
+  "status": "draft",
+  "processing_steps": [],
+  "dashboard_specification": null,
+  "dashboard_id": null,
+  "created_at": "2026-06-26T21:31:32.981457+00:00",
+  "updated_at": "2026-06-26T21:33:11.771047+00:00",
+  "completed_at": null,
+  "error_message": null
+}

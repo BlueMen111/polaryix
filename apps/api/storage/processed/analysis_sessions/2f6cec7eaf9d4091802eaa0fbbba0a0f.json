@@ -1,0 +1,51 @@
+{
+  "id": "2f6cec7eaf9d4091802eaa0fbbba0a0f",
+  "title": "Teste progresso Codex 5",
+  "description": "Teste automatizado",
+  "objective": "Verificar link do dashboard",
+  "objective_category": "comercial",
+  "category": null,
+  "files": [
+    {
+      "file_id": "ff3d9568477647359d4c3f5db43e0781",
+      "filename": "clientes.csv",
+      "size_bytes": 376,
+      "format": "csv",
+      "uploaded_at": "2026-06-26T22:33:55.097689+00:00",
+      "row_count": 5,
+      "column_count": 6,
+      "column_names": [
+        "cliente_id",
+        "nome",
+        "email",
+        "cidade",
+        "vendas_totais",
+        "data_primeira_compra"
+      ]
+    }
+  ],
+  "status": "completed",
+  "processing_steps": [
+    "Entendendo seu negócio",
+    "Lendo arquivos",
+    "Relacionando dados",
+    "Detectando indicadores",
+    "Planejando Dashboard",
+    "Construindo gráficos",
+    "Finalizando"
+  ],
+  "dashboard_specification": {
+    "title": "Teste progresso Codex 5",
+    "description": "Dashboard inicial gerado a partir do arquivo enviado.",
+    "sections": [],
+    "metadata": {
+      "dataset_id": "6e349e4ce2cf40c9b02fcc1c9623b7d6",
+      "public_url": "/d/teste-progresso-codex-5"
+    }
+  },
+  "dashboard_id": "f25ba39c62c1447db1d7a50ef4f5e29c",
+  "created_at": "2026-06-26T22:33:54.781445+00:00",
+  "updated_at": "2026-06-26T22:33:55.111921+00:00",
+  "completed_at": "2026-06-26T22:33:55.104691+00:00",
+  "error_message": null
+}

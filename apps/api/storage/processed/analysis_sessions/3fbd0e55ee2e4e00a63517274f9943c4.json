@@ -1,0 +1,98 @@
+{
+  "id": "3fbd0e55ee2e4e00a63517274f9943c4",
+  "title": "Dashboard outro - 26/06/2026",
+  "description": "Eu sou dono de uma empresa de negocios nacionais, tenho esses CVS's, ontem contem informações da empresa, e preciso montar um dashboard, informando as maiores vendas, menores vendas, os estados que mais venderam, quais vendedores mais venderam e quais itens foram mais vendidos.",
+  "objective": "preciso montar um dashboard, informando as maiores vendas, menores vendas, os estados que mais venderam, quais vendedores mais venderam e quais itens foram mais vendidos.",
+  "objective_category": "outro",
+  "category": "Financeiro",
+  "files": [
+    {
+      "file_id": "712470f097984d91920afc74fc32df9d",
+      "filename": "olist_customers_dataset.csv",
+      "size_bytes": 9033957,
+      "format": "csv",
+      "uploaded_at": "2026-06-26T21:25:40.845806+00:00",
+      "row_count": 99441,
+      "column_count": 5,
+      "column_names": [
+        "customer_id",
+        "customer_unique_id",
+        "customer_zip_code_prefix",
+        "customer_city",
+        "customer_state"
+      ]
+    },
+    {
+      "file_id": "659a5dbc7a9144d98edf984f8bb0593f",
+      "filename": "olist_customers_dataset.csv",
+      "size_bytes": 9033957,
+      "format": "csv",
+      "uploaded_at": "2026-06-26T21:26:23.002390+00:00",
+      "row_count": 99441,
+      "column_count": 5,
+      "column_names": [
+        "customer_id",
+        "customer_unique_id",
+        "customer_zip_code_prefix",
+        "customer_city",
+        "customer_state"
+      ]
+    },
+    {
+      "file_id": "6b91f27ec7c74495ae9c784a6e6505ed",
+      "filename": "olist_customers_dataset.csv",
+      "size_bytes": 9033957,
+      "format": "csv",
+      "uploaded_at": "2026-06-26T21:26:51.543466+00:00",
+      "row_count": 99441,
+      "column_count": 5,
+      "column_names": [
+        "customer_id",
+        "customer_unique_id",
+        "customer_zip_code_prefix",
+        "customer_city",
+        "customer_state"
+      ]
+    },
+    {
+      "file_id": "cc4c95d400514d5bad688093eda2afda",
+      "filename": "olist_customers_dataset.csv",
+      "size_bytes": 9033957,
+      "format": "csv",
+      "uploaded_at": "2026-06-26T21:30:40.109765+00:00",
+      "row_count": 99441,
+      "column_count": 5,
+      "column_names": [
+        "customer_id",
+        "customer_unique_id",
+        "customer_zip_code_prefix",
+        "customer_city",
+        "customer_state"
+      ]
+    },
+    {
+      "file_id": "63a2191c70f64fb08c4225659c7fbf15",
+      "filename": "olist_customers_dataset.csv",
+      "size_bytes": 9033957,
+      "format": "csv",
+      "uploaded_at": "2026-06-26T21:31:07.769756+00:00",
+      "row_count": 99441,
+      "column_count": 5,
+      "column_names": [
+        "customer_id",
+        "customer_unique_id",
+        "customer_zip_code_prefix",
+        "customer_city",
+        "customer_state"
+      ]
+    }
+  ],
+  "status": "draft",
+  "processing_steps": [],
+  "dashboard_specification": null,
+  "dashboard_id": null,
+  "created_at": "2026-06-26T21:24:40.497776+00:00",
+  "updated_at": "2026-06-26T21:31:07.769756+00:00",
+  "completed_at": null,
+  "error_message": null
+}

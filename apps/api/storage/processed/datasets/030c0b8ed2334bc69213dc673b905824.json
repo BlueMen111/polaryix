@@ -1,0 +1,101 @@
+{
+  "dataset_id": "030c0b8ed2334bc69213dc673b905824",
+  "original_filename": "olist_geolocation_dataset.csv",
+  "stored_filename": "f00ff97030f941f1b44239a2e7035a41.csv",
+  "extension": ".csv",
+  "content_type": "text/csv",
+  "size_bytes": 61273883,
+  "profile": {
+    "rows": 1000163,
+    "columns": 5,
+    "duplicate_rows": 261831,
+    "column_profiles": [
+      {
+        "name": "geolocation_zip_code_prefix",
+        "dtype": "int64",
+        "semantic_type": "integer",
+        "type_confidence": 0.9,
+        "type_reason": "A coluna possui tipo inteiro nativo.",
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "unique_count": 19015,
+        "sample_values": [
+          "1037",
+          "1046",
+          "1046",
+          "1041",
+          "1035"
+        ]
+      },
+      {
+        "name": "geolocation_lat",
+        "dtype": "float64",
+        "semantic_type": "decimal",
+        "type_confidence": 0.9,
+        "type_reason": "A coluna possui tipo decimal nativo.",
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "unique_count": 717360,
+        "sample_values": [
+          "-23.54562128115268",
+          "-23.54608112703553",
+          "-23.54612896641469",
+          "-23.5443921648681",
+          "-23.541577961711493"
+        ]
+      },
+      {
+        "name": "geolocation_lng",
+        "dtype": "float64",
+        "semantic_type": "decimal",
+        "type_confidence": 0.9,
+        "type_reason": "A coluna possui tipo decimal nativo.",
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "unique_count": 717613,
+        "sample_values": [
+          "-46.63929204800168",
+          "-46.64482029837157",
+          "-46.64295148361138",
+          "-46.63949930627844",
+          "-46.64160722329613"
+        ]
+      },
+      {
+        "name": "geolocation_city",
+        "dtype": "object",
+        "semantic_type": "text",
+        "type_confidence": 0.6,
+        "type_reason": "Tipo original 'object' tratado como texto genérico.",
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "unique_count": 8011,
+        "sample_values": [
+          "sao paulo",
+          "sao paulo",
+          "sao paulo",
+          "sao paulo",
+          "sao paulo"
+        ]
+      },
+      {
+        "name": "geolocation_state",
+        "dtype": "object",
+        "semantic_type": "category",
+        "type_confidence": 0.8,
+        "type_reason": "A coluna possui baixa cardinalidade e parece categórica.",
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "unique_count": 27,
+        "sample_values": [
+          "SP",
+          "SP",
+          "SP",
+          "SP",
+          "SP"
+        ]
+      }
+    ]
+  },
+  "created_at": "2026-06-27T00:06:44.444370+00:00"
+}

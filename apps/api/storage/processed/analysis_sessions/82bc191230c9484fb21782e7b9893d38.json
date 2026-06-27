@@ -1,0 +1,169 @@
+{
+  "id": "82bc191230c9484fb21782e7b9893d38",
+  "title": "Dashboard financeiro - 26/06/2026",
+  "description": "Eu sou dono de uma empresa de negocios nacionais, tenho esses CVS's, ontem contem informações da empresa, e preciso montar um dashboard, informando as maiores vendas, menores vendas, os estados que mais venderam, quais vendedores mais venderam e quais itens foram mais vendidos.",
+  "objective": "preciso montar um dashboard, informando as maiores vendas, menores vendas, os estados que mais venderam, quais vendedores mais venderam e quais itens foram mais vendidos.",
+  "objective_category": "financeiro",
+  "category": "Financeiro",
+  "files": [
+    {
+      "file_id": "4efc3de04beb4727915b96477fede51e",
+      "filename": "olist_customers_dataset.csv",
+      "size_bytes": 9033957,
+      "format": "csv",
+      "uploaded_at": "2026-06-26T21:49:09.646185+00:00",
+      "row_count": 99441,
+      "column_count": 5,
+      "column_names": [
+        "customer_id",
+        "customer_unique_id",
+        "customer_zip_code_prefix",
+        "customer_city",
+        "customer_state"
+      ]
+    },
+    {
+      "file_id": "ae548006543143409425e4faaf1850b8",
+      "filename": "olist_customers_dataset.csv",
+      "size_bytes": 9033957,
+      "format": "csv",
+      "uploaded_at": "2026-06-26T21:49:14.483950+00:00",
+      "row_count": 99441,
+      "column_count": 5,
+      "column_names": [
+        "customer_id",
+        "customer_unique_id",
+        "customer_zip_code_prefix",
+        "customer_city",
+        "customer_state"
+      ]
+    },
+    {
+      "file_id": "6fd0087c89c646b9a6bdaba1d206164c",
+      "filename": "olist_order_items_dataset.csv",
+      "size_bytes": 15438671,
+      "format": "csv",
+      "uploaded_at": "2026-06-26T21:49:15.440206+00:00",
+      "row_count": 112650,
+      "column_count": 7,
+      "column_names": [
+        "order_id",
+        "order_item_id",
+        "product_id",
+        "seller_id",
+        "shipping_limit_date",
+        "price",
+        "freight_value"
+      ]
+    },
+    {
+      "file_id": "ee68b8654f964ae487775909a6352e2f",
+      "filename": "olist_order_payments_dataset.csv",
+      "size_bytes": 5777138,
+      "format": "csv",
+      "uploaded_at": "2026-06-26T21:49:15.901453+00:00",
+      "row_count": 103886,
+      "column_count": 5,
+      "column_names": [
+        "order_id",
+        "payment_sequential",
+        "payment_type",
+        "payment_installments",
+        "payment_value"
+      ]
+    },
+    {
+      "file_id": "2f09fceb544e4a729f231d519105b5e7",
+      "filename": "olist_order_reviews_dataset.csv",
+      "size_bytes": 14451670,
+      "format": "csv",
+      "uploaded_at": "2026-06-26T21:49:16.819412+00:00",
+      "row_count": 99224,
+      "column_count": 7,
+      "column_names": [
+        "review_id",
+        "order_id",
+        "review_score",
+        "review_comment_title",
+        "review_comment_message",
+        "review_creation_date",
+        "review_answer_timestamp"
+      ]
+    },
+    {
+      "file_id": "565023fcea9c4fa29df5fc8ea91df9fd",
+      "filename": "olist_orders_dataset.csv",
+      "size_bytes": 17654914,
+      "format": "csv",
+      "uploaded_at": "2026-06-26T21:49:17.927388+00:00",
+      "row_count": 99441,
+      "column_count": 8,
+      "column_names": [
+        "order_id",
+        "customer_id",
+        "order_status",
+        "order_purchase_timestamp",
+        "order_approved_at",
+        "order_delivered_carrier_date",
+        "order_delivered_customer_date",
+        "order_estimated_delivery_date"
+      ]
+    },
+    {
+      "file_id": "81125a0f7561448eb59f0b93879860fe",
+      "filename": "olist_products_dataset.csv",
+      "size_bytes": 2379446,
+      "format": "csv",
+      "uploaded_at": "2026-06-26T21:49:18.216111+00:00",
+      "row_count": 32951,
+      "column_count": 9,
+      "column_names": [
+        "product_id",
+        "product_category_name",
+        "product_name_lenght",
+        "product_description_lenght",
+        "product_photos_qty",
+        "product_weight_g",
+        "product_length_cm",
+        "product_height_cm",
+        "product_width_cm"
+      ]
+    },
+    {
+      "file_id": "abaf8bf7909441fe803c824184d243f1",
+      "filename": "olist_sellers_dataset.csv",
+      "size_bytes": 174703,
+      "format": "csv",
+      "uploaded_at": "2026-06-26T21:49:18.280732+00:00",
+      "row_count": 3095,
+      "column_count": 4,
+      "column_names": [
+        "seller_id",
+        "seller_zip_code_prefix",
+        "seller_city",
+        "seller_state"
+      ]
+    },
+    {
+      "file_id": "81cc0d62976b4caaa884e386ca0d68f8",
+      "filename": "product_category_name_translation.csv",
+      "size_bytes": 2613,
+      "format": "csv",
+      "uploaded_at": "2026-06-26T21:49:18.308000+00:00",
+      "row_count": 71,
+      "column_count": 2,
+      "column_names": [
+        "product_category_name",
+        "product_category_name_english"
+      ]
+    }
+  ],
+  "status": "draft",
+  "processing_steps": [],
+  "dashboard_specification": null,
+  "dashboard_id": null,
+  "created_at": "2026-06-26T21:49:04.142947+00:00",
+  "updated_at": "2026-06-26T21:49:18.308000+00:00",
+  "completed_at": null,
+  "error_message": null
+}

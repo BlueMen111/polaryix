@@ -1,0 +1,256 @@
+.shell {
+  min-height: 100vh;
+  background: #f7f9fc;
+  color: #1f2937;
+  padding: 32px 0;
+}
+
+.dashboard {
+  width: min(1320px, calc(100% - 32px));
+  margin: 0 auto;
+  background: white;
+  border: 1px solid #e5eaf1;
+  border-radius: 8px;
+  box-shadow: 0 18px 60px rgba(15, 23, 42, 0.08);
+  padding: 32px;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid #e5eaf1;
+}
+
+.titleGroup {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.iconBox {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #edf2ff, #f4ecff);
+  font-size: 30px;
+}
+
+.title {
+  margin: 0;
+  color: #20242a;
+  font-size: 2rem;
+  letter-spacing: 0;
+}
+
+.subtitle {
+  margin: 6px 0 0;
+  color: #6b7280;
+}
+
+.actionButton {
+  border: 0;
+  border-radius: 8px;
+  padding: 14px 22px;
+  background: linear-gradient(135deg, #5b7cfa, #764ba2);
+  color: white;
+  font-weight: 700;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.metricCard,
+.filterCard,
+.fileCard,
+.chartCard {
+  border-radius: 8px;
+  background: #f5f7fc;
+  border: 1px solid #e8edf5;
+  padding: 18px;
+}
+
+.metricLabel {
+  display: block;
+  color: #6b7280;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.metricValue {
+  display: block;
+  margin-top: 8px;
+  color: #111827;
+  font-size: 1.65rem;
+  font-weight: 800;
+}
+
+.section {
+  margin-top: 28px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.sectionHeader h2,
+.chartCard h3 {
+  margin: 0;
+  color: #20242a;
+}
+
+.muted {
+  color: #6b7280;
+}
+
+.badgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: #eaf2ff;
+  color: #2563eb;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.filterCard label {
+  display: block;
+  color: #4b5563;
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.select {
+  width: 100%;
+  border: 1px solid #d8e0eb;
+  border-radius: 8px;
+  background: white;
+  color: #1f2937;
+  padding: 10px 12px;
+}
+
+.contentGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: 24px;
+  margin-top: 28px;
+}
+
+.metricList {
+  display: grid;
+  gap: 14px;
+}
+
+.progressTrack {
+  height: 8px;
+  margin-top: 10px;
+  border-radius: 999px;
+  background: #e4e9f1;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 999px;
+  background: #4a90e2;
+}
+
+.charts {
+  display: grid;
+  gap: 16px;
+}
+
+.chartCard {
+  background: #f5f7fc;
+}
+
+.barRow {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.barTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #1f2937;
+  font-size: 0.92rem;
+}
+
+.barLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.barValue {
+  font-weight: 800;
+}
+
+.barTrack {
+  height: 32px;
+  border-radius: 8px;
+  background: #e6ebf3;
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  min-width: 4%;
+  border-radius: 8px;
+  background: #4a90e2;
+}
+
+.filesGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.fileCard h3 {
+  margin: 8px 0;
+  font-size: 1rem;
+  word-break: break-word;
+}
+
+@media (max-width: 960px) {
+  .topBar,
+  .contentGrid {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .summary,
+  .filters,
+  .filesGrid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,180 @@
+{
+  "id": "aa6fdc5ce3594d57bc8c97da83cd63cc",
+  "dataset_id": "6db154c2944b42529e32d500f4a8017f",
+  "title": "Dashboard financeiro - 26/06/2026",
+  "slug": "dashboard-financeiro-26062026-7",
+  "is_public": true,
+  "widgets": [],
+  "dataset": {
+    "dataset_id": "6db154c2944b42529e32d500f4a8017f",
+    "original_filename": "olist_products_dataset.csv",
+    "stored_filename": "3fd0ab4d72e54e39904e70fc8b9ee017.csv",
+    "extension": ".csv",
+    "content_type": "text/csv",
+    "size_bytes": 2379446,
+    "profile": {
+      "rows": 32951,
+      "columns": 9,
+      "duplicate_rows": 0,
+      "column_profiles": [
+        {
+          "name": "product_id",
+          "dtype": "object",
+          "semantic_type": "text",
+          "type_confidence": 0.6,
+          "type_reason": "Tipo original 'object' tratado como texto genérico.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 32951,
+          "sample_values": [
+            "1e9e8ef04dbcff4541ed26657ea517e5",
+            "3aa071139cb16b67ca9e5dea641aaa2f",
+            "96bd76ec8810374ed1b65e291975717f",
+            "cef67bcfe19066a932b7673e239eb23d",
+            "9dc1a7de274444849c219cff195d0b71"
+          ]
+        },
+        {
+          "name": "product_category_name",
+          "dtype": "object",
+          "semantic_type": "text",
+          "type_confidence": 0.6,
+          "type_reason": "Tipo original 'object' tratado como texto genérico.",
+          "missing_count": 610,
+          "missing_percentage": 1.85,
+          "unique_count": 73,
+          "sample_values": [
+            "perfumaria",
+            "artes",
+            "esporte_lazer",
+            "bebes",
+            "utilidades_domesticas"
+          ]
+        },
+        {
+          "name": "product_name_lenght",
+          "dtype": "float64",
+          "semantic_type": "decimal",
+          "type_confidence": 0.9,
+          "type_reason": "A coluna possui tipo decimal nativo.",
+          "missing_count": 610,
+          "missing_percentage": 1.85,
+          "unique_count": 66,
+          "sample_values": [
+            "40.0",
+            "44.0",
+            "46.0",
+            "27.0",
+            "37.0"
+          ]
+        },
+        {
+          "name": "product_description_lenght",
+          "dtype": "float64",
+          "semantic_type": "decimal",
+          "type_confidence": 0.9,
+          "type_reason": "A coluna possui tipo decimal nativo.",
+          "missing_count": 610,
+          "missing_percentage": 1.85,
+          "unique_count": 2960,
+          "sample_values": [
+            "287.0",
+            "276.0",
+            "250.0",
+            "261.0",
+            "402.0"
+          ]
+        },
+        {
+          "name": "product_photos_qty",
+          "dtype": "float64",
+          "semantic_type": "decimal",
+          "type_confidence": 0.9,
+          "type_reason": "A coluna possui tipo decimal nativo.",
+          "missing_count": 610,
+          "missing_percentage": 1.85,
+          "unique_count": 19,
+          "sample_values": [
+            "1.0",
+            "1.0",
+            "1.0",
+            "1.0",
+            "4.0"
+          ]
+        },
+        {
+          "name": "product_weight_g",
+          "dtype": "float64",
+          "semantic_type": "decimal",
+          "type_confidence": 0.9,
+          "type_reason": "A coluna possui tipo decimal nativo.",
+          "missing_count": 2,
+          "missing_percentage": 0.01,
+          "unique_count": 2204,
+          "sample_values": [
+            "225.0",
+            "1000.0",
+            "154.0",
+            "371.0",
+            "625.0"
+          ]
+        },
+        {
+          "name": "product_length_cm",
+          "dtype": "float64",
+          "semantic_type": "decimal",
+          "type_confidence": 0.9,
+          "type_reason": "A coluna possui tipo decimal nativo.",
+          "missing_count": 2,
+          "missing_percentage": 0.01,
+          "unique_count": 99,
+          "sample_values": [
+            "16.0",
+            "30.0",
+            "18.0",
+            "26.0",
+            "20.0"
+          ]
+        },
+        {
+          "name": "product_height_cm",
+          "dtype": "float64",
+          "semantic_type": "decimal",
+          "type_confidence": 0.9,
+          "type_reason": "A coluna possui tipo decimal nativo.",
+          "missing_count": 2,
+          "missing_percentage": 0.01,
+          "unique_count": 102,
+          "sample_values": [
+            "10.0",
+            "18.0",
+            "9.0",
+            "4.0",
+            "17.0"
+          ]
+        },
+        {
+          "name": "product_width_cm",
+          "dtype": "float64",
+          "semantic_type": "decimal",
+          "type_confidence": 0.9,
+          "type_reason": "A coluna possui tipo decimal nativo.",
+          "missing_count": 2,
+          "missing_percentage": 0.01,
+          "unique_count": 95,
+          "sample_values": [
+            "14.0",
+            "20.0",
+            "15.0",
+            "26.0",
+            "13.0"
+          ]
+        }
+      ]
+    },
+    "created_at": "2026-06-26T22:42:58.495279+00:00"
+  },
+  "public_url": "/d/dashboard-financeiro-26062026-7",
+  "created_at": "2026-06-26T22:42:58.508236+00:00",
+  "updated_at": "2026-06-26T22:42:58.508236+00:00"
+}

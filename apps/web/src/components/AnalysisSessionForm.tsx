@@ -9,6 +9,7 @@ import {
   SUPPORTED_FORMATS,
 } from "@/types/analysis";
 import { SessionProgress } from "./SessionProgress";
+import { AnalysisProgress, AnalysisStatus } from "./AnalysisProgress";
 import styles from "./AnalysisSessionForm.module.css";
 
 interface AnalysisSessionFormProps {
@@ -31,6 +32,7 @@ export function AnalysisSessionForm({ onSessionCreated }: AnalysisSessionFormPro
 
   // Upload state
   const [files, setFiles] = useState<File[]>([]);
+  const [fileDescriptions, setFileDescriptions] = useState<Record<string, string>>({});
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadedCount, setUploadedCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -68,8 +70,8 @@ export function AnalysisSessionForm({ onSessionCreated }: AnalysisSessionFormPro
     if (!SUPPORTED_FORMATS.includes(ext)) {
       return false;
     }
-    if (file.size > 100 * 1024 * 1024) {
-      // 100MB limit
+    if (file.size > 150 * 1024 * 1024) {
+      // 150MB limit
       return false;
     }
     return true;
@@ -102,6 +104,15 @@ export function AnalysisSessionForm({ onSessionCreated }: AnalysisSessionFormPro
     }
 
     setFiles((prev) => [...prev, ...newFiles]);
+    setFileDescriptions((prev) => {
+      const next = { ...prev };
+
+      newFiles.forEach((file) => {
+        next[file.name] = next[file.name] ?? "";
+      });
+
+      return next;
+    });
   };
 
   // Handle drag and drop
@@ -149,7 +160,7 @@ export function AnalysisSessionForm({ onSessionCreated }: AnalysisSessionFormPro
     }
   };
 
-  // Upload files one by one
+  // Upload files one by one with progress
   const handleUploadFiles = async () => {
     if (!session || files.length === 0) return;
 
@@ -158,7 +169,9 @@ export function AnalysisSessionForm({ onSessionCreated }: AnalysisSessionFormPro
 
     for (const file of files) {
       try {
-        await uploadFile(session.id, file);
+        // Simular progresso visual (frontend)
+        // O backend já está processando, aqui só mostramos o feedback
+        await uploadFile(session.id, file, fileDescriptions[file.name]);
         uploaded++;
         setUploadedCount(uploaded);
       } catch (err) {
@@ -177,7 +190,7 @@ export function AnalysisSessionForm({ onSessionCreated }: AnalysisSessionFormPro
 
   // Auto-refresh progress when in processing step
   useEffect(() => {
-    if (step !== "processing" || !session) return;
+    if (step !== "processing" || !session?.id) return;
 
     const fetchProgress = async () => {
       try {
@@ -194,10 +207,19 @@ export function AnalysisSessionForm({ onSessionCreated }: AnalysisSessionFormPro
     const interval = setInterval(fetchProgress, 3000);
 
     return () => clearInterval(interval);
-  }, [step, session, getProgress]);
+  }, [step, session?.id, getProgress]);
 
   const handleRemoveFile = (index: number) => {
-    setFiles((prev) => prev.filter((_, i) => i !== index));
+    setFiles((prev) => {
+      const removed = prev[index];
+      setFileDescriptions((current) => {
+        const next = { ...current };
+        delete next[removed.name];
+        return next;
+      });
+
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const handleReset = () => {
@@ -210,6 +232,7 @@ export function AnalysisSessionForm({ onSessionCreated }: AnalysisSessionFormPro
       category: "",
     });
     setFiles([]);
+    setFileDescriptions({});
     setUploadedCount(0);
     setUploadError(null);
   };
@@ -247,12 +270,12 @@ export function AnalysisSessionForm({ onSessionCreated }: AnalysisSessionFormPro
 
           <div className={styles.formGroup}>
             <label htmlFor="analysis_objective">
-              🎯 Qual o objetivo desta análise? <span className={styles.required}>*</span>
+              O que você deseja que o dashboard faça? <span className={styles.required}>*</span>
             </label>
             <textarea
               id="analysis_objective"
               name="analysis_objective"
-              placeholder="Ex:&#10;• Quero entender por que minhas vendas diminuíram no último trimestre&#10;• Quero descobrir quais clientes são mais lucrativos&#10;• Quero acompanhar indicadores financeiros mensais&#10;• Quero analisar comentários negativos para melhorar o atendimento&#10;• Quero construir um dashboard executivo para reuniões de diretoria"
+              placeholder="Ex: criar um dashboard com filtro de todas as vendas, top vendas, melhores lugares de vendas, piores lugares, vendedores que mais venderam, produtos mais vendidos, evolução por mês e comparação por estado/cidade."
               value={formData.analysis_objective}
               onChange={handleInputChange}
               disabled={isLoading}
@@ -260,7 +283,7 @@ export function AnalysisSessionForm({ onSessionCreated }: AnalysisSessionFormPro
               className={styles.textarea}
             />
             <span className={styles.hint}>
-              Seja específico! Isso ajuda a IA a escolher os melhores indicadores e visualizações
+              Descreva perguntas, filtros e rankings desejados. O sistema vai procurar colunas equivalentes em PT/EN nos arquivos.
             </span>
           </div>
 
@@ -323,6 +346,13 @@ export function AnalysisSessionForm({ onSessionCreated }: AnalysisSessionFormPro
             </p>
           </div>
 
+          {isLoading && (
+            <AnalysisProgress 
+              status="uploading" 
+              fileName={files[uploadedCount]?.name}
+            />
+          )}
+
           <div
             className={`${styles.dropZone} ${dragOverRef.current ? styles.dragActive : ""}`}
             onDragOver={handleDragOver}
@@ -367,10 +397,25 @@ export function AnalysisSessionForm({ onSessionCreated }: AnalysisSessionFormPro
                       {getFileIcon(file.name)}
                     </div>
                     <div className={styles.fileInfo}>
-                      <span className={styles.fileName}>{file.name}</span>
-                      <span className={styles.fileSize}>
-                        {(file.size / 1024 / 1024).toFixed(2)} MB
-                      </span>
+                      <div className={styles.fileText}>
+                        <span className={styles.fileName}>{file.name}</span>
+                        <span className={styles.fileSize}>
+                          {(file.size / 1024 / 1024).toFixed(2)} MB
+                        </span>
+                        <input
+                          type="text"
+                          className={styles.fileDescriptionInput}
+                          placeholder="O que este arquivo contém? Ex: pedidos, vendedores, clientes, pagamentos..."
+                          value={fileDescriptions[file.name] ?? ""}
+                          onChange={(event) =>
+                            setFileDescriptions((current) => ({
+                              ...current,
+                              [file.name]: event.target.value,
+                            }))
+                          }
+                          disabled={isLoading || uploadedCount > index}
+                        />
+                      </div>
                     </div>
                     {uploadedCount > index ? (
                       <span className={styles.uploadedBadge}>✓ Enviado</span>

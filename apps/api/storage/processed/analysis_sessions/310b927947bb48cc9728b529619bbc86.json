@@ -1,0 +1,17 @@
+{
+  "id": "310b927947bb48cc9728b529619bbc86",
+  "title": "Dashboard financeiro - 26/06/2026",
+  "description": "Eu sou dono de uma empresa de negocios nacionais, tenho esses CVS's, ontem contem informações da empresa, e preciso montar um dashboard, informando as maiores vendas, menores vendas, os estados que mais venderam, quais vendedores mais venderam e quais itens foram mais vendidos.",
+  "objective": "preciso montar um dashboard, informando as maiores vendas, menores vendas, os estados que mais venderam, quais vendedores mais venderam e quais itens foram mais vendidos.",
+  "objective_category": "financeiro",
+  "category": "financeiro",
+  "files": [],
+  "status": "draft",
+  "processing_steps": [],
+  "dashboard_specification": null,
+  "dashboard_id": null,
+  "created_at": "2026-06-26T21:56:02.357319+00:00",
+  "updated_at": "2026-06-26T21:56:02.357319+00:00",
+  "completed_at": null,
+  "error_message": null
+}

@@ -1,22 +1,40 @@
 import type { Dashboard, DatasetAnalysis } from "@/types";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/v1";
+const API_BASE_URL = "/api/v1";
 
-export async function uploadDataset(file: File): Promise<{ dataset_id: string }> {
+export async function uploadDataset(file: File): Promise<{ dataset: DatasetAnalysis }> {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch(`${API_BASE_URL}/datasets/upload`, {
-    method: "POST",
-    body: formData,
-  });
+  try {
+    const response = await fetch(`${API_BASE_URL}/datasets/upload`, {
+      method: "POST",
+      body: formData,
+    });
 
-  if (!response.ok) {
-    throw new Error("Erro ao enviar dataset.");
+    if (!response.ok) {
+      let detail = "Erro ao enviar dataset.";
+
+      try {
+        const errorData = await response.json();
+        detail = typeof errorData.detail === "string" ? errorData.detail : detail;
+      } catch {
+        // Ignora erro ao parsear resposta não JSON.
+      }
+
+      throw new Error(detail);
+    }
+
+    return response.json();
+  } catch (error) {
+    if (error instanceof TypeError && error.message === "Failed to fetch") {
+      throw new Error(
+        "Não foi possível conectar à API de upload. Verifique se o backend está em execução e se a rota está disponível."
+      );
+    }
+
+    throw error;
   }
-
-  return response.json();
 }
 
 export async function listDatasets(): Promise<{ datasets: DatasetAnalysis[] }> {
@@ -31,7 +49,7 @@ export async function listDatasets(): Promise<{ datasets: DatasetAnalysis[] }> {
   return response.json();
 }
 
-export async function getDataset(datasetId: string): Promise<DatasetAnalysis> {
+export async function getDataset(datasetId: string): Promise<{ dataset: DatasetAnalysis }> {
   const response = await fetch(`${API_BASE_URL}/datasets/${datasetId}`, {
     cache: "no-store",
   });
@@ -85,5 +103,7 @@ export async function getPublicDashboard(slug: string): Promise<{ dashboard: Das
     throw new Error("Erro ao buscar dashboard público.");
   }
 
-  return response.json();
+  const data = await response.json();
+
+  return "dashboard" in data ? data : { dashboard: data };
 }

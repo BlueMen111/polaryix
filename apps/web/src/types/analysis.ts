@@ -57,6 +57,7 @@ export type FileUploadResponse = {
     title: string;
     files_count: number;
     status: AnalysisSessionStatus;
+    dashboard_id?: string | null;
   };
 };
 
@@ -80,5 +81,7 @@ export type SessionProgress = {
   current_step: string;
   completed_steps: string[];
   files_count: number;
+  dashboard_id?: string | null;
+  dashboard_url?: string | null;
   error_message?: string;
 };

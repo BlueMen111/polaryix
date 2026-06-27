@@ -11,8 +11,8 @@ class Settings(BaseSettings):
     environment: str = "development"
     debug: bool = True
 
-    max_upload_size_mb: int = 25
-    max_rows_preview: int = 1000
+    max_upload_size_mb: int = 100
+    max_rows_preview: int = 0
 
     allowed_origins: list[str] = [
         "http://localhost:3000",

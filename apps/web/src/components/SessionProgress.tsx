@@ -11,7 +11,25 @@ interface SessionProgressProps {
 
 export function SessionProgress({ progress, onRefresh }: SessionProgressProps) {
   if (!progress) {
-    return null;
+    return (
+      <div className={styles.container}>
+        <div className={styles.header}>
+          <h3>🤖 Processamento Inteligente</h3>
+          <span className={styles.statusBadge} style={{ backgroundColor: "#3b82f6" }}>
+            Verificando
+          </span>
+        </div>
+        <div className={styles.progressSection}>
+          <div className={styles.progressInfo}>
+            <span className={styles.progressPercentage}>...</span>
+            <span className={styles.currentStep}>Buscando status do processamento</span>
+          </div>
+          <div className={styles.progressBarContainer}>
+            <div className={styles.progressBarIndeterminate} />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const getStatusColor = (status: string) => {
@@ -61,6 +79,7 @@ export function SessionProgress({ progress, onRefresh }: SessionProgressProps) {
   const getCurrentStepIndex = (): number => {
     if (progress.status === "completed") return allProcessingSteps.length;
     if (progress.status === "failed") return -1;
+    if (progress.status === "ready") return 1;
     
     const currentStepLower = progress.current_step.toLowerCase();
     for (let i = 0; i < allProcessingSteps.length; i++) {
@@ -72,6 +91,15 @@ export function SessionProgress({ progress, onRefresh }: SessionProgressProps) {
   };
 
   const currentStepIndex = getCurrentStepIndex();
+  const showProgressBar = progress.status !== "failed";
+  const progressValue = Math.max(0, Math.min(100, progress.progress_percentage));
+  const currentStepText =
+    progress.current_step ||
+    (progress.status === "completed"
+      ? "Dashboard pronto"
+      : progress.status === "ready"
+        ? "Aguardando processamento"
+        : "Preparando análise");
 
   return (
     <div className={styles.container}>
@@ -85,18 +113,18 @@ export function SessionProgress({ progress, onRefresh }: SessionProgressProps) {
         </span>
       </div>
 
-      {progress.status === "processing" && (
+      {showProgressBar && (
         <div className={styles.progressSection}>
           <div className={styles.progressInfo}>
-            <span className={styles.progressPercentage}>{Math.round(progress.progress_percentage)}%</span>
-            <span className={styles.currentStep}>{progress.current_step}</span>
+            <span className={styles.progressPercentage}>{Math.round(progressValue)}%</span>
+            <span className={styles.currentStep}>{currentStepText}</span>
           </div>
 
           <div className={styles.progressBarContainer}>
-            <div 
+            <div
               className={styles.progressBar}
               style={{ 
-                width: `${progress.progress_percentage}%`,
+                width: `${progressValue}%`,
                 backgroundColor: getStatusColor(progress.status)
               }}
             />
@@ -159,6 +187,11 @@ export function SessionProgress({ progress, onRefresh }: SessionProgressProps) {
           <p className={styles.successSubtext}>
             Seu dashboard inteligente está pronto para visualização.
           </p>
+          {progress.dashboard_url && (
+            <a className={styles.dashboardLink} href={progress.dashboard_url}>
+              Abrir dashboard
+            </a>
+          )}
         </div>
       )}
 
@@ -169,7 +202,13 @@ export function SessionProgress({ progress, onRefresh }: SessionProgressProps) {
         </div>
       )}
 
-      {onRefresh && progress.status === "processing" && (
+      {progress.status === "ready" && (
+        <div className={styles.waitingMessage}>
+          Os arquivos foram recebidos, mas o processamento ainda não começou. Esta tela continua verificando o status automaticamente.
+        </div>
+      )}
+
+      {onRefresh && progress.status !== "completed" && progress.status !== "failed" && (
         <button onClick={onRefresh} className={styles.refreshButton}>
           🔄 Atualizar Status
         </button>

@@ -1,0 +1,135 @@
+{
+  "dataset_id": "7d04b777547b4c088cb881f7f5bec08a",
+  "original_filename": "olist_order_items_dataset.csv",
+  "stored_filename": "4d8cf5671e434191bb3c6d2c9d33caeb.csv",
+  "extension": ".csv",
+  "content_type": "text/csv",
+  "size_bytes": 15438671,
+  "profile": {
+    "rows": 112650,
+    "columns": 7,
+    "duplicate_rows": 0,
+    "column_profiles": [
+      {
+        "name": "order_id",
+        "dtype": "object",
+        "semantic_type": "text",
+        "type_confidence": 0.6,
+        "type_reason": "Tipo original 'object' tratado como texto genérico.",
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "unique_count": 98666,
+        "sample_values": [
+          "00010242fe8c5a6d1ba2dd792cb16214",
+          "00018f77f2f0320c557190d7a144bdd3",
+          "000229ec398224ef6ca0657da4fc703e",
+          "00024acbcdf0a6daa1e931b038114c75",
+          "00042b26cf59d7ce69dfabb4e55b4fd9"
+        ]
+      },
+      {
+        "name": "order_item_id",
+        "dtype": "int64",
+        "semantic_type": "integer",
+        "type_confidence": 0.9,
+        "type_reason": "A coluna possui tipo inteiro nativo.",
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "unique_count": 21,
+        "sample_values": [
+          "1",
+          "1",
+          "1",
+          "1",
+          "1"
+        ]
+      },
+      {
+        "name": "product_id",
+        "dtype": "object",
+        "semantic_type": "text",
+        "type_confidence": 0.6,
+        "type_reason": "Tipo original 'object' tratado como texto genérico.",
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "unique_count": 32951,
+        "sample_values": [
+          "4244733e06e7ecb4970a6e2683c13e61",
+          "e5f2d52b802189ee658865ca93d83a8f",
+          "c777355d18b72b67abbeef9df44fd0fd",
+          "7634da152a4610f1595efa32f14722fc",
+          "ac6c3623068f30de03045865e4e10089"
+        ]
+      },
+      {
+        "name": "seller_id",
+        "dtype": "object",
+        "semantic_type": "text",
+        "type_confidence": 0.6,
+        "type_reason": "Tipo original 'object' tratado como texto genérico.",
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "unique_count": 3095,
+        "sample_values": [
+          "48436dade18ac8b2bce089ec2a041202",
+          "dd7ddc04e1b6c2c614352b383efe2d36",
+          "5b51032eddd242adc84c38acab88f23d",
+          "9d7a1d34a5052409006425275ba1c2b4",
+          "df560393f3a51e74553ab94004ba5c87"
+        ]
+      },
+      {
+        "name": "shipping_limit_date",
+        "dtype": "object",
+        "semantic_type": "date",
+        "type_confidence": 1.0,
+        "type_reason": "A maioria dos valores parece representar datas.",
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "unique_count": 93318,
+        "sample_values": [
+          "2017-09-19 09:45:35",
+          "2017-05-03 11:05:13",
+          "2018-01-18 14:48:30",
+          "2018-08-15 10:10:18",
+          "2017-02-13 13:57:51"
+        ]
+      },
+      {
+        "name": "price",
+        "dtype": "float64",
+        "semantic_type": "decimal",
+        "type_confidence": 0.9,
+        "type_reason": "A coluna possui tipo decimal nativo.",
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "unique_count": 5968,
+        "sample_values": [
+          "58.9",
+          "239.9",
+          "199.0",
+          "12.99",
+          "199.9"
+        ]
+      },
+      {
+        "name": "freight_value",
+        "dtype": "float64",
+        "semantic_type": "decimal",
+        "type_confidence": 0.9,
+        "type_reason": "A coluna possui tipo decimal nativo.",
+        "missing_count": 0,
+        "missing_percentage": 0.0,
+        "unique_count": 6999,
+        "sample_values": [
+          "13.29",
+          "19.93",
+          "17.87",
+          "12.79",
+          "18.14"
+        ]
+      }
+    ]
+  },
+  "created_at": "2026-06-27T00:13:07.730489+00:00"
+}

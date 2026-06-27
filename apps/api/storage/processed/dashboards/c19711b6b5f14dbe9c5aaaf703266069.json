@@ -1,0 +1,95 @@
+{
+  "id": "c19711b6b5f14dbe9c5aaaf703266069",
+  "dataset_id": "f936ce0ce7c3430ba386fe1421951230",
+  "title": "Dashboard financeiro - 26/06/2026",
+  "slug": "dashboard-financeiro-26062026-17",
+  "is_public": true,
+  "widgets": [],
+  "dataset": {
+    "dataset_id": "f936ce0ce7c3430ba386fe1421951230",
+    "original_filename": "olist_sellers_dataset.csv",
+    "stored_filename": "83259c7785f74c59a7942e3e3b384b4b.csv",
+    "extension": ".csv",
+    "content_type": "text/csv",
+    "size_bytes": 174703,
+    "profile": {
+      "rows": 3095,
+      "columns": 4,
+      "duplicate_rows": 0,
+      "column_profiles": [
+        {
+          "name": "seller_id",
+          "dtype": "object",
+          "semantic_type": "text",
+          "type_confidence": 0.6,
+          "type_reason": "Tipo original 'object' tratado como texto genérico.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 3095,
+          "sample_values": [
+            "3442f8959a84dea7ee197c632cb2df15",
+            "d1b65fc7debc3361ea86b5f14c68d2e2",
+            "ce3ad9de960102d0677a81f5d0bb7b2d",
+            "c0f3eea2e14555b6faeea3dd58c1b1c3",
+            "51a04a8a6bdcb23deccc82b0b80742cf"
+          ]
+        },
+        {
+          "name": "seller_zip_code_prefix",
+          "dtype": "int64",
+          "semantic_type": "integer",
+          "type_confidence": 0.9,
+          "type_reason": "A coluna possui tipo inteiro nativo.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 2246,
+          "sample_values": [
+            "13023",
+            "13844",
+            "20031",
+            "4195",
+            "12914"
+          ]
+        },
+        {
+          "name": "seller_city",
+          "dtype": "object",
+          "semantic_type": "text",
+          "type_confidence": 0.6,
+          "type_reason": "Tipo original 'object' tratado como texto genérico.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 611,
+          "sample_values": [
+            "campinas",
+            "mogi guacu",
+            "rio de janeiro",
+            "sao paulo",
+            "braganca paulista"
+          ]
+        },
+        {
+          "name": "seller_state",
+          "dtype": "object",
+          "semantic_type": "category",
+          "type_confidence": 0.8,
+          "type_reason": "A coluna possui baixa cardinalidade e parece categórica.",
+          "missing_count": 0,
+          "missing_percentage": 0.0,
+          "unique_count": 23,
+          "sample_values": [
+            "SP",
+            "SP",
+            "RJ",
+            "SP",
+            "SP"
+          ]
+        }
+      ]
+    },
+    "created_at": "2026-06-26T22:51:30.176518+00:00"
+  },
+  "public_url": "/d/dashboard-financeiro-26062026-17",
+  "created_at": "2026-06-26T22:51:30.185214+00:00",
+  "updated_at": "2026-06-26T22:51:30.185214+00:00"
+}
