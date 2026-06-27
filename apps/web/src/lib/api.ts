@@ -2,6 +2,74 @@ import type { Dashboard, DatasetAnalysis } from "@/types";
 
 const API_BASE_URL = "/api/v1";
 
+async function downloadBlobResponse(response: Response, fallbackFilename: string): Promise<string> {
+  if (!response.ok) {
+    let detail = "Operação não concluída.";
+
+    try {
+      const errorData = await response.json();
+      detail = typeof errorData.detail === "string" ? errorData.detail : detail;
+    } catch {
+      // Mantém mensagem padrão quando o erro não é JSON.
+    }
+
+    throw new Error(detail);
+  }
+
+  const disposition = response.headers.get("content-disposition") ?? "";
+  const filenameMatch = disposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^"]+)"?/i);
+  const filename = decodeURIComponent(filenameMatch?.[1] ?? filenameMatch?.[2] ?? fallbackFilename);
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+
+  return filename;
+}
+
+export async function convertFile(payload: {
+  file: File;
+  fromFormat: string;
+  toFormat: string;
+}): Promise<{ filename: string }> {
+  const formData = new FormData();
+  formData.append("file", payload.file);
+  formData.append("from_format", payload.fromFormat);
+  formData.append("to_format", payload.toFormat);
+
+  const response = await fetch(`${API_BASE_URL}/converter/convert-file`, {
+    method: "POST",
+    body: formData,
+  });
+
+  const filename = await downloadBlobResponse(response, `polaryix-${payload.toFormat.toLowerCase()}`);
+
+  return { filename };
+}
+
+export async function downloadFromLink(payload: {
+  url: string;
+  mediaType: "video" | "audio";
+}): Promise<{ filename: string }> {
+  const formData = new FormData();
+  formData.append("url", payload.url);
+  formData.append("media_type", payload.mediaType);
+
+  const response = await fetch(`${API_BASE_URL}/converter/download-link`, {
+    method: "POST",
+    body: formData,
+  });
+
+  const filename = await downloadBlobResponse(response, "polaryix-download");
+
+  return { filename };
+}
+
 export async function uploadDataset(file: File): Promise<{ dataset: DatasetAnalysis }> {
   const formData = new FormData();
   formData.append("file", file);

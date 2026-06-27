@@ -445,9 +445,16 @@
   cursor: pointer;
 }
 
-.convertButton:hover,
+.convertButton:disabled,
+.downloadTool button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+  transform: none;
+}
+
+.convertButton:hover:not(:disabled),
 .swapButton:hover,
-.downloadTool button:hover {
+.downloadTool button:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 0 32px rgba(56, 200, 255, 0.26);
 }
@@ -494,6 +501,27 @@
 .downloadTool input:focus {
   border-color: rgba(34, 230, 185, 0.58);
   box-shadow: 0 0 0 4px rgba(34, 230, 185, 0.1);
+}
+
+.downloadModes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.downloadModes button {
+  min-height: 38px;
+  border: 1px solid rgba(168, 183, 202, 0.14);
+  background: rgba(3, 8, 23, 0.52);
+  box-shadow: none;
+  color: #a8b7ca;
+}
+
+.downloadModes .activeMode {
+  border-color: rgba(34, 230, 185, 0.5);
+  background: rgba(34, 230, 185, 0.14);
+  color: #ffffff;
+  box-shadow: 0 0 20px rgba(34, 230, 185, 0.14);
 }
 
 .downloadCards {

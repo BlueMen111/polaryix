@@ -2,6 +2,7 @@
 
 import { ChangeEvent, useMemo, useRef, useState } from "react";
 import { Header } from "@/components/Header";
+import { convertFile, downloadFromLink } from "@/lib/api";
 import styles from "./page.module.css";
 
 const formatGroups = [
@@ -81,9 +82,14 @@ export default function HomePage() {
   const [fromFormat, setFromFormat] = useState("PNG");
   const [toFormat, setToFormat] = useState("DDS");
   const [openPicker, setOpenPicker] = useState<"from" | "to" | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState("");
   const [status, setStatus] = useState("Selecione um arquivo para preparar a conversão.");
   const [downloadUrl, setDownloadUrl] = useState("");
+  const [downloadMode, setDownloadMode] = useState<"video" | "audio">("video");
+  const [downloadStatus, setDownloadStatus] = useState("Cole um link para preparar o download.");
+  const [isConverting, setIsConverting] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const conversionLabel = useMemo(() => `${fromFormat} > ${toFormat}`, [fromFormat, toFormat]);
@@ -95,20 +101,62 @@ export default function HomePage() {
     setOpenPicker(null);
   }
 
-  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+  function setFile(file: File | null) {
+    setSelectedFile(file);
     setFileName(file?.name ?? "");
     setStatus(file ? `${file.name} pronto para converter em ${toFormat}.` : "Selecione um arquivo para preparar a conversão.");
   }
 
-  function handleConvert() {
-    if (!fileName) {
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    setFile(event.target.files?.[0] ?? null);
+  }
+
+  async function handleConvert() {
+    if (!selectedFile) {
       setStatus("Escolha um arquivo antes de iniciar a conversão.");
       fileInputRef.current?.click();
       return;
     }
 
-    setStatus(`Conversão ${conversionLabel} preparada. A integração seguirá a lógica existente do conversor.`);
+    setIsConverting(true);
+    setStatus(`Convertendo ${conversionLabel}...`);
+
+    try {
+      const result = await convertFile({
+        file: selectedFile,
+        fromFormat,
+        toFormat,
+      });
+
+      setStatus(`Conversão concluída. Download iniciado: ${result.filename}`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Erro ao converter arquivo.");
+    } finally {
+      setIsConverting(false);
+    }
+  }
+
+  async function handleLinkDownload() {
+    if (!downloadUrl.trim()) {
+      setDownloadStatus("Cole uma URL antes de preparar o download.");
+      return;
+    }
+
+    setIsDownloading(true);
+    setDownloadStatus(`Preparando download de ${downloadMode === "video" ? "vídeo" : "áudio"}...`);
+
+    try {
+      const result = await downloadFromLink({
+        url: downloadUrl,
+        mediaType: downloadMode,
+      });
+
+      setDownloadStatus(`Download iniciado: ${result.filename}`);
+    } catch (error) {
+      setDownloadStatus(error instanceof Error ? error.message : "Erro ao baixar o link.");
+    } finally {
+      setIsDownloading(false);
+    }
   }
 
   return (
@@ -183,7 +231,18 @@ export default function HomePage() {
                 />
               </div>
 
-              <button type="button" className={styles.dropzone} onClick={() => fileInputRef.current?.click()}>
+              <button
+                type="button"
+                className={styles.dropzone}
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  setFile(event.dataTransfer.files?.[0] ?? null);
+                }}
+              >
                 <input ref={fileInputRef} type="file" onChange={handleFileChange} accept={acceptList} />
                 <strong>Selecionar arquivo</strong>
                 <span>{fileName || "Arraste ou escolha uma imagem para converter"}</span>
@@ -191,8 +250,8 @@ export default function HomePage() {
               </button>
 
               <div className={styles.actionRow}>
-                <button type="button" className={styles.convertButton} onClick={handleConvert}>
-                  Converter agora
+                <button type="button" className={styles.convertButton} onClick={handleConvert} disabled={isConverting}>
+                  {isConverting ? "Convertendo..." : "Converter agora"}
                 </button>
                 <p className={styles.statusText}>{status}</p>
               </div>
@@ -214,7 +273,26 @@ export default function HomePage() {
                 placeholder="Cole a URL aqui"
                 aria-label="URL para baixar vídeo ou áudio"
               />
-              <button type="button">Preparar download</button>
+              <div className={styles.downloadModes} aria-label="Tipo de download">
+                <button
+                  type="button"
+                  className={downloadMode === "video" ? styles.activeMode : undefined}
+                  onClick={() => setDownloadMode("video")}
+                >
+                  Vídeo
+                </button>
+                <button
+                  type="button"
+                  className={downloadMode === "audio" ? styles.activeMode : undefined}
+                  onClick={() => setDownloadMode("audio")}
+                >
+                  Áudio
+                </button>
+              </div>
+              <button type="button" onClick={handleLinkDownload} disabled={isDownloading}>
+                {isDownloading ? "Preparando..." : "Preparar download"}
+              </button>
+              <p className={styles.statusText}>{downloadStatus}</p>
             </div>
 
             <div className={styles.downloadCards}>

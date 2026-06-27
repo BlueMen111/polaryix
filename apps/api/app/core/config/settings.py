@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -34,6 +35,20 @@ class Settings(BaseSettings):
     upload_path: Path = Path("storage/uploads")
     quarantine_path: Path = Path("storage/quarantine")
     processed_path: Path = Path("storage/processed")
+
+    @field_validator("debug", mode="before")
+    @classmethod
+    def parse_debug_flag(cls, value: object) -> object:
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+
+            if normalized in {"release", "prod", "production", "false", "0", "no", "off"}:
+                return False
+
+            if normalized in {"debug", "dev", "development", "true", "1", "yes", "on"}:
+                return True
+
+        return value
 
     model_config = SettingsConfigDict(
         env_file=".env",
