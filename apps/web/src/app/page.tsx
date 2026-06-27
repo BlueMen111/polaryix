@@ -29,7 +29,6 @@ const comments = [
 const downloadCards = [
   { name: "YouTube", text: "Vídeos e áudios em poucos cliques.", icon: "/assets/icons/youtube.svg", brand: "youtube" },
   { name: "TikTok", text: "Cole o link e escolha o formato.", icon: "/assets/icons/tiktok.svg", brand: "tiktok" },
-  { name: "Instagram", text: "Reels e mídia para baixar rápido.", icon: "/assets/icons/instagram.svg", brand: "instagram" },
 ];
 
 const heroBadges = ["Rápido", "Seguro", "Sem limites"];
@@ -450,7 +449,7 @@ export default function HomePage() {
             <div className={styles.downloadCopy}>
               <p>Download por link</p>
               <h2 id="download-title">Baixe vídeos e áudios por link</h2>
-              <span>Cole um link do YouTube, TikTok ou Instagram para baixar vídeo ou áudio rapidamente.</span>
+              <span>Cole um link do YouTube ou TikTok para baixar vídeo ou áudio rapidamente.</span>
             </div>
 
             <div className={styles.downloadTool}>
@@ -510,7 +509,7 @@ export default function HomePage() {
 
             <div className={styles.downloadCards}>
               {downloadCards.map((card) => (
-                <article key={card.name} className={styles[card.brand as "youtube" | "tiktok" | "instagram"]}>
+                <article key={card.name} className={styles[card.brand as "youtube" | "tiktok"]}>
                   <img src={card.icon} alt="" aria-hidden="true" />
                   <strong>{card.name}</strong>
                   <p>{card.text}</p>

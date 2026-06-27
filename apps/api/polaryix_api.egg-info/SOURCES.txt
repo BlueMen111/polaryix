@@ -9,6 +9,7 @@ app/api/v1/routes/__init__.py
 app/api/v1/routes/analysis_sessions.py
 app/api/v1/routes/analysis_sessions_files.py
 app/api/v1/routes/analysis_sessions_progress.py
+app/api/v1/routes/converter.py
 app/api/v1/routes/dashboards.py
 app/api/v1/routes/datasets.py
 app/api/v1/routes/health.py
@@ -23,6 +24,8 @@ app/core/security/file_security.py
 app/core/security/headers.py
 app/core/security/rate_limit.py
 app/data_processing/__init__.py
+app/data_processing/analysis_context.py
+app/data_processing/dashboard_engine.py
 app/data_processing/readers.py
 app/data_processing/charts/__init__.py
 app/data_processing/charts/chart_suggestions.py

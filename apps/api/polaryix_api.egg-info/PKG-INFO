@@ -14,3 +14,5 @@ Requires-Dist: duckdb>=1.0.0
 Requires-Dist: openpyxl>=3.1.0
 Requires-Dist: pyarrow>=16.0.0
 Requires-Dist: xlrd>=2.0.1
+Requires-Dist: pillow>=10.4.0
+Requires-Dist: yt-dlp>=2025.1.0

@@ -14,6 +14,9 @@ storage/uploads/*
 storage/quarantine/*
 storage/processed/*
 storage/reports/*
+storage/private/
+apps/api/storage/private/
+*cookies*.txt
 .DS_Store
 Thumbs.db
 Novo(a) Documento de Texto.txt
