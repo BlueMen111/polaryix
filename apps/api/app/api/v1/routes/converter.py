@@ -42,6 +42,8 @@ ARCHIVE_FORMATS = {"ZIP"}
 
 SUPPORTED_FORMATS = IMAGE_FORMATS.keys() | VIDEO_FORMATS | AUDIO_FORMATS | TEXT_FORMATS | ARCHIVE_FORMATS
 SAFE_URL_PATTERN = re.compile(r"^https?://", re.IGNORECASE)
+ANSI_PATTERN = re.compile(r"\x1b\[[0-9;]*m")
+PREMIUM_DOWNLOAD_OPTIONS = {"hd", "best"}
 
 
 def _normalize_format(value: str) -> str:
@@ -73,6 +75,45 @@ def _ensure_ffmpeg_available() -> None:
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
             detail="Conversão de vídeo/áudio requer FFmpeg instalado no ambiente.",
         )
+
+
+def _clean_error_message(value: object) -> str:
+    message = ANSI_PATTERN.sub("", str(value)).strip()
+
+    if "Instagram sent an empty media response" in message or "cookies" in message.lower():
+        return (
+            "O Instagram não liberou essa mídia publicamente. Abra o post no navegador sem login para confirmar se ele é público. "
+            "Se exigir conta/login, será necessário configurar cookies no servidor para baixar esse conteúdo."
+        )
+
+    if "requested format is not available" in message.lower():
+        return "Esse formato não está disponível para o link informado. Tente MP4 compatível, 720p ou MP3."
+
+    return message
+
+
+def _link_download_options(download_format: str) -> tuple[str, str]:
+    option = download_format.strip().lower()
+
+    if option in PREMIUM_DOWNLOAD_OPTIONS:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="Essa qualidade é exclusiva do Premium. Use MP4 compatível, 720p ou MP3 no plano gratuito.",
+        )
+
+    if option == "mp3":
+        return "audio", "bestaudio/best"
+
+    if option == "720p":
+        return "video", "bestvideo[height<=720]+bestaudio/best[height<=720]/best"
+
+    if option == "mp4":
+        return "video", "bestvideo[height<=720]+bestaudio/best[height<=720]/best"
+
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Formato de download inválido. Use mp4, mp3, 720p, hd ou best.",
+    )
 
 
 def _convert_image(input_path: Path, output_path: Path, target_format: str) -> None:
@@ -123,6 +164,33 @@ def _convert_media(input_path: Path, output_path: Path, target_format: str) -> N
 
     if result.returncode != 0:
         detail = result.stderr.strip().splitlines()[-1] if result.stderr.strip() else "Erro ao converter mídia."
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=detail)
+
+
+def _transcode_to_compatible_mp4(input_path: Path, output_path: Path) -> None:
+    _ensure_ffmpeg_available()
+
+    command = [
+        "ffmpeg",
+        "-y",
+        "-i",
+        str(input_path),
+        "-c:v",
+        "libx264",
+        "-preset",
+        "veryfast",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
+        "-movflags",
+        "+faststart",
+        str(output_path),
+    ]
+    result = subprocess.run(command, capture_output=True, text=True, timeout=300)
+
+    if result.returncode != 0:
+        detail = result.stderr.strip().splitlines()[-1] if result.stderr.strip() else "Erro ao preparar MP4 compatível."
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=detail)
 
 
@@ -207,8 +275,9 @@ async def convert_file(
 async def download_link(
     url: str = Form(...),
     media_type: str = Form("video"),
+    download_format: str = Form("mp4"),
 ) -> FileResponse:
-    """Baixa vídeo ou áudio a partir de uma URL suportada pelo yt-dlp."""
+    """Baixa vídeo/áudio por URL e devolve um arquivo compatível."""
 
     if yt_dlp is None:
         raise HTTPException(
@@ -220,9 +289,7 @@ async def download_link(
     if not SAFE_URL_PATTERN.match(normalized_url):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Informe uma URL http ou https válida.")
 
-    requested_media = media_type.strip().lower()
-    if requested_media not in {"video", "audio"}:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="media_type deve ser video ou audio.")
+    requested_media, ytdlp_format = _link_download_options(download_format or ("mp3" if media_type == "audio" else "mp4"))
 
     output_dir = settings.processed_path / "link_downloads"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -239,7 +306,7 @@ async def download_link(
     if requested_media == "audio":
         ydl_opts.update(
             {
-                "format": "bestaudio/best",
+                "format": ytdlp_format,
                 "postprocessors": [
                     {
                         "key": "FFmpegExtractAudio",
@@ -250,7 +317,8 @@ async def download_link(
             }
         )
     else:
-        ydl_opts["format"] = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
+        ydl_opts["format"] = ytdlp_format
+        ydl_opts["merge_output_format"] = "mp4"
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as downloader:
@@ -267,12 +335,17 @@ async def download_link(
         if not prepared_path.exists() or prepared_path.stat().st_size == 0:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Download não gerou arquivo válido.")
 
+        if requested_media == "video":
+            compatible_path = output_dir / f"{download_id}-compatible.mp4"
+            _transcode_to_compatible_mp4(prepared_path, compatible_path)
+            prepared_path = compatible_path
+
     except HTTPException:
         raise
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Não foi possível baixar esse link: {exc}",
+            detail=f"Não foi possível baixar esse link: {_clean_error_message(exc)}",
         ) from exc
 
     title = info.get("title") if isinstance(info, dict) else "polaryix-download"
@@ -284,3 +357,35 @@ async def download_link(
         media_type="application/octet-stream",
         filename=filename,
     )
+
+
+@router.post("/link-preview")
+async def link_preview(url: str = Form(...)) -> dict:
+    """Obtém metadados públicos de uma URL suportada sem baixar o arquivo."""
+
+    if yt_dlp is None:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Preview por link requer yt-dlp instalado no ambiente.",
+        )
+
+    normalized_url = url.strip()
+    if not SAFE_URL_PATTERN.match(normalized_url):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Informe uma URL http ou https válida.")
+
+    try:
+        with yt_dlp.YoutubeDL({"quiet": True, "no_warnings": True, "skip_download": True, "noplaylist": True}) as downloader:
+            info = downloader.extract_info(normalized_url, download=False)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Não foi possível carregar o preview desse link: {_clean_error_message(exc)}",
+        ) from exc
+
+    return {
+        "title": info.get("title") or "Mídia encontrada",
+        "thumbnail": info.get("thumbnail"),
+        "duration": info.get("duration"),
+        "uploader": info.get("uploader") or info.get("channel"),
+        "webpage_url": info.get("webpage_url") or normalized_url,
+    }

@@ -1,8 +1,8 @@
 "use client";
 
-import { ChangeEvent, useMemo, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Header } from "@/components/Header";
-import { convertFile, downloadFromLink } from "@/lib/api";
+import { LinkPreview, convertFile, downloadFromLink, getLinkPreview } from "@/lib/api";
 import styles from "./page.module.css";
 
 const formatGroups = [
@@ -32,6 +32,14 @@ const downloadCards = [
 ];
 
 const heroBadges = ["Rápido", "Seguro", "Sem limites"];
+
+const downloadOptions = [
+  { id: "mp4", label: "MP4", detail: "Compatível", mediaType: "video", premium: false },
+  { id: "mp3", label: "MP3", detail: "Áudio", mediaType: "audio", premium: false },
+  { id: "720p", label: "720p", detail: "Vídeo", mediaType: "video", premium: false },
+  { id: "hd", label: "HD", detail: "Premium", mediaType: "video", premium: true },
+  { id: "best", label: "Melhor", detail: "Premium", mediaType: "video", premium: true },
+] as const;
 
 function FormatPicker({
   label,
@@ -86,14 +94,68 @@ export default function HomePage() {
   const [fileName, setFileName] = useState("");
   const [status, setStatus] = useState("Selecione um arquivo para preparar a conversão.");
   const [downloadUrl, setDownloadUrl] = useState("");
-  const [downloadMode, setDownloadMode] = useState<"video" | "audio">("video");
+  const [downloadFormat, setDownloadFormat] = useState<(typeof downloadOptions)[number]["id"]>("mp4");
   const [downloadStatus, setDownloadStatus] = useState("Cole um link para preparar o download.");
+  const [linkPreview, setLinkPreview] = useState<LinkPreview | null>(null);
+  const [previewStatus, setPreviewStatus] = useState("");
+  const [downloadProgress, setDownloadProgress] = useState(0);
   const [isConverting, setIsConverting] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const conversionLabel = useMemo(() => `${fromFormat} > ${toFormat}`, [fromFormat, toFormat]);
   const acceptList = useMemo(() => allFormats.map((format) => `.${format.toLowerCase()}`).join(","), []);
+
+  useEffect(() => {
+    const normalizedUrl = downloadUrl.trim();
+
+    setLinkPreview(null);
+    setPreviewStatus("");
+
+    if (!/^https?:\/\//i.test(normalizedUrl)) {
+      return;
+    }
+
+    const timeout = window.setTimeout(async () => {
+      setPreviewStatus("Carregando preview...");
+
+      try {
+        const preview = await getLinkPreview(normalizedUrl);
+        setLinkPreview(preview);
+        setPreviewStatus("");
+      } catch (error) {
+        setPreviewStatus(error instanceof Error ? error.message : "Não foi possível carregar o preview.");
+      }
+    }, 700);
+
+    return () => window.clearTimeout(timeout);
+  }, [downloadUrl]);
+
+  useEffect(() => {
+    if (!isDownloading) {
+      return;
+    }
+
+    setDownloadProgress(8);
+    const interval = window.setInterval(() => {
+      setDownloadProgress((current) => Math.min(current + Math.max(2, Math.round((92 - current) / 7)), 92));
+    }, 850);
+
+    return () => window.clearInterval(interval);
+  }, [isDownloading]);
+
+  function formatDuration(duration?: number | null) {
+    if (!duration) {
+      return null;
+    }
+
+    const minutes = Math.floor(duration / 60);
+    const seconds = Math.floor(duration % 60)
+      .toString()
+      .padStart(2, "0");
+
+    return `${minutes}:${seconds}`;
+  }
 
   function swapFormats() {
     setFromFormat(toFormat);
@@ -143,16 +205,28 @@ export default function HomePage() {
     }
 
     setIsDownloading(true);
-    setDownloadStatus(`Preparando download de ${downloadMode === "video" ? "vídeo" : "áudio"}...`);
+    setDownloadProgress(0);
+    const selectedOption = downloadOptions.find((option) => option.id === downloadFormat) ?? downloadOptions[0];
+
+    if (selectedOption.premium) {
+      setDownloadStatus("Essa qualidade é exclusiva do Premium. Escolha MP4, MP3 ou 720p.");
+      setIsDownloading(false);
+      return;
+    }
+
+    setDownloadStatus(`Preparando download em ${selectedOption.label}...`);
 
     try {
       const result = await downloadFromLink({
         url: downloadUrl,
-        mediaType: downloadMode,
+        mediaType: selectedOption.mediaType,
+        downloadFormat: selectedOption.id,
       });
 
+      setDownloadProgress(100);
       setDownloadStatus(`Download iniciado: ${result.filename}`);
     } catch (error) {
+      setDownloadProgress(0);
       setDownloadStatus(error instanceof Error ? error.message : "Erro ao baixar o link.");
     } finally {
       setIsDownloading(false);
@@ -197,7 +271,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <div className={styles.toolGrid}>
+        <div className={styles.toolStack}>
           <section id="converter" className={styles.converterSection} aria-labelledby="converter-title">
             <div className={styles.sectionHeader}>
               <p>Converter imagem</p>
@@ -273,27 +347,52 @@ export default function HomePage() {
                 placeholder="Cole a URL aqui"
                 aria-label="URL para baixar vídeo ou áudio"
               />
-              <div className={styles.downloadModes} aria-label="Tipo de download">
-                <button
-                  type="button"
-                  className={downloadMode === "video" ? styles.activeMode : undefined}
-                  onClick={() => setDownloadMode("video")}
-                >
-                  Vídeo
-                </button>
-                <button
-                  type="button"
-                  className={downloadMode === "audio" ? styles.activeMode : undefined}
-                  onClick={() => setDownloadMode("audio")}
-                >
-                  Áudio
-                </button>
+              <div className={styles.downloadModes} aria-label="Formato do download">
+                {downloadOptions.map((option) => (
+                  <button
+                    type="button"
+                    key={option.id}
+                    className={downloadFormat === option.id ? styles.activeMode : undefined}
+                    onClick={() => {
+                      setDownloadFormat(option.id);
+                      if (option.premium) {
+                        setDownloadStatus("Essa qualidade é exclusiva do Premium. Escolha MP4, MP3 ou 720p.");
+                      }
+                    }}
+                    disabled={isDownloading}
+                  >
+                    <strong>{option.label}</strong>
+                    <span>{option.detail}</span>
+                  </button>
+                ))}
               </div>
               <button type="button" onClick={handleLinkDownload} disabled={isDownloading}>
                 {isDownloading ? "Preparando..." : "Preparar download"}
               </button>
               <p className={styles.statusText}>{downloadStatus}</p>
             </div>
+
+            {(linkPreview || previewStatus) && (
+              <div className={styles.previewCard}>
+                {linkPreview?.thumbnail ? <img src={linkPreview.thumbnail} alt="" /> : <div className={styles.previewPlaceholder} />}
+                <div>
+                  <strong>{linkPreview?.title ?? "Preview do link"}</strong>
+                  {linkPreview?.uploader ? <span>{linkPreview.uploader}</span> : null}
+                  {formatDuration(linkPreview?.duration) ? <small>{formatDuration(linkPreview?.duration)}</small> : null}
+                  {previewStatus ? <p>{previewStatus}</p> : null}
+                </div>
+              </div>
+            )}
+
+            {(isDownloading || downloadProgress > 0) && (
+              <div className={styles.progressWrap} aria-label="Progresso do download">
+                <div>
+                  <span>Progresso</span>
+                  <strong>{downloadProgress}%</strong>
+                </div>
+                <progress value={downloadProgress} max={100} />
+              </div>
+            )}
 
             <div className={styles.downloadCards}>
               {downloadCards.map((card) => (

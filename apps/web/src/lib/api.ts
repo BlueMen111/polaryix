@@ -55,10 +55,12 @@ export async function convertFile(payload: {
 export async function downloadFromLink(payload: {
   url: string;
   mediaType: "video" | "audio";
+  downloadFormat?: string;
 }): Promise<{ filename: string }> {
   const formData = new FormData();
   formData.append("url", payload.url);
   formData.append("media_type", payload.mediaType);
+  formData.append("download_format", payload.downloadFormat ?? payload.mediaType);
 
   const response = await fetch(`${API_BASE_URL}/converter/download-link`, {
     method: "POST",
@@ -68,6 +70,39 @@ export async function downloadFromLink(payload: {
   const filename = await downloadBlobResponse(response, "polaryix-download");
 
   return { filename };
+}
+
+export type LinkPreview = {
+  title: string;
+  thumbnail?: string | null;
+  duration?: number | null;
+  uploader?: string | null;
+  webpage_url: string;
+};
+
+export async function getLinkPreview(url: string): Promise<LinkPreview> {
+  const formData = new FormData();
+  formData.append("url", url);
+
+  const response = await fetch(`${API_BASE_URL}/converter/link-preview`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    let detail = "Não foi possível carregar o preview.";
+
+    try {
+      const errorData = await response.json();
+      detail = typeof errorData.detail === "string" ? errorData.detail : detail;
+    } catch {
+      // Mantém mensagem padrão quando o erro não é JSON.
+    }
+
+    throw new Error(detail);
+  }
+
+  return response.json();
 }
 
 export async function uploadDataset(file: File): Promise<{ dataset: DatasetAnalysis }> {
