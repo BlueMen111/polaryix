@@ -21,9 +21,9 @@ class Settings(BaseSettings):
     allowed_origins: list[str] = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
-        "http://localhost:3001",
-        "http://127.0.0.1:3001",
+        "https://polaryix.vercel.app",
     ]
+    allowed_origin_regex: str | None = r"^https://([a-zA-Z0-9-]+\.github\.io|[a-zA-Z0-9-]+\.vercel\.app)$"
 
     allowed_extensions: set[str] = {
         ".csv",

@@ -146,6 +146,7 @@ export default function HomePage() {
   const [isPremium, setIsPremium] = useState(false);
   const [premiumPlan, setPremiumPlan] = useState("basic");
   const [usage, setUsage] = useState<UsageInfo | null>(null);
+  const [usageError, setUsageError] = useState("");
   const [heroFormatIndex, setHeroFormatIndex] = useState(0);
   const [isHeroFormatSwitching, setIsHeroFormatSwitching] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -181,8 +182,10 @@ export default function HomePage() {
     try {
       const currentUsage = await getUsage({ isPremium, premiumPlan });
       setUsage(currentUsage);
+      setUsageError("");
     } catch {
       setUsage(null);
+      setUsageError("Não foi possível atualizar os créditos agora.");
     }
   }
 
@@ -279,7 +282,11 @@ export default function HomePage() {
   }
 
   function tokenLabel() {
-    return usage ? `${usage.remaining} créditos restantes` : "carregando créditos";
+    if (usage) {
+      return `${usage.remaining} créditos restantes`;
+    }
+
+    return usageError ? "30 créditos grátis/dia" : "30 créditos grátis/dia";
   }
 
   function downloadProgressLabel() {

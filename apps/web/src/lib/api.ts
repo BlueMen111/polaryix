@@ -1,7 +1,27 @@
 import type { Dashboard, DatasetAnalysis } from "@/types";
 
-const API_BASE_URL = "/api/v1";
+const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+const API_BASE_URL = configuredApiUrl
+  ? `${configuredApiUrl.replace(/\/api\/v1$/i, "")}/api/v1`
+  : "/api/v1";
 const CLIENT_ID_KEY = "polaryix:client-id";
+const API_HTML_ERROR =
+  "A API retornou uma página HTML em vez de JSON. Verifique se a URL da API/ngrok está correta e redeploye a Vercel.";
+
+function shouldUseSameOriginApi() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return !["localhost", "127.0.0.1"].includes(window.location.hostname);
+}
+
+function apiUrl(path: string) {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const baseUrl = shouldUseSameOriginApi() ? "/api/v1" : API_BASE_URL;
+
+  return `${baseUrl}${normalizedPath}`;
+}
 
 function getClientId() {
   let clientId = window.localStorage.getItem(CLIENT_ID_KEY);
@@ -13,8 +33,16 @@ function getClientId() {
   return clientId;
 }
 
-function usageHeaders() {
+function apiHeaders(headers: HeadersInit = {}) {
   return {
+    "ngrok-skip-browser-warning": "true",
+    ...headers,
+  };
+}
+
+function usageHeaders(headers: HeadersInit = {}) {
+  return {
+    ...apiHeaders(headers),
     "x-polaryix-client-id": getClientId(),
   };
 }
@@ -49,12 +77,26 @@ async function parseJsonError(response: Response, fallback: string): Promise<str
   }
 }
 
+async function parseJsonResponse<T>(response: Response, fallback: string): Promise<T> {
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (!contentType.toLowerCase().includes("application/json")) {
+    const body = await response.text();
+    const preview = body.replace(/\s+/g, " ").trim().slice(0, 160);
+    const detail = preview.startsWith("<!DOCTYPE") || preview.startsWith("<html") ? API_HTML_ERROR : fallback;
+
+    throw new Error(preview ? `${detail} Trecho recebido: ${preview}` : detail);
+  }
+
+  return response.json();
+}
+
 export async function loginWithEmail(payload: { email: string; password: string }): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE_URL}/auth/login`, {
+  const response = await fetch(apiUrl("/auth/login"), {
     method: "POST",
-    headers: {
+    headers: apiHeaders({
       "Content-Type": "application/json",
-    },
+    }),
     body: JSON.stringify(payload),
   });
 
@@ -62,15 +104,15 @@ export async function loginWithEmail(payload: { email: string; password: string 
     throw new Error(await parseJsonError(response, "Não foi possível entrar."));
   }
 
-  return response.json();
+  return parseJsonResponse<AuthResponse>(response, "Não foi possível entrar.");
 }
 
 export async function signupWithEmail(payload: { name: string; email: string; password: string }): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+  const response = await fetch(apiUrl("/auth/signup"), {
     method: "POST",
-    headers: {
+    headers: apiHeaders({
       "Content-Type": "application/json",
-    },
+    }),
     body: JSON.stringify(payload),
   });
 
@@ -78,7 +120,7 @@ export async function signupWithEmail(payload: { name: string; email: string; pa
     throw new Error(await parseJsonError(response, "Não foi possível criar a conta."));
   }
 
-  return response.json();
+  return parseJsonResponse<AuthResponse>(response, "Não foi possível criar a conta.");
 }
 
 export function persistAuthSession(data: AuthResponse) {
@@ -93,7 +135,7 @@ export async function getUsage(payload: { isPremium?: boolean; premiumPlan?: str
     premium_plan: payload.premiumPlan ?? "basic",
   });
 
-  const response = await fetch(`${API_BASE_URL}/converter/usage?${params.toString()}`, {
+  const response = await fetch(apiUrl(`/converter/usage?${params.toString()}`), {
     headers: usageHeaders(),
     cache: "no-store",
   });
@@ -102,7 +144,7 @@ export async function getUsage(payload: { isPremium?: boolean; premiumPlan?: str
     throw new Error(await parseJsonError(response, "Não foi possível carregar seus tokens."));
   }
 
-  return response.json();
+  return parseJsonResponse<UsageInfo>(response, "Não foi possível carregar seus tokens.");
 }
 
 async function downloadBlobResponse(response: Response, fallbackFilename: string): Promise<string> {
@@ -117,6 +159,13 @@ async function downloadBlobResponse(response: Response, fallbackFilename: string
     }
 
     throw new Error(detail);
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (contentType.toLowerCase().includes("text/html")) {
+    const body = await response.text();
+    const preview = body.replace(/\s+/g, " ").trim().slice(0, 160);
+    throw new Error(`${API_HTML_ERROR}${preview ? ` Trecho recebido: ${preview}` : ""}`);
   }
 
   const disposition = response.headers.get("content-disposition") ?? "";
@@ -149,7 +198,7 @@ export async function convertFile(payload: {
   formData.append("is_premium", String(Boolean(payload.isPremium)));
   formData.append("premium_plan", payload.premiumPlan ?? "basic");
 
-  const response = await fetch(`${API_BASE_URL}/converter/convert-file`, {
+  const response = await fetch(apiUrl("/converter/convert-file"), {
     method: "POST",
     headers: usageHeaders(),
     body: formData,
@@ -178,7 +227,7 @@ export async function convertFiles(payload: {
   formData.append("is_premium", String(payload.isPremium));
   formData.append("premium_plan", payload.premiumPlan ?? "basic");
 
-  const response = await fetch(`${API_BASE_URL}/converter/convert-batch`, {
+  const response = await fetch(apiUrl("/converter/convert-batch"), {
     method: "POST",
     headers: usageHeaders(),
     body: formData,
@@ -203,7 +252,7 @@ export async function downloadFromLink(payload: {
   formData.append("is_premium", String(Boolean(payload.isPremium)));
   formData.append("premium_plan", payload.premiumPlan ?? "basic");
 
-  const response = await fetch(`${API_BASE_URL}/converter/download-link`, {
+  const response = await fetch(apiUrl("/converter/download-link"), {
     method: "POST",
     headers: usageHeaders(),
     body: formData,
@@ -237,7 +286,7 @@ export async function createLinkDownloadJob(payload: {
   formData.append("is_premium", String(Boolean(payload.isPremium)));
   formData.append("premium_plan", payload.premiumPlan ?? "basic");
 
-  const response = await fetch(`${API_BASE_URL}/converter/download-link/jobs`, {
+  const response = await fetch(apiUrl("/converter/download-link/jobs"), {
     method: "POST",
     headers: usageHeaders(),
     body: formData,
@@ -247,11 +296,11 @@ export async function createLinkDownloadJob(payload: {
     throw new Error(await parseJsonError(response, "Não foi possível iniciar o download."));
   }
 
-  return response.json();
+  return parseJsonResponse<LinkDownloadJob>(response, "Não foi possível iniciar o download.");
 }
 
 export async function getLinkDownloadJob(jobId: string): Promise<LinkDownloadJob> {
-  const response = await fetch(`${API_BASE_URL}/converter/download-link/jobs/${jobId}`, {
+  const response = await fetch(apiUrl(`/converter/download-link/jobs/${jobId}`), {
     headers: usageHeaders(),
     cache: "no-store",
   });
@@ -260,7 +309,7 @@ export async function getLinkDownloadJob(jobId: string): Promise<LinkDownloadJob
     throw new Error(await parseJsonError(response, "Não foi possível consultar o download."));
   }
 
-  return response.json();
+  return parseJsonResponse<LinkDownloadJob>(response, "Não foi possível consultar o download.");
 }
 
 export async function downloadLinkJobFile(job: LinkDownloadJob): Promise<string> {
@@ -268,7 +317,7 @@ export async function downloadLinkJobFile(job: LinkDownloadJob): Promise<string>
     throw new Error("O arquivo ainda não está pronto para download.");
   }
 
-  const response = await fetch(job.download_url, {
+  const response = await fetch(job.download_url.startsWith("/api/v1") ? apiUrl(job.download_url.replace(/^\/api\/v1/i, "")) : job.download_url, {
     headers: usageHeaders(),
   });
   const filename = await downloadBlobResponse(response, job.filename ?? "polaryix-download");
@@ -288,8 +337,9 @@ export async function getLinkPreview(url: string): Promise<LinkPreview> {
   const formData = new FormData();
   formData.append("url", url);
 
-  const response = await fetch(`${API_BASE_URL}/converter/link-preview`, {
+  const response = await fetch(apiUrl("/converter/link-preview"), {
     method: "POST",
+    headers: apiHeaders(),
     body: formData,
   });
 
@@ -306,7 +356,7 @@ export async function getLinkPreview(url: string): Promise<LinkPreview> {
     throw new Error(detail);
   }
 
-  return response.json();
+  return parseJsonResponse<LinkPreview>(response, "Não foi possível carregar o preview.");
 }
 
 export async function uploadDataset(file: File): Promise<{ dataset: DatasetAnalysis }> {
@@ -314,8 +364,9 @@ export async function uploadDataset(file: File): Promise<{ dataset: DatasetAnaly
   formData.append("file", file);
 
   try {
-    const response = await fetch(`${API_BASE_URL}/datasets/upload`, {
+    const response = await fetch(apiUrl("/datasets/upload"), {
       method: "POST",
+      headers: apiHeaders(),
       body: formData,
     });
 
@@ -332,7 +383,7 @@ export async function uploadDataset(file: File): Promise<{ dataset: DatasetAnaly
       throw new Error(detail);
     }
 
-    return response.json();
+    return parseJsonResponse<{ dataset: DatasetAnalysis }>(response, "Erro ao enviar dataset.");
   } catch (error) {
     if (error instanceof TypeError && error.message === "Failed to fetch") {
       throw new Error(
@@ -345,7 +396,8 @@ export async function uploadDataset(file: File): Promise<{ dataset: DatasetAnaly
 }
 
 export async function listDatasets(): Promise<{ datasets: DatasetAnalysis[] }> {
-  const response = await fetch(`${API_BASE_URL}/datasets`, {
+  const response = await fetch(apiUrl("/datasets"), {
+    headers: apiHeaders(),
     cache: "no-store",
   });
 
@@ -353,11 +405,12 @@ export async function listDatasets(): Promise<{ datasets: DatasetAnalysis[] }> {
     throw new Error("Erro ao listar datasets.");
   }
 
-  return response.json();
+  return parseJsonResponse<{ datasets: DatasetAnalysis[] }>(response, "Erro ao listar datasets.");
 }
 
 export async function getDataset(datasetId: string): Promise<{ dataset: DatasetAnalysis }> {
-  const response = await fetch(`${API_BASE_URL}/datasets/${datasetId}`, {
+  const response = await fetch(apiUrl(`/datasets/${datasetId}`), {
+    headers: apiHeaders(),
     cache: "no-store",
   });
 
@@ -365,7 +418,7 @@ export async function getDataset(datasetId: string): Promise<{ dataset: DatasetA
     throw new Error("Erro ao buscar dataset.");
   }
 
-  return response.json();
+  return parseJsonResponse<{ dataset: DatasetAnalysis }>(response, "Erro ao buscar dataset.");
 }
 
 export async function createDashboard(payload: {
@@ -374,11 +427,11 @@ export async function createDashboard(payload: {
   slug?: string;
   is_public?: boolean;
 }): Promise<{ dashboard: Dashboard }> {
-  const response = await fetch(`${API_BASE_URL}/dashboards`, {
+  const response = await fetch(apiUrl("/dashboards"), {
     method: "POST",
-    headers: {
+    headers: apiHeaders({
       "Content-Type": "application/json",
-    },
+    }),
     body: JSON.stringify(payload),
   });
 
@@ -386,11 +439,12 @@ export async function createDashboard(payload: {
     throw new Error("Erro ao criar dashboard.");
   }
 
-  return response.json();
+  return parseJsonResponse<{ dashboard: Dashboard }>(response, "Erro ao criar dashboard.");
 }
 
 export async function listDashboards(): Promise<{ dashboards: Dashboard[] }> {
-  const response = await fetch(`${API_BASE_URL}/dashboards`, {
+  const response = await fetch(apiUrl("/dashboards"), {
+    headers: apiHeaders(),
     cache: "no-store",
   });
 
@@ -398,11 +452,12 @@ export async function listDashboards(): Promise<{ dashboards: Dashboard[] }> {
     throw new Error("Erro ao listar dashboards.");
   }
 
-  return response.json();
+  return parseJsonResponse<{ dashboards: Dashboard[] }>(response, "Erro ao listar dashboards.");
 }
 
 export async function getPublicDashboard(slug: string): Promise<{ dashboard: Dashboard }> {
-  const response = await fetch(`${API_BASE_URL}/dashboards/public/${slug}`, {
+  const response = await fetch(apiUrl(`/dashboards/public/${slug}`), {
+    headers: apiHeaders(),
     cache: "no-store",
   });
 
@@ -410,7 +465,7 @@ export async function getPublicDashboard(slug: string): Promise<{ dashboard: Das
     throw new Error("Erro ao buscar dashboard público.");
   }
 
-  const data = await response.json();
+  const data = await parseJsonResponse<Dashboard | { dashboard: Dashboard }>(response, "Erro ao buscar dashboard público.");
 
   return "dashboard" in data ? data : { dashboard: data };
 }
