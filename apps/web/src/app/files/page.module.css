@@ -1,7 +1,7 @@
 .page {
   min-height: 100vh;
-  background: #ffffff;
-  color: #1a1230;
+  background: transparent;
+  color: #061334;
 }
 
 .main {
@@ -11,16 +11,17 @@
 }
 
 .panel {
-  border: 1px solid #e5def2;
-  border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 18px 50px rgba(43, 24, 82, 0.1);
+  border: 1px solid rgba(8, 116, 255, 0.12);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 28px 76px rgba(8, 48, 110, 0.1);
+  backdrop-filter: blur(22px);
   padding: 1.4rem;
 }
 
 .eyebrow {
   margin: 0 0 0.5rem;
-  color: #6d45d8;
+  color: #0874ff;
   font-size: 0.76rem;
   font-weight: 900;
   letter-spacing: 0.12em;
@@ -29,7 +30,7 @@
 
 .panel h1 {
   margin: 0;
-  color: #170d2d;
+  color: #061334;
   font-size: clamp(2rem, 5vw, 3.2rem);
   line-height: 1.05;
 }
@@ -37,6 +38,6 @@
 .panel p:not(.eyebrow) {
   max-width: 680px;
   margin: 0.8rem 0 0;
-  color: #625773;
+  color: #60728e;
   line-height: 1.6;
 }

@@ -2,9 +2,7 @@
   min-height: calc(100vh - 78px);
   padding: 4rem 1rem;
   color: #373737;
-  background:
-    radial-gradient(circle at 18% 16%, rgba(8, 116, 255, 0.12), transparent 28rem),
-    radial-gradient(circle at 82% 14%, rgba(49, 201, 255, 0.14), transparent 30rem);
+  background: transparent;
 }
 
 .hero {

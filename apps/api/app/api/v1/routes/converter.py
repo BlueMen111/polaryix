@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import json
 import shutil
 import subprocess
 import tempfile
@@ -9,7 +10,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.responses import FileResponse
 from PIL import Image, UnidentifiedImageError
 
@@ -58,8 +59,9 @@ PRO_BATCH_LIMIT = 600
 SUPPORTED_FORMATS = REGISTERED_FORMATS
 SAFE_URL_PATTERN = re.compile(r"^https?://", re.IGNORECASE)
 ANSI_PATTERN = re.compile(r"\x1b\[[0-9;]*m")
-PREMIUM_DOWNLOAD_OPTIONS = {"hd"}
+PREMIUM_DOWNLOAD_OPTIONS = {"hd", "4k"}
 PLAN_MONTHLY_CREDITS = {"basic": "basic_monthly_credits", "pro": "pro_monthly_credits"}
+LINK_DOWNLOAD_JOBS: dict[str, dict] = {}
 
 
 def _normalize_format(value: str) -> str:
@@ -145,6 +147,57 @@ def _consume_credits(request: Request, amount: int, is_premium: bool = False, pr
     _write_usage(usage)
 
 
+def _consume_credits_for_usage_key(
+    usage_key: str,
+    amount: int,
+    is_premium: bool = False,
+    premium_plan: str = "basic",
+) -> None:
+    if amount <= 0:
+        return
+
+    now = datetime.now(UTC)
+    usage = _read_usage()
+    plan = premium_plan.strip().lower()
+    limit = getattr(settings, PLAN_MONTHLY_CREDITS.get(plan, "basic_monthly_credits")) if is_premium else settings.free_daily_credits
+
+    if is_premium:
+        period = now.strftime("%Y-%m")
+        reset_at = datetime(now.year + int(now.month == 12), 1 if now.month == 12 else now.month + 1, 1, tzinfo=UTC).isoformat()
+        key = f"{usage_key}:premium:{plan}:{period}"
+    else:
+        period = "24h"
+        key = f"{usage_key}:free:rolling"
+        record = usage.get(key, {})
+        reset_at = record.get("reset_at")
+        try:
+            parsed_reset = datetime.fromisoformat(reset_at) if reset_at else now
+        except ValueError:
+            parsed_reset = now
+        if not reset_at or parsed_reset <= now:
+            reset_at = (now + timedelta(hours=24)).isoformat()
+            usage[key] = {"used": 0, "limit": limit, "period": period, "plan": "free", "reset_at": reset_at}
+
+    current = int(usage.get(key, {}).get("used", 0))
+    if current + amount > limit:
+        detail = (
+            "Seus tokens gratuitos acabaram. Eles renovam apos 24h, mas voce pode se tornar Premium para ter acesso ilimitado de uso."
+            if not is_premium
+            else f"Voce nao tem creditos suficientes neste ciclo. Limite: {limit}, usados: {current}, necessario: {amount}."
+        )
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=detail)
+
+    usage[key] = {
+        "used": current + amount,
+        "limit": limit,
+        "period": period,
+        "plan": plan if is_premium else "free",
+        "reset_at": reset_at,
+        "updated_at": now.isoformat(),
+    }
+    _write_usage(usage)
+
+
 def _credit_bucket(request: Request, is_premium: bool = False, premium_plan: str = "basic") -> tuple[str, int, str, datetime]:
     now = datetime.now(UTC)
     plan = premium_plan.strip().lower()
@@ -225,7 +278,7 @@ def _download_credit_cost(download_format: str, media_type: str) -> int:
     option = download_format.strip().lower()
     if option == "mp3" or media_type.strip().lower() == "audio":
         return 2
-    if option in {"mp4", "hd"}:
+    if option in {"mp4", "hd", "4k"}:
         return 5
     return 1
 
@@ -277,14 +330,24 @@ def _link_download_options(download_format: str, is_premium: bool = False) -> tu
         return "audio", "bestaudio/best"
 
     if option == "mp4":
-        return "video", "bestvideo[height<=720]+bestaudio/best[height<=720]/best"
+        return (
+            "video",
+            "bestvideo[height<=720][vcodec^=avc1]+bestaudio[acodec^=mp4a]/"
+            "bestvideo[height<=720]+bestaudio/"
+            "best[height<=720][ext=mp4]/best[height<=720]/best",
+        )
 
-    if option == "hd":
-        return "video", "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best"
+    if option in {"hd", "4k"}:
+        return (
+            "video",
+            "bestvideo[height<=2160][vcodec^=avc1]+bestaudio[acodec^=mp4a]/"
+            "bestvideo[height<=2160]+bestaudio/"
+            "best[height<=2160][ext=mp4]/best[height<=2160]/best",
+        )
 
     raise HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
-        detail="Formato de download inválido. Use mp4, mp3 ou hd.",
+        detail="Formato de download inválido. Use mp4, mp3 ou 4k.",
     )
 
 
@@ -364,6 +427,177 @@ def _transcode_to_compatible_mp4(input_path: Path, output_path: Path) -> None:
     if result.returncode != 0:
         detail = result.stderr.strip().splitlines()[-1] if result.stderr.strip() else "Erro ao preparar MP4 compatível."
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=detail)
+
+
+def _is_compatible_mp4(input_path: Path) -> bool:
+    if input_path.suffix.lower() != ".mp4" or shutil.which("ffprobe") is None:
+        return False
+
+    command = [
+        "ffprobe",
+        "-v",
+        "error",
+        "-show_entries",
+        "stream=codec_type,codec_name,pix_fmt",
+        "-of",
+        "json",
+        str(input_path),
+    ]
+    result = subprocess.run(command, capture_output=True, text=True, timeout=30)
+
+    if result.returncode != 0:
+        return False
+
+    try:
+        streams = json.loads(result.stdout).get("streams", [])
+    except json.JSONDecodeError:
+        return False
+
+    video_streams = [stream for stream in streams if stream.get("codec_type") == "video"]
+    audio_streams = [stream for stream in streams if stream.get("codec_type") == "audio"]
+    has_compatible_video = any(
+        stream.get("codec_name") == "h264" and stream.get("pix_fmt") in {"yuv420p", "yuvj420p", None}
+        for stream in video_streams
+    )
+    has_compatible_audio = not audio_streams or any(stream.get("codec_name") == "aac" for stream in audio_streams)
+
+    return has_compatible_video and has_compatible_audio
+
+
+def _update_link_job(job_id: str, **updates: object) -> None:
+    job = LINK_DOWNLOAD_JOBS.get(job_id)
+    if not job:
+        return
+
+    job.update(updates)
+    job["updated_at"] = datetime.now(UTC).isoformat()
+
+
+def _prepare_link_download(
+    normalized_url: str,
+    media_type: str,
+    download_format: str,
+    is_premium: bool,
+    progress_callback=None,
+) -> tuple[Path, str]:
+    if yt_dlp is None:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Download por link requer yt-dlp instalado no ambiente.",
+        )
+
+    requested_media, ytdlp_format = _link_download_options(download_format, is_premium)
+    output_dir = settings.processed_path / "link_downloads"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    download_id = uuid4().hex
+    output_template = str(output_dir / f"{download_id}.%(ext)s")
+
+    def emit_progress(percent: int, message: str) -> None:
+        if progress_callback:
+            progress_callback(percent, message)
+
+    def hook(data: dict) -> None:
+        status_value = data.get("status")
+        if status_value == "downloading":
+            total = data.get("total_bytes") or data.get("total_bytes_estimate") or 0
+            downloaded = data.get("downloaded_bytes") or 0
+            if total:
+                percent = 10 + int(min(downloaded / total, 1) * 68)
+                emit_progress(percent, "Baixando mídia...")
+            else:
+                emit_progress(28, "Baixando mídia...")
+        elif status_value == "finished":
+            emit_progress(78, "Download concluído. Preparando arquivo...")
+
+    ydl_opts = {
+        "outtmpl": output_template,
+        "noplaylist": True,
+        "quiet": True,
+        "no_warnings": True,
+        "progress_hooks": [hook],
+        "socket_timeout": 30,
+        "retries": 3,
+        "fragment_retries": 3,
+        "continuedl": True,
+    }
+
+    if requested_media == "audio":
+        ydl_opts.update(
+            {
+                "format": ytdlp_format,
+                "postprocessors": [
+                    {
+                        "key": "FFmpegExtractAudio",
+                        "preferredcodec": "mp3",
+                        "preferredquality": "192",
+                    }
+                ],
+            }
+        )
+    else:
+        ydl_opts["format"] = ytdlp_format
+        ydl_opts["merge_output_format"] = "mp4"
+
+    emit_progress(8, "Iniciando download...")
+
+    with yt_dlp.YoutubeDL(ydl_opts) as downloader:
+        info = downloader.extract_info(normalized_url, download=True)
+        prepared_path = Path(downloader.prepare_filename(info))
+
+    if requested_media == "audio":
+        prepared_path = prepared_path.with_suffix(".mp3")
+
+    if not prepared_path.exists():
+        candidates = sorted(output_dir.glob(f"{download_id}.*"), key=lambda path: path.stat().st_mtime, reverse=True)
+        prepared_path = candidates[0] if candidates else prepared_path
+
+    if not prepared_path.exists() or prepared_path.stat().st_size == 0:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Download não gerou arquivo válido.")
+
+    if requested_media == "video":
+        emit_progress(86, "Verificando compatibilidade do vídeo...")
+        if not _is_compatible_mp4(prepared_path):
+            emit_progress(90, "Convertendo para MP4 compatível...")
+            compatible_path = output_dir / f"{download_id}-compatible.mp4"
+            _transcode_to_compatible_mp4(prepared_path, compatible_path)
+            prepared_path = compatible_path
+
+    title = info.get("title") if isinstance(info, dict) else "polaryix-download"
+    safe_title = re.sub(r"[^a-zA-Z0-9._-]+", "-", str(title)).strip("-") or "polaryix-download"
+    filename = f"{safe_title}{prepared_path.suffix}"
+    emit_progress(100, "Arquivo pronto.")
+
+    return prepared_path, filename
+
+
+def _run_link_download_job(
+    job_id: str,
+    normalized_url: str,
+    media_type: str,
+    download_format: str,
+    is_premium: bool,
+    premium_plan: str,
+    usage_key: str,
+) -> None:
+    try:
+        def progress(percent: int, message: str) -> None:
+            _update_link_job(job_id, status="running", progress=max(0, min(percent, 99)), message=message)
+
+        prepared_path, filename = _prepare_link_download(normalized_url, media_type, download_format, is_premium, progress)
+        _consume_credits_for_usage_key(usage_key, _download_credit_cost(download_format, media_type), is_premium, premium_plan)
+        _update_link_job(
+            job_id,
+            status="ready",
+            progress=100,
+            message="Download pronto.",
+            file_path=str(prepared_path),
+            filename=filename,
+            download_url=f"/api/v1/converter/download-link/jobs/{job_id}/file",
+        )
+    except HTTPException as exc:
+        _update_link_job(job_id, status="error", progress=0, message=str(exc.detail))
+    except Exception as exc:
+        _update_link_job(job_id, status="error", progress=0, message=f"Não foi possível baixar esse link: {_clean_error_message(exc)}")
 
 
 def _convert_text(input_path: Path, output_path: Path) -> None:
@@ -635,6 +869,75 @@ async def convert_batch(
     )
 
 
+@router.post("/download-link/jobs")
+async def create_download_link_job(
+    background_tasks: BackgroundTasks,
+    request: Request,
+    url: str = Form(...),
+    media_type: str = Form("video"),
+    download_format: str = Form("mp4"),
+    is_premium: bool = Form(False),
+    premium_plan: str = Form("basic"),
+) -> dict:
+    normalized_url = url.strip()
+    if not SAFE_URL_PATTERN.match(normalized_url):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Informe uma URL http ou https válida.")
+
+    selected_download_format = download_format or ("mp3" if media_type == "audio" else "mp4")
+    _link_download_options(selected_download_format, is_premium)
+
+    job_id = uuid4().hex
+    now = datetime.now(UTC).isoformat()
+    LINK_DOWNLOAD_JOBS[job_id] = {
+        "id": job_id,
+        "status": "queued",
+        "progress": 3,
+        "message": "Download na fila...",
+        "filename": None,
+        "download_url": None,
+        "created_at": now,
+        "updated_at": now,
+    }
+
+    background_tasks.add_task(
+        _run_link_download_job,
+        job_id,
+        normalized_url,
+        media_type,
+        selected_download_format,
+        is_premium,
+        premium_plan,
+        _usage_key(request),
+    )
+
+    return LINK_DOWNLOAD_JOBS[job_id]
+
+
+@router.get("/download-link/jobs/{job_id}")
+async def get_download_link_job(job_id: str) -> dict:
+    job = LINK_DOWNLOAD_JOBS.get(job_id)
+    if not job:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job de download não encontrado.")
+
+    return {key: value for key, value in job.items() if key != "file_path"}
+
+
+@router.get("/download-link/jobs/{job_id}/file")
+async def get_download_link_job_file(job_id: str) -> FileResponse:
+    job = LINK_DOWNLOAD_JOBS.get(job_id)
+    if not job:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job de download não encontrado.")
+
+    if job.get("status") != "ready":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="O download ainda não está pronto.")
+
+    file_path = Path(str(job.get("file_path", "")))
+    if not file_path.exists() or file_path.stat().st_size == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Arquivo final não encontrado.")
+
+    return FileResponse(file_path, media_type="application/octet-stream", filename=str(job.get("filename") or file_path.name))
+
+
 @router.post("/download-link")
 async def download_link(
     request: Request,
@@ -658,7 +961,6 @@ async def download_link(
 
     selected_download_format = download_format or ("mp3" if media_type == "audio" else "mp4")
     requested_media, ytdlp_format = _link_download_options(selected_download_format, is_premium)
-    _consume_credits(request, _download_credit_cost(selected_download_format, media_type), is_premium, premium_plan)
 
     output_dir = settings.processed_path / "link_downloads"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -705,9 +1007,12 @@ async def download_link(
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Download não gerou arquivo válido.")
 
         if requested_media == "video":
-            compatible_path = output_dir / f"{download_id}-compatible.mp4"
-            _transcode_to_compatible_mp4(prepared_path, compatible_path)
-            prepared_path = compatible_path
+            if not _is_compatible_mp4(prepared_path):
+                compatible_path = output_dir / f"{download_id}-compatible.mp4"
+                _transcode_to_compatible_mp4(prepared_path, compatible_path)
+                prepared_path = compatible_path
+
+        _consume_credits(request, _download_credit_cost(selected_download_format, media_type), is_premium, premium_plan)
 
     except HTTPException:
         raise

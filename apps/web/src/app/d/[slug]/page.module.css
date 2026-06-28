@@ -1,17 +1,18 @@
 .shell {
   min-height: 100vh;
-  background: #f7f9fc;
-  color: #1f2937;
+  background: transparent;
+  color: #061334;
   padding: 32px 0;
 }
 
 .dashboard {
   width: min(1320px, calc(100% - 32px));
   margin: 0 auto;
-  background: white;
-  border: 1px solid #e5eaf1;
-  border-radius: 8px;
-  box-shadow: 0 18px 60px rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(8, 116, 255, 0.12);
+  border-radius: 24px;
+  box-shadow: 0 28px 76px rgba(8, 48, 110, 0.1);
+  backdrop-filter: blur(22px);
   padding: 32px;
 }
 
@@ -21,7 +22,7 @@
   justify-content: space-between;
   gap: 20px;
   padding-bottom: 28px;
-  border-bottom: 1px solid #e5eaf1;
+  border-bottom: 1px solid rgba(8, 116, 255, 0.1);
 }
 
 .titleGroup {
@@ -36,13 +37,13 @@
   display: grid;
   place-items: center;
   border-radius: 8px;
-  background: linear-gradient(135deg, #edf2ff, #f4ecff);
+  background: linear-gradient(135deg, rgba(8, 116, 255, 0.08), rgba(49, 201, 255, 0.12));
   font-size: 30px;
 }
 
 .title {
   margin: 0;
-  color: #20242a;
+  color: #061334;
   font-size: 2rem;
   letter-spacing: 0;
 }
@@ -56,7 +57,7 @@
   border: 0;
   border-radius: 8px;
   padding: 14px 22px;
-  background: linear-gradient(135deg, #5b7cfa, #764ba2);
+  background: linear-gradient(135deg, #0874ff, #1265ed 56%, #31c9ff);
   color: white;
   font-weight: 700;
 }
@@ -73,8 +74,8 @@
 .fileCard,
 .chartCard {
   border-radius: 8px;
-  background: #f5f7fc;
-  border: 1px solid #e8edf5;
+  background: rgba(247, 251, 255, 0.78);
+  border: 1px solid rgba(8, 116, 255, 0.1);
   padding: 18px;
 }
 

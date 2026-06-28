@@ -1,7 +1,17 @@
 ﻿"use client";
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
-import { LinkPreview, UsageInfo, convertFile, convertFiles, downloadFromLink, getLinkPreview, getUsage } from "@/lib/api";
+import {
+  LinkPreview,
+  UsageInfo,
+  convertFile,
+  convertFiles,
+  createLinkDownloadJob,
+  downloadLinkJobFile,
+  getLinkDownloadJob,
+  getLinkPreview,
+  getUsage,
+} from "@/lib/api";
 import { detectFormatFromFileName, validateConversion, validateFileForConversion } from "@/lib/conversionCompatibility";
 import styles from "./page.module.css";
 
@@ -43,9 +53,9 @@ const heroFormatPairs = [
 ];
 
 const downloadOptions = [
-  { id: "mp4", label: "MP4", detail: "5 tokens", mediaType: "video", premium: false },
+  { id: "mp4", label: "MP4", detail: "720p - 5 tokens", mediaType: "video", premium: false },
   { id: "mp3", label: "MP3", detail: "2 tokens", mediaType: "audio", premium: false },
-  { id: "hd", label: "Full HD", detail: "5 tokens - Premium", mediaType: "video", premium: true },
+  { id: "4k", label: "4K", detail: "5 tokens - Premium", mediaType: "video", premium: true },
 ] as const;
 
 function FormatPicker({
@@ -201,19 +211,6 @@ export default function HomePage() {
     return () => window.clearTimeout(timeout);
   }, [downloadUrl]);
 
-  useEffect(() => {
-    if (!isDownloading) {
-      return;
-    }
-
-    setDownloadProgress(8);
-    const interval = window.setInterval(() => {
-      setDownloadProgress((current) => Math.min(current + Math.max(2, Math.round((92 - current) / 7)), 92));
-    }, 850);
-
-    return () => window.clearInterval(interval);
-  }, [isDownloading]);
-
   function formatDuration(duration?: number | null) {
     if (!duration) {
       return null;
@@ -283,6 +280,26 @@ export default function HomePage() {
 
   function tokenLabel() {
     return usage ? `${usage.remaining} créditos restantes` : "carregando créditos";
+  }
+
+  function downloadProgressLabel() {
+    if (downloadProgress >= 92 && isDownloading) {
+      return "Finalizando arquivo";
+    }
+
+    if (downloadProgress >= 55 && isDownloading) {
+      return "Preparando mídia";
+    }
+
+    return "Progresso";
+  }
+
+  function downloadProgressHint() {
+    if (downloadProgress >= 92 && isDownloading) {
+      return "Para vídeos longos, essa etapa pode levar alguns minutos enquanto o arquivo final é preparado.";
+    }
+
+    return "";
   }
 
   function isTokenLimitMessage(message: string) {
@@ -363,10 +380,10 @@ export default function HomePage() {
       return;
     }
 
-    setDownloadStatus(`Preparando download em ${selectedOption.label}...`);
+    setDownloadStatus(`Criando tarefa de download em ${selectedOption.label}...`);
 
     try {
-      const result = await downloadFromLink({
+      let job = await createLinkDownloadJob({
         url: downloadUrl,
         mediaType: selectedOption.mediaType,
         downloadFormat: selectedOption.id,
@@ -374,8 +391,23 @@ export default function HomePage() {
         premiumPlan,
       });
 
+      setDownloadProgress(job.progress ?? 3);
+      setDownloadStatus(job.message || "Download iniciado...");
+
+      while (job.status === "queued" || job.status === "running") {
+        await new Promise((resolve) => window.setTimeout(resolve, 1000));
+        job = await getLinkDownloadJob(job.id);
+        setDownloadProgress(job.progress ?? 0);
+        setDownloadStatus(job.message || "Processando download...");
+      }
+
+      if (job.status === "error") {
+        throw new Error(job.message || "Não foi possível concluir o download.");
+      }
+
+      const filename = await downloadLinkJobFile(job);
       setDownloadProgress(100);
-      setDownloadStatus(`Download iniciado: ${result.filename}`);
+      setDownloadStatus(`Download iniciado: ${filename}`);
       await refreshUsage();
     } catch (error) {
       setDownloadProgress(0);
@@ -631,10 +663,11 @@ export default function HomePage() {
             {(isDownloading || downloadProgress > 0) && (
               <div className={styles.progressWrap} aria-label="Progresso do download">
                 <div>
-                  <span>Progresso</span>
+                  <span>{downloadProgressLabel()}</span>
                   <strong>{downloadProgress}%</strong>
                 </div>
                 <progress value={downloadProgress} max={100} />
+                {downloadProgressHint() ? <p>{downloadProgressHint()}</p> : null}
               </div>
             )}
 

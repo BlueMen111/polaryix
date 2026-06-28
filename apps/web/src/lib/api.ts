@@ -214,6 +214,68 @@ export async function downloadFromLink(payload: {
   return { filename };
 }
 
+export type LinkDownloadJob = {
+  id: string;
+  status: "queued" | "running" | "ready" | "error";
+  progress: number;
+  message: string;
+  filename?: string | null;
+  download_url?: string | null;
+};
+
+export async function createLinkDownloadJob(payload: {
+  url: string;
+  mediaType: "video" | "audio";
+  downloadFormat?: string;
+  isPremium?: boolean;
+  premiumPlan?: string;
+}): Promise<LinkDownloadJob> {
+  const formData = new FormData();
+  formData.append("url", payload.url);
+  formData.append("media_type", payload.mediaType);
+  formData.append("download_format", payload.downloadFormat ?? payload.mediaType);
+  formData.append("is_premium", String(Boolean(payload.isPremium)));
+  formData.append("premium_plan", payload.premiumPlan ?? "basic");
+
+  const response = await fetch(`${API_BASE_URL}/converter/download-link/jobs`, {
+    method: "POST",
+    headers: usageHeaders(),
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Não foi possível iniciar o download."));
+  }
+
+  return response.json();
+}
+
+export async function getLinkDownloadJob(jobId: string): Promise<LinkDownloadJob> {
+  const response = await fetch(`${API_BASE_URL}/converter/download-link/jobs/${jobId}`, {
+    headers: usageHeaders(),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Não foi possível consultar o download."));
+  }
+
+  return response.json();
+}
+
+export async function downloadLinkJobFile(job: LinkDownloadJob): Promise<string> {
+  if (!job.download_url) {
+    throw new Error("O arquivo ainda não está pronto para download.");
+  }
+
+  const response = await fetch(job.download_url, {
+    headers: usageHeaders(),
+  });
+  const filename = await downloadBlobResponse(response, job.filename ?? "polaryix-download");
+
+  return filename;
+}
+
 export type LinkPreview = {
   title: string;
   thumbnail?: string | null;

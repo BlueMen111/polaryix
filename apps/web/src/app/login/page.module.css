@@ -4,9 +4,7 @@
   place-items: center;
   padding: 3rem 1rem;
   color: #373737;
-  background:
-    radial-gradient(circle at 18% 18%, rgba(8, 116, 255, 0.12), transparent 24rem),
-    radial-gradient(circle at 82% 12%, rgba(49, 201, 255, 0.14), transparent 26rem);
+  background: transparent;
 }
 
 .card {
