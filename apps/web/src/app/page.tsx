@@ -155,7 +155,7 @@ export default function HomePage() {
 
   const conversionLabel = useMemo(() => `${fromFormat} > ${toFormat}`, [fromFormat, toFormat]);
   const acceptList = useMemo(() => allFormats.map((format) => `.${format.toLowerCase()}`).join(","), []);
-  const batchLimit = isPremium ? (premiumPlan === "pro" ? 600 : 30) : 2;
+  const batchLimit = isPremium ? (premiumPlan === "pro" ? 60 : 30) : 2;
   const totalSelectedSize = useMemo(() => selectedFiles.reduce((sum, file) => sum + file.size, 0), [selectedFiles]);
   const [heroFormatFrom, heroFormatTo] = heroFormatPairs[heroFormatIndex];
 

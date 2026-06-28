@@ -5,11 +5,23 @@ import { activatePremiumPlan } from "@/lib/api";
 import styles from "./page.module.css";
 
 type Billing = "annual" | "monthly";
+type PlanType = "basic" | "pro";
+type PlanOption = {
+  id: string;
+  plan: PlanType;
+  billing: Billing;
+  name: string;
+  price: number;
+  badge: string;
+  features: string[];
+};
 
 const plans = {
   annual: [
     {
       id: "basic-annual",
+      plan: "basic",
+      billing: "annual",
       name: "Basic Anual",
       price: 4.99,
       badge: "Economize mais",
@@ -17,6 +29,8 @@ const plans = {
     },
     {
       id: "pro-annual",
+      plan: "pro",
+      billing: "annual",
       name: "Pro Premium Anual",
       price: 12.99,
       badge: "Mais popular",
@@ -26,6 +40,8 @@ const plans = {
   monthly: [
     {
       id: "basic-monthly",
+      plan: "basic",
+      billing: "monthly",
       name: "Basic Mensal",
       price: 9.99,
       badge: "Flexível",
@@ -33,13 +49,15 @@ const plans = {
     },
     {
       id: "pro-monthly",
+      plan: "pro",
+      billing: "monthly",
       name: "Pro Premium Mensal",
       price: 18.99,
       badge: "Máximo poder",
       features: ["1 GB tamanho máximo de ficheiro", "3000 créditos de conversão por mês", "60 conversões simultâneas", "Prioridade premium"],
     },
   ],
-} satisfies Record<Billing, Array<{ id: string; name: string; price: number; badge: string; features: string[] }>>;
+} satisfies Record<Billing, PlanOption[]>;
 
 export default function PremiumPage() {
   const [billing, setBilling] = useState<Billing>("annual");
@@ -47,20 +65,19 @@ export default function PremiumPage() {
   const [isActivating, setIsActivating] = useState("");
   const visiblePlans = plans[billing];
 
-  async function selectPlan(planId: string) {
+  async function selectPlan(plan: PlanOption) {
     const token = window.localStorage.getItem("polaryix:auth-token");
     if (!token) {
-      window.location.href = `/login?next=/premium&plan=${planId}`;
+      window.location.href = `/login?next=/premium&plan=${plan.id}`;
       return;
     }
 
-    const planType = planId.includes("pro") ? "pro" : "basic";
-    setIsActivating(planId);
+    setIsActivating(plan.id);
     setStatus("Ativando plano...");
 
     try {
-      await activatePremiumPlan({ plan: planType, billing });
-      setStatus("Plano ativado. Redirecionando...");
+      const result = await activatePremiumPlan({ plan: plan.plan, billing: plan.billing });
+      setStatus(`${result.user.plan === "pro" ? "Pro Premium" : "Basic"} ativado. Redirecionando...`);
       window.location.href = "/";
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Nao foi possivel ativar o plano.");
@@ -106,7 +123,7 @@ export default function PremiumPage() {
               ))}
             </ul>
 
-            <button type="button" onClick={() => selectPlan(plan.id)} disabled={isActivating === plan.id}>
+            <button type="button" onClick={() => selectPlan(plan)} disabled={isActivating === plan.id}>
               {isActivating === plan.id ? "Ativando..." : "Continuar"}
             </button>
           </article>
