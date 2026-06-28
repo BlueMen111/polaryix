@@ -499,6 +499,11 @@
   line-height: 1.45;
 }
 
+.errorHighlight {
+  color: #dc2626;
+  font-weight: 950;
+}
+
 .limitNotice {
   border: 1px solid rgba(8, 116, 255, 0.16);
   border-radius: 14px;

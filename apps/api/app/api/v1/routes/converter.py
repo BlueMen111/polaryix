@@ -19,6 +19,15 @@ except Exception:  # pragma: no cover - optional runtime dependency guard
     yt_dlp = None
 
 from app.core.config.settings import settings
+from app.core.conversion.compatibility import (
+    CONVERTIBLE_AUDIO_FORMATS,
+    CONVERTIBLE_TABULAR_FORMATS,
+    CONVERTIBLE_TEXT_FORMATS,
+    CONVERTIBLE_VIDEO_FORMATS,
+    REGISTERED_FORMATS,
+    registered_extensions_for_format,
+    validate_conversion,
+)
 from app.core.security.file_security import FileSecurityError, validate_file_name, validate_upload_size
 
 
@@ -37,17 +46,16 @@ IMAGE_FORMATS = {
     "ICO": {"ext": ".ico", "pil": "ICO"},
 }
 
-VIDEO_FORMATS = {"MP4", "MOV", "AVI", "MKV", "WEBM", "M4V", "FLV", "WMV"}
-AUDIO_FORMATS = {"MP3", "WAV", "AAC", "OGG", "FLAC", "M4A", "WMA"}
-TEXT_FORMATS = {"TXT", "MD", "CSV", "JSON", "XML", "HTML"}
-SPREADSHEET_FORMATS = {"XLSX"}
-TABULAR_FORMATS = {"CSV", "JSON", "XML", "HTML", "XLSX"}
+VIDEO_FORMATS = CONVERTIBLE_VIDEO_FORMATS
+AUDIO_FORMATS = CONVERTIBLE_AUDIO_FORMATS
+TEXT_FORMATS = CONVERTIBLE_TEXT_FORMATS
+TABULAR_FORMATS = CONVERTIBLE_TABULAR_FORMATS
 ARCHIVE_FORMATS = {"ZIP"}
 FREE_BATCH_LIMIT = 2
 BASIC_BATCH_LIMIT = 30
 PRO_BATCH_LIMIT = 600
 
-SUPPORTED_FORMATS = IMAGE_FORMATS.keys() | VIDEO_FORMATS | AUDIO_FORMATS | TEXT_FORMATS | SPREADSHEET_FORMATS | ARCHIVE_FORMATS
+SUPPORTED_FORMATS = REGISTERED_FORMATS
 SAFE_URL_PATTERN = re.compile(r"^https?://", re.IGNORECASE)
 ANSI_PATTERN = re.compile(r"\x1b\[[0-9;]*m")
 PREMIUM_DOWNLOAD_OPTIONS = {"hd"}
@@ -64,6 +72,12 @@ def _normalize_format(value: str) -> str:
         )
 
     return normalized
+
+
+def _validate_conversion_or_raise(source_format: str, target_format: str) -> None:
+    result = validate_conversion(source_format, target_format)
+    if not result.allowed:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=result.message)
 
 
 def _usage_path() -> Path:
@@ -436,9 +450,22 @@ def _convert_to_zip(input_path: Path, output_path: Path, original_name: str) -> 
         archive.write(input_path, arcname=Path(original_name).name)
 
 
-async def _save_upload(file: UploadFile, destination: Path) -> str:
+async def _save_upload(file: UploadFile, destination: Path, source_format: str) -> str:
     safe_name = validate_file_name(file.filename or "arquivo")
-    await validate_upload_size(file)
+    size_bytes = await validate_upload_size(file)
+
+    if size_bytes <= 0:
+        raise FileSecurityError("O arquivo enviado está vazio.")
+
+    extension = Path(safe_name).suffix.lower()
+    expected_extensions = registered_extensions_for_format(source_format)
+
+    if extension and extension not in expected_extensions:
+        expected = ", ".join(sorted(expected_extensions))
+        raise FileSecurityError(
+            f"A extensão do arquivo não corresponde ao formato selecionado. "
+            f"Para {source_format}, use: {expected}."
+        )
 
     with destination.open("wb") as buffer:
         while chunk := await file.read(1024 * 1024):
@@ -455,6 +482,8 @@ def _convert_stored_file(
     target_format: str,
     workdir: Path,
 ) -> tuple[Path, str]:
+    _validate_conversion_or_raise(source_format, target_format)
+
     output_name = _output_filename(original_name, target_format)
     output_path = workdir / f"{uuid4().hex}-{output_name}"
 
@@ -515,13 +544,14 @@ async def convert_file(
 
     source_format = _normalize_format(from_format)
     target_format = _normalize_format(to_format)
-    _consume_credits(request, 1, is_premium, premium_plan)
+    _validate_conversion_or_raise(source_format, target_format)
 
     try:
         with tempfile.TemporaryDirectory(prefix="polaryix-convert-") as temp_dir:
             workdir = Path(temp_dir)
             input_path = workdir / f"input-{uuid4().hex}.{source_format.lower()}"
-            safe_name = await _save_upload(file, input_path)
+            safe_name = await _save_upload(file, input_path, source_format)
+            _consume_credits(request, 1, is_premium, premium_plan)
             output_path, output_name = _convert_stored_file(input_path, safe_name, source_format, target_format, workdir)
 
             final_path = settings.processed_path / "conversions" / f"{uuid4().hex}-{output_name}"
@@ -551,6 +581,7 @@ async def convert_batch(
 
     source_format = _normalize_format(from_format)
     target_format = _normalize_format(to_format)
+    _validate_conversion_or_raise(source_format, target_format)
     limit = (PRO_BATCH_LIMIT if premium_plan.strip().lower() == "pro" else BASIC_BATCH_LIMIT) if is_premium else FREE_BATCH_LIMIT
 
     if not files:
@@ -562,16 +593,20 @@ async def convert_batch(
             detail=f"Limite de {limit} arquivos por lote para este plano.",
         )
 
-    _consume_credits(request, len(files), is_premium, premium_plan)
-
     try:
         with tempfile.TemporaryDirectory(prefix="polaryix-batch-") as temp_dir:
             workdir = Path(temp_dir)
+            saved_files: list[tuple[Path, str]] = []
             converted: list[tuple[Path, str]] = []
 
             for index, file in enumerate(files, start=1):
                 input_path = workdir / f"input-{index}-{uuid4().hex}.{source_format.lower()}"
-                safe_name = await _save_upload(file, input_path)
+                safe_name = await _save_upload(file, input_path, source_format)
+                saved_files.append((input_path, safe_name))
+
+            _consume_credits(request, len(saved_files), is_premium, premium_plan)
+
+            for input_path, safe_name in saved_files:
                 converted.append(_convert_stored_file(input_path, safe_name, source_format, target_format, workdir))
 
             zip_name = f"polaryix-conversoes-{uuid4().hex[:8]}.zip"

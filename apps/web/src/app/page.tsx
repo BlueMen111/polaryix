@@ -2,6 +2,7 @@
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { LinkPreview, UsageInfo, convertFile, convertFiles, downloadFromLink, getLinkPreview, getUsage } from "@/lib/api";
+import { detectFormatFromFileName, validateConversion, validateFileForConversion } from "@/lib/conversionCompatibility";
 import styles from "./page.module.css";
 
 const formatGroups = [
@@ -90,6 +91,30 @@ function FormatPicker({
       ) : null}
     </div>
   );
+}
+
+function StatusMessage({ message }: { message: string }) {
+  const impossiblePrefix = "Essa conversão não é possível.";
+
+  if (message.startsWith(impossiblePrefix)) {
+    return (
+      <>
+        Essa conversão <strong className={styles.errorHighlight}>não é possível</strong>.
+        {message.slice(impossiblePrefix.length)}
+      </>
+    );
+  }
+
+  if (message.startsWith("Essa conversão ainda não é suportada.")) {
+    return (
+      <>
+        Essa conversão ainda <strong className={styles.errorHighlight}>não é suportada</strong>.
+        {message.slice("Essa conversão ainda não é suportada.".length)}
+      </>
+    );
+  }
+
+  return message;
 }
 
 export default function HomePage() {
@@ -210,6 +235,14 @@ export default function HomePage() {
 
   function setFiles(files: File[]) {
     const limitedFiles = files.slice(0, batchLimit);
+    const detectedFormat = limitedFiles[0] ? detectFormatFromFileName(limitedFiles[0].name) : "";
+    const nextFromFormat = detectedFormat || fromFormat;
+
+    if (detectedFormat && detectedFormat !== fromFormat) {
+      setFromFormat(detectedFormat);
+      setOpenPicker(null);
+    }
+
     setSelectedFiles(limitedFiles);
     setSelectedFile(limitedFiles[0] ?? null);
     setFileName(limitedFiles.map((file) => file.name).join(", "));
@@ -220,14 +253,19 @@ export default function HomePage() {
     }
 
     if (limitedFiles.length > 1) {
-      setStatus(`${limitedFiles.length} arquivos prontos para converter em ${toFormat}. O download virá em ZIP.`);
+      const invalidFileMessage = limitedFiles.map((file) => validateFileForConversion(file, nextFromFormat)).find(Boolean);
+      const detectedSuffix = detectedFormat ? ` Formato detectado: ${detectedFormat}.` : "";
+      setStatus(invalidFileMessage || `${limitedFiles.length} arquivos prontos para converter em ${toFormat}. O download virá em ZIP.${detectedSuffix}`);
       return;
     }
 
+    const invalidFileMessage = limitedFiles[0] ? validateFileForConversion(limitedFiles[0], nextFromFormat) : "";
+    const detectedSuffix = detectedFormat ? ` Formato detectado: ${detectedFormat}.` : "";
     setStatus(
-      limitedFiles[0]
-        ? `${limitedFiles[0].name} pronto para converter em ${toFormat}.`
-        : "Selecione um arquivo para preparar a conversão."
+      invalidFileMessage ||
+      (limitedFiles[0]
+        ? `${limitedFiles[0].name} pronto para converter em ${toFormat}.${detectedSuffix}`
+        : "Selecione um arquivo para preparar a conversão.")
     );
   }
 
@@ -263,6 +301,18 @@ export default function HomePage() {
     if (selectedFiles.length === 0) {
       setStatus("Escolha um arquivo antes de iniciar a conversão.");
       fileInputRef.current?.click();
+      return;
+    }
+
+    const conversionValidation = validateConversion(fromFormat, toFormat);
+    if (!conversionValidation.allowed) {
+      setStatus(conversionValidation.message);
+      return;
+    }
+
+    const invalidFileMessage = selectedFiles.map((file) => validateFileForConversion(file, fromFormat)).find(Boolean);
+    if (invalidFileMessage) {
+      setStatus(invalidFileMessage);
       return;
     }
 
@@ -492,7 +542,9 @@ export default function HomePage() {
                   <button type="button" className={styles.convertButton} onClick={handleConvert} disabled={isConverting}>
                     {isConverting ? "Convertendo..." : "Converter agora"}
                   </button>
-                  <p className={styles.statusText}>{status}</p>
+                  <p className={styles.statusText}>
+                    <StatusMessage message={status} />
+                  </p>
                   {isTokenLimitMessage(status) ? (
                     <a className={styles.limitNotice} href="/premium">
                       Seus tokens acabaram. Conheça o Premium para continuar convertendo.
@@ -501,7 +553,9 @@ export default function HomePage() {
                 </div>
               ) : (
                 <>
-                  <p className={styles.statusText}>{status}</p>
+                  <p className={styles.statusText}>
+                    <StatusMessage message={status} />
+                  </p>
                   {isTokenLimitMessage(status) ? (
                     <a className={styles.limitNotice} href="/premium">
                       Seus tokens acabaram. Conheça o Premium para continuar convertendo.
@@ -552,7 +606,9 @@ export default function HomePage() {
               <button type="button" onClick={handleLinkDownload} disabled={isDownloading}>
                 {isDownloading ? "Preparando..." : "Preparar download"}
               </button>
-              <p className={styles.statusText}>{downloadStatus}</p>
+              <p className={styles.statusText}>
+                <StatusMessage message={downloadStatus} />
+              </p>
               {isTokenLimitMessage(downloadStatus) ? (
                 <a className={styles.limitNotice} href="/premium">
                   Seus tokens acabaram. Conheça o Premium para continuar baixando.
