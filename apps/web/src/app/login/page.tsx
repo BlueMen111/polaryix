@@ -31,10 +31,10 @@ export default function LoginPage() {
     try {
       const session = await loginWithEmail({ email, password });
       persistAuthSession(session);
-      setStatus("Login concluido. Redirecionando...");
+      setStatus("Login concluído. Redirecionando...");
       window.location.href = "/";
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Nao foi possivel entrar.");
+      setStatus(error instanceof Error ? error.message : "Não foi possível entrar.");
     } finally {
       setIsSubmitting(false);
     }
@@ -46,10 +46,10 @@ export default function LoginPage() {
         <div className={styles.header}>
           <p>Conta Polaryix</p>
           <h1 id="login-title">Entre para continuar</h1>
-          <span>Acesse seus arquivos, limites diarios e beneficios Premium.</span>
+          <span>Acesse seus arquivos, limites diários e benefícios Premium.</span>
         </div>
 
-        <div className={styles.socialRow} aria-label="Opcoes de login social">
+        <div className={styles.socialRow} aria-label="Opções de login social">
           <button type="button" className={styles.googleButton} aria-label="Entrar com Google">
             <GoogleIcon />
           </button>
@@ -94,7 +94,7 @@ export default function LoginPage() {
         {status ? <p className={styles.status}>{status}</p> : null}
 
         <p className={styles.footerText}>
-          Ainda nao tem uma conta? <Link href="/signup">Cadastre-se gratis</Link>
+          Ainda não tem uma conta? <Link href="/signup">Cadastre-se grátis</Link>
         </p>
       </section>
     </main>

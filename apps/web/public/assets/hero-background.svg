@@ -1,1 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 720" preserveAspectRatio="none"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#020817"/><stop offset=".55" stop-color="#06182a"/><stop offset="1" stop-color="#07243b"/></linearGradient><radialGradient id="a" cx="70%" cy="38%" r="35%"><stop stop-color="#1be6bb" stop-opacity=".5"/><stop offset=".45" stop-color="#27d7ff" stop-opacity=".16"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient><linearGradient id="mount" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#061226"/><stop offset=".7" stop-color="#0c354e"/><stop offset="1" stop-color="#1ce3bc" stop-opacity=".35"/></linearGradient></defs><rect width="1600" height="720" fill="url(#bg)"/><rect width="1600" height="720" fill="url(#a)"/><path d="M0 505 L155 450 L310 510 L500 420 L690 500 L910 360 L1120 500 L1370 420 L1600 510 V720 H0Z" fill="url(#mount)" opacity=".62"/><path d="M0 560 L220 455 L365 535 L575 430 L820 550 L1030 410 L1220 540 L1450 470 L1600 560 V720 H0Z" fill="#020817" opacity=".65"/><g opacity=".16" stroke="#38c8ff" stroke-width="1"><path d="M0 120H1600M0 240H1600M0 360H1600M0 480H1600"/><path d="M120 0V720M240 0V720M360 0V720M480 0V720M600 0V720M720 0V720M840 0V720M960 0V720M1080 0V720M1200 0V720M1320 0V720M1440 0V720"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f8fbff"/>
+      <stop offset="0.45" stop-color="#eef6ff"/>
+      <stop offset="1" stop-color="#e7f1ff"/>
+    </linearGradient>
+    <radialGradient id="r1" cx="78%" cy="30%" r="45%">
+      <stop offset="0" stop-color="#d6eaff" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#d6eaff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="r2" cx="10%" cy="78%" r="55%">
+      <stop offset="0" stop-color="#e9f4ff" stop-opacity="1"/>
+      <stop offset="1" stop-color="#e9f4ff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#g)"/>
+  <rect width="1600" height="900" fill="url(#r1)"/>
+  <rect width="1600" height="900" fill="url(#r2)"/>
+  <path d="M-120 240 C240 40 550 140 815 65 C1080 -10 1300 10 1710 -160 L1710 140 C1340 320 1120 230 850 310 C560 397 310 300 -120 520 Z" fill="#dcecff" opacity=".65"/>
+  <path d="M-90 730 C240 580 510 680 780 595 C1030 517 1280 545 1690 390 L1690 920 L-90 920 Z" fill="#d9ebff" opacity=".7"/>
+  <path d="M100 130 C390 30 630 100 920 42 C1180 -10 1410 0 1600 -90" stroke="#c6ddff" stroke-width="2" opacity=".45" fill="none"/>
+  <path d="M35 790 C360 600 690 790 990 650 C1230 540 1440 570 1600 455" stroke="#c9e2ff" stroke-width="3" opacity=".5" fill="none"/>
+</svg>

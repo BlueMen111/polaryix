@@ -6,8 +6,8 @@ import styles from "./page.module.css";
 
 const formatGroups = [
   { title: "Imagens", formats: ["PNG", "DDS", "JPG", "JPEG", "WEBP", "TGA", "BMP", "TIFF", "AVIF", "SVG", "ICO"] },
-  { title: "VÃ­deos", formats: ["MP4", "MOV", "AVI", "MKV", "WEBM", "M4V", "FLV", "WMV"] },
-  { title: "Ãudios", formats: ["MP3", "WAV", "AAC", "OGG", "FLAC", "M4A", "WMA"] },
+  { title: "Vídeos", formats: ["MP4", "MOV", "AVI", "MKV", "WEBM", "M4V", "FLV", "WMV"] },
+  { title: "Áudios", formats: ["MP3", "WAV", "AAC", "OGG", "FLAC", "M4A", "WMA"] },
   { title: "Documentos", formats: ["PDF", "DOCX", "DOC", "XLSX", "CSV", "PPTX", "TXT", "MD"] },
   { title: "Arquivos", formats: ["ZIP", "RAR", "7Z", "TAR", "GZ"] },
   { title: "Outros", formats: ["JSON", "XML", "HTML", "HEIC", "PSD"] },
@@ -17,20 +17,29 @@ const allFormats = formatGroups.flatMap((group) => group.formats);
 const formatOptions = allFormats.map((format) => ({ value: format, label: format }));
 
 const comments = [
-  "Converti meus arquivos em segundos. Muito mais prÃ¡tico.",
-  "Interface limpa, rÃ¡pida e fÃ¡cil de usar.",
+  "Converti meus arquivos em segundos. Muito mais prático.",
+  "Interface limpa, rápida e fácil de usar.",
   "O Polaryix economizou muito tempo no meu fluxo de trabalho.",
   "Finalmente um conversor simples e bonito.",
-  "O fluxo PNG para DDS ficou direto e sem distraÃ§Ãµes.",
-  "Uso para testar imagens de jogos e tudo ficou mais Ã¡gil.",
+  "O fluxo PNG para DDS ficou direto e sem distrações.",
+  "Uso para testar imagens de jogos e tudo ficou mais ágil.",
 ];
 
 const downloadCards = [
-  { name: "YouTube", text: "VÃ­deos e Ã¡udios em poucos cliques.", icon: "/assets/icons/youtube.svg", brand: "youtube" },
+  { name: "YouTube", text: "Vídeos e áudios em poucos cliques.", icon: "/assets/icons/youtube.svg", brand: "youtube" },
   { name: "TikTok", text: "Cole o link e escolha o formato.", icon: "/assets/icons/tiktok.svg", brand: "tiktok" },
 ];
 
-const heroBadges = ["RÃ¡pido", "Seguro", "Sem limites"];
+const heroBadges = ["Rápido", "Seguro", "Sem limites"];
+const heroFormatPairs = [
+  ["PNG", "DDS"],
+  ["TXT", "DOCX"],
+  ["CSV", "XLSX"],
+  ["MP4", "MP3"],
+  ["WEBP", "PNG"],
+  ["PDF", "DOCX"],
+  ["JPG", "PNG"],
+];
 
 const downloadOptions = [
   { id: "mp4", label: "MP4", detail: "5 tokens", mediaType: "video", premium: false },
@@ -90,7 +99,7 @@ export default function HomePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [fileName, setFileName] = useState("");
-  const [status, setStatus] = useState("Selecione um arquivo para preparar a conversÃ£o.");
+  const [status, setStatus] = useState("Selecione um arquivo para preparar a conversão.");
   const [downloadUrl, setDownloadUrl] = useState("");
   const [downloadFormat, setDownloadFormat] = useState<(typeof downloadOptions)[number]["id"]>("mp4");
   const [downloadStatus, setDownloadStatus] = useState("Cole um link para preparar o download.");
@@ -102,12 +111,15 @@ export default function HomePage() {
   const [isPremium, setIsPremium] = useState(false);
   const [premiumPlan, setPremiumPlan] = useState("basic");
   const [usage, setUsage] = useState<UsageInfo | null>(null);
+  const [heroFormatIndex, setHeroFormatIndex] = useState(0);
+  const [isHeroFormatSwitching, setIsHeroFormatSwitching] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const conversionLabel = useMemo(() => `${fromFormat} > ${toFormat}`, [fromFormat, toFormat]);
   const acceptList = useMemo(() => allFormats.map((format) => `.${format.toLowerCase()}`).join(","), []);
   const batchLimit = isPremium ? (premiumPlan === "pro" ? 600 : 30) : 2;
   const totalSelectedSize = useMemo(() => selectedFiles.reduce((sum, file) => sum + file.size, 0), [selectedFiles]);
+  const [heroFormatFrom, heroFormatTo] = heroFormatPairs[heroFormatIndex];
 
   useEffect(() => {
     setIsPremium(window.localStorage.getItem("polaryix:isPremium") === "true");
@@ -117,6 +129,18 @@ export default function HomePage() {
   useEffect(() => {
     refreshUsage();
   }, [isPremium, premiumPlan]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setIsHeroFormatSwitching(true);
+      window.setTimeout(() => {
+        setHeroFormatIndex((current) => (current + 1) % heroFormatPairs.length);
+        setIsHeroFormatSwitching(false);
+      }, 220);
+    }, 2200);
+
+    return () => window.clearInterval(interval);
+  }, []);
 
   async function refreshUsage() {
     try {
@@ -145,7 +169,7 @@ export default function HomePage() {
         setLinkPreview(preview);
         setPreviewStatus("");
       } catch (error) {
-        setPreviewStatus(error instanceof Error ? error.message : "NÃ£o foi possÃ­vel carregar o preview.");
+        setPreviewStatus(error instanceof Error ? error.message : "Não foi possível carregar o preview.");
       }
     }, 700);
 
@@ -196,14 +220,14 @@ export default function HomePage() {
     }
 
     if (limitedFiles.length > 1) {
-      setStatus(`${limitedFiles.length} arquivos prontos para converter em ${toFormat}. O download virÃ¡ em ZIP.`);
+      setStatus(`${limitedFiles.length} arquivos prontos para converter em ${toFormat}. O download virá em ZIP.`);
       return;
     }
 
     setStatus(
       limitedFiles[0]
         ? `${limitedFiles[0].name} pronto para converter em ${toFormat}.`
-        : "Selecione um arquivo para preparar a conversÃ£o."
+        : "Selecione um arquivo para preparar a conversão."
     );
   }
 
@@ -220,7 +244,7 @@ export default function HomePage() {
   }
 
   function tokenLabel() {
-    return usage ? `${usage.remaining} credits remaining` : "credits loading";
+    return usage ? `${usage.remaining} créditos restantes` : "carregando créditos";
   }
 
   function isTokenLimitMessage(message: string) {
@@ -237,7 +261,7 @@ export default function HomePage() {
 
   async function handleConvert() {
     if (selectedFiles.length === 0) {
-      setStatus("Escolha um arquivo antes de iniciar a conversÃ£o.");
+      setStatus("Escolha um arquivo antes de iniciar a conversão.");
       fileInputRef.current?.click();
       return;
     }
@@ -263,7 +287,7 @@ export default function HomePage() {
               premiumPlan,
             });
 
-      setStatus(`ConversÃ£o concluÃ­da. Download iniciado: ${result.filename}`);
+      setStatus(`Conversão concluída. Download iniciado: ${result.filename}`);
       await refreshUsage();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Erro ao converter arquivo.");
@@ -321,7 +345,7 @@ export default function HomePage() {
           <div className={styles.heroInner}>
             <div className={styles.heroCopy}>
               <h1>
-                ConversÃµes rÃ¡pidas, visuais e sem <span>complicaÃ§Ã£o</span>
+                Conversões rápidas, visuais e sem <span>complicação</span>
               </h1>
               <p>Converta arquivos com controle, velocidade e praticidade.</p>
               <div className={styles.heroBadges}>
@@ -339,10 +363,10 @@ export default function HomePage() {
                   event.currentTarget.style.display = "none";
                 }}
               />
-              <div className={styles.floatingCard}>
-                <span>PNG</span>
-                <strong>para</strong>
-                <span>DDS</span>
+              <div className={`${styles.floatingCard} ${isHeroFormatSwitching ? styles.switchingCard : ""}`}>
+                <span>{heroFormatFrom}</span>
+                <strong>&lt;&gt;</strong>
+                <span>{heroFormatTo}</span>
               </div>
             </div>
           </div>
@@ -371,7 +395,7 @@ export default function HomePage() {
                   }}
                 />
                 <button type="button" className={styles.swapButton} onClick={swapFormats} aria-label="Inverter formatos">
-                  â‡„
+                  ⇄
                 </button>
                 <FormatPicker
                   label="Converter para"
@@ -401,7 +425,7 @@ export default function HomePage() {
                   <input ref={fileInputRef} type="file" onChange={handleFileChange} accept={acceptList} multiple />
                   <strong>Selecionar arquivo</strong>
                   <span>Arraste ou escolha arquivos para converter</span>
-                  <small>Fluxo atual: {conversionLabel} Â· limite por lote: {batchLimit}</small>
+                  <small>Fluxo atual: {conversionLabel} · limite por lote: {batchLimit}</small>
                 </button>
               ) : (
                 <div
@@ -431,7 +455,7 @@ export default function HomePage() {
                         <em>Pronto</em>
                         <small>{formatFileSize(file.size)}</small>
                         <button type="button" onClick={() => removeSelectedFile(index)} aria-label={`Remover ${file.name}`}>
-                          Ã—
+                          ×
                         </button>
                       </article>
                     ))}
@@ -453,11 +477,11 @@ export default function HomePage() {
                       + Adicionar mais arquivos
                     </button>
                     <p>
-                      {selectedFiles.length}/{batchLimit} arquivos Â· {formatFileSize(totalSelectedSize)}
+                      {selectedFiles.length}/{batchLimit} arquivos · {formatFileSize(totalSelectedSize)}
                     </p>
                     <button type="button" className={styles.queueConvertButton} onClick={handleConvert} disabled={isConverting}>
                       {isConverting ? "Convertendo..." : "Converter"}
-                      <span>â†’</span>
+                      <span>→</span>
                     </button>
                   </div>
                 </div>
@@ -492,8 +516,8 @@ export default function HomePage() {
             <div className={styles.downloadCopy}>
               <div>
                 <p>Download por link</p>
-                <h2 id="download-title">Baixe vÃ­deos e Ã¡udios por link</h2>
-                <span>Cole um link do YouTube ou TikTok para baixar vÃ­deo ou Ã¡udio rapidamente.</span>
+                <h2 id="download-title">Baixe vídeos e áudios por link</h2>
+                <span>Cole um link do YouTube ou TikTok para baixar vídeo ou áudio rapidamente.</span>
               </div>
               <span className={styles.tokenBadge}>{tokenLabel()}</span>
             </div>
@@ -504,7 +528,7 @@ export default function HomePage() {
                 value={downloadUrl}
                 onChange={(event) => setDownloadUrl(event.target.value)}
                 placeholder="Cole a URL aqui"
-                aria-label="URL para baixar vÃ­deo ou Ã¡udio"
+                aria-label="URL para baixar vídeo ou áudio"
               />
               <div className={styles.downloadModes} aria-label="Formato do download">
                 {downloadOptions.map((option) => (
@@ -570,17 +594,17 @@ export default function HomePage() {
           </section>
         </div>
 
-        <section className={styles.testimonialsSection} aria-label="ComentÃ¡rios de usuÃ¡rios">
+        <section className={styles.testimonialsSection} aria-label="Comentários de usuários">
           <div className={styles.testimonialHeader}>
-            <p>ComentÃ¡rios</p>
+            <p>Comentários</p>
             <h2>Quem converte com o Polaryix volta pela praticidade</h2>
           </div>
           <div className={styles.marquee}>
             <div className={styles.marqueeTrack}>
               {[...comments, ...comments].map((comment, index) => (
                 <article className={styles.commentCard} key={`${comment}-${index}`}>
-                  <p>â€œ{comment}â€</p>
-                  <span>UsuÃ¡rio Polaryix</span>
+                  <p>“{comment}”</p>
+                  <span>Usuário Polaryix</span>
                 </article>
               ))}
             </div>
@@ -589,7 +613,7 @@ export default function HomePage() {
       </main>
 
       <footer className={styles.footer}>
-        <p>Â© 2026 Polaryix. Todos os direitos reservados.</p>
+        <p>© 2026 Polaryix. Todos os direitos reservados.</p>
       </footer>
     </div>
   );

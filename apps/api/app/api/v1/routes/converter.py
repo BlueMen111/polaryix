@@ -40,12 +40,14 @@ IMAGE_FORMATS = {
 VIDEO_FORMATS = {"MP4", "MOV", "AVI", "MKV", "WEBM", "M4V", "FLV", "WMV"}
 AUDIO_FORMATS = {"MP3", "WAV", "AAC", "OGG", "FLAC", "M4A", "WMA"}
 TEXT_FORMATS = {"TXT", "MD", "CSV", "JSON", "XML", "HTML"}
+SPREADSHEET_FORMATS = {"XLSX"}
+TABULAR_FORMATS = {"CSV", "JSON", "XML", "HTML", "XLSX"}
 ARCHIVE_FORMATS = {"ZIP"}
 FREE_BATCH_LIMIT = 2
 BASIC_BATCH_LIMIT = 30
 PRO_BATCH_LIMIT = 600
 
-SUPPORTED_FORMATS = IMAGE_FORMATS.keys() | VIDEO_FORMATS | AUDIO_FORMATS | TEXT_FORMATS | ARCHIVE_FORMATS
+SUPPORTED_FORMATS = IMAGE_FORMATS.keys() | VIDEO_FORMATS | AUDIO_FORMATS | TEXT_FORMATS | SPREADSHEET_FORMATS | ARCHIVE_FORMATS
 SAFE_URL_PATTERN = re.compile(r"^https?://", re.IGNORECASE)
 ANSI_PATTERN = re.compile(r"\x1b\[[0-9;]*m")
 PREMIUM_DOWNLOAD_OPTIONS = {"hd"}
@@ -355,6 +357,80 @@ def _convert_text(input_path: Path, output_path: Path) -> None:
     output_path.write_bytes(data)
 
 
+def _read_tabular(input_path: Path, source_format: str):
+    try:
+        import pandas as pd
+    except Exception as exc:  # pragma: no cover - dependency guard
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Conversão de planilhas requer pandas instalado no ambiente.",
+        ) from exc
+
+    try:
+        if source_format == "CSV":
+            return pd.read_csv(input_path, sep=None, engine="python")
+
+        if source_format == "JSON":
+            return pd.read_json(input_path)
+
+        if source_format == "HTML":
+            tables = pd.read_html(input_path)
+            if not tables:
+                raise ValueError("Nenhuma tabela encontrada no HTML.")
+            return tables[0]
+
+        if source_format == "XML":
+            return pd.read_xml(input_path)
+
+        if source_format == "XLSX":
+            return pd.read_excel(input_path)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Não foi possível ler o arquivo {source_format} enviado para conversão.",
+        ) from exc
+
+    raise HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        detail=f"Leitura tabular {source_format} ainda não é suportada.",
+    )
+
+
+def _convert_tabular(input_path: Path, output_path: Path, source_format: str, target_format: str) -> None:
+    dataframe = _read_tabular(input_path, source_format)
+
+    try:
+        if target_format == "CSV":
+            dataframe.to_csv(output_path, index=False)
+            return
+
+        if target_format == "JSON":
+            dataframe.to_json(output_path, orient="records", force_ascii=False, indent=2)
+            return
+
+        if target_format == "HTML":
+            dataframe.to_html(output_path, index=False)
+            return
+
+        if target_format == "XML":
+            dataframe.to_xml(output_path, index=False)
+            return
+
+        if target_format == "XLSX":
+            dataframe.to_excel(output_path, index=False, engine="openpyxl")
+            return
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Não foi possível gerar o arquivo {target_format}.",
+        ) from exc
+
+    raise HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        detail=f"Escrita tabular {target_format} ainda não é suportada.",
+    )
+
+
 def _convert_to_zip(input_path: Path, output_path: Path, original_name: str) -> None:
     with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         archive.write(input_path, arcname=Path(original_name).name)
@@ -386,6 +462,8 @@ def _convert_stored_file(
         _convert_image(input_path, output_path, target_format)
     elif target_format == "ZIP":
         _convert_to_zip(input_path, output_path, original_name)
+    elif source_format in TABULAR_FORMATS and target_format in TABULAR_FORMATS:
+        _convert_tabular(input_path, output_path, source_format, target_format)
     elif source_format in TEXT_FORMATS and target_format in TEXT_FORMATS:
         _convert_text(input_path, output_path)
     elif source_format in VIDEO_FORMATS | AUDIO_FORMATS and target_format in VIDEO_FORMATS | AUDIO_FORMATS:

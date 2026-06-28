@@ -10,14 +10,14 @@ const plans = {
     {
       id: "basic-annual",
       name: "Basic Anual",
-      price: 5,
+      price: 4.99,
       badge: "Economize mais",
       features: ["300 MB tamanho máximo de ficheiro", "1000 créditos de conversão por mês", "30 conversões simultâneas", "Alta prioridade"],
     },
     {
       id: "pro-annual",
       name: "Pro Premium Anual",
-      price: 13,
+      price: 12.99,
       badge: "Mais popular",
       features: ["1 GB tamanho máximo de ficheiro", "3000 créditos de conversão por mês", "600 conversões simultâneas", "Prioridade premium"],
     },
@@ -26,14 +26,14 @@ const plans = {
     {
       id: "basic-monthly",
       name: "Basic Mensal",
-      price: 10,
+      price: 9.99,
       badge: "Flexível",
       features: ["300 MB tamanho máximo de ficheiro", "1000 créditos de conversão por mês", "30 conversões simultâneas", "Alta prioridade"],
     },
     {
       id: "pro-monthly",
       name: "Pro Premium Mensal",
-      price: 19,
+      price: 18.99,
       badge: "Máximo poder",
       features: ["1 GB tamanho máximo de ficheiro", "3000 créditos de conversão por mês", "600 conversões simultâneas", "Prioridade premium"],
     },

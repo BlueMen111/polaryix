@@ -1,11 +1,11 @@
 :root {
-  --background: #ffffff;
+  --background: #f7fbff;
   --panel: #ffffff;
-  --panel-light: #f8f6fc;
-  --text: #1a1230;
-  --muted: #625773;
-  --primary: #38bdf8;
-  --border: #e5def2;
+  --panel-light: #eaf4ff;
+  --text: #373737;
+  --muted: #60728e;
+  --primary: #0874ff;
+  --border: rgba(8, 116, 255, 0.12);
   --danger: #fb7185;
   --success: #34d399;
 }
@@ -18,9 +18,9 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(circle at 18% 8%, rgba(34, 230, 185, 0.16), transparent 28rem),
-    radial-gradient(circle at 82% 18%, rgba(57, 200, 255, 0.15), transparent 30rem),
-    linear-gradient(180deg, #06101d 0%, #081426 48%, #050b16 100%);
+    radial-gradient(circle at 18% 8%, rgba(8, 116, 255, 0.12), transparent 28rem),
+    radial-gradient(circle at 82% 18%, rgba(49, 201, 255, 0.14), transparent 30rem),
+    linear-gradient(180deg, #f7fbff 0%, #eaf4ff 52%, #dceeff 100%);
   color: var(--text);
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -37,11 +37,12 @@ a {
 }
 
 .card {
-  background: rgba(17, 24, 39, 0.88);
+  background: rgba(255, 255, 255, 0.82);
   border: 1px solid var(--border);
   border-radius: 18px;
   padding: 24px;
-  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 24px 70px rgba(8, 48, 110, 0.1);
+  backdrop-filter: blur(20px);
 }
 
 .button {
@@ -52,7 +53,7 @@ a {
   border-radius: 12px;
   padding: 12px 18px;
   background: var(--primary);
-  color: #020617;
+  color: #ffffff;
   font-weight: 700;
   cursor: pointer;
 }
@@ -68,7 +69,7 @@ a {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 12px;
-  background: #020617;
+  background: rgba(247, 251, 255, 0.9);
   color: var(--text);
 }
 
@@ -86,7 +87,7 @@ a {
 }
 
 .kpi {
-  background: #020617;
+  background: rgba(247, 251, 255, 0.86);
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 18px;
@@ -127,8 +128,8 @@ a {
   display: inline-flex;
   border-radius: 999px;
   padding: 4px 10px;
-  background: #082f49;
-  color: #7dd3fc;
+  background: rgba(8, 116, 255, 0.08);
+  color: #0874ff;
   font-size: 12px;
 }
 

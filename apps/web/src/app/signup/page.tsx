@@ -28,7 +28,7 @@ export default function SignupPage() {
     event.preventDefault();
 
     if (password !== confirmPassword) {
-      setStatus("As senhas nao coincidem.");
+      setStatus("As senhas não coincidem.");
       return;
     }
 
@@ -41,7 +41,7 @@ export default function SignupPage() {
       setStatus("Conta criada. Redirecionando...");
       window.location.href = "/";
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Nao foi possivel criar a conta.");
+      setStatus(error instanceof Error ? error.message : "Não foi possível criar a conta.");
     } finally {
       setIsSubmitting(false);
     }
@@ -51,12 +51,12 @@ export default function SignupPage() {
     <main className={styles.page}>
       <section className={styles.card} aria-labelledby="signup-title">
         <div className={styles.header}>
-          <p>Comece gratis</p>
+          <p>Comece grátis</p>
           <h1 id="signup-title">Crie sua conta Polaryix</h1>
-          <span>Guarde preferencias, acompanhe historico e libere o caminho para o Premium.</span>
+          <span>Guarde preferências, acompanhe histórico e libere o caminho para o Premium.</span>
         </div>
 
-        <div className={styles.socialRow} aria-label="Opcoes de cadastro social">
+        <div className={styles.socialRow} aria-label="Opções de cadastro social">
           <button type="button" className={styles.googleButton} aria-label="Cadastrar com Google">
             <GoogleIcon />
           </button>
@@ -96,7 +96,7 @@ export default function SignupPage() {
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder="Minimo de 8 caracteres"
+              placeholder="Mínimo de 8 caracteres"
               required
               minLength={8}
             />
@@ -116,7 +116,7 @@ export default function SignupPage() {
           <label className={styles.terms}>
             <input type="checkbox" required />
             <span>
-              Aceito os termos de uso e a politica de privacidade. <Link href="/terms">Saiba mais</Link>
+              Aceito os termos de uso e a política de privacidade. <Link href="/terms">Saiba mais</Link>
             </span>
           </label>
 
@@ -128,7 +128,7 @@ export default function SignupPage() {
         {status ? <p className={styles.status}>{status}</p> : null}
 
         <p className={styles.footerText}>
-          Ja tem conta? <Link href="/login">Entrar agora</Link>
+          Já tem conta? <Link href="/login">Entrar agora</Link>
         </p>
       </section>
     </main>

@@ -1,7 +1,10 @@
 .page {
   min-height: calc(100vh - 78px);
   padding: 4rem 1rem;
-  color: #eef7ff;
+  color: #373737;
+  background:
+    radial-gradient(circle at 18% 16%, rgba(8, 116, 255, 0.12), transparent 28rem),
+    radial-gradient(circle at 82% 14%, rgba(49, 201, 255, 0.14), transparent 30rem);
 }
 
 .hero {
@@ -12,7 +15,7 @@
 
 .hero p {
   margin: 0 0 0.5rem;
-  color: #22e6b9;
+  color: #0874ff;
   font-size: 0.78rem;
   font-weight: 950;
   letter-spacing: 0.12em;
@@ -21,29 +24,29 @@
 
 .hero h1 {
   margin: 0;
+  color: #061334;
   font-size: clamp(2.2rem, 5vw, 4.1rem);
-  background: linear-gradient(135deg, #ffffff 12%, #22e6b9 46%, #39c8ff 84%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  line-height: 1.05;
 }
 
 .hero span,
 .savings,
 .freeNote p {
-  color: #a8b7ca;
+  color: #60728e;
   line-height: 1.6;
 }
 
 .billingSwitch {
   width: fit-content;
   margin: 0 auto;
-  border: 1px solid rgba(168, 183, 202, 0.14);
+  border: 1px solid rgba(8, 116, 255, 0.12);
   border-radius: 999px;
-  background: rgba(3, 8, 23, 0.62);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 18px 42px rgba(8, 48, 110, 0.08);
   padding: 0.25rem;
   display: flex;
   gap: 0.25rem;
+  backdrop-filter: blur(18px);
 }
 
 .billingSwitch button {
@@ -51,7 +54,7 @@
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: #a8b7ca;
+  color: #60728e;
   cursor: pointer;
   font: inherit;
   font-weight: 900;
@@ -59,8 +62,9 @@
 }
 
 .billingSwitch .active {
-  background: linear-gradient(135deg, #22e6b9, #39c8ff);
-  color: #03101b;
+  background: linear-gradient(135deg, #0874ff, #31c9ff);
+  color: #ffffff;
+  box-shadow: 0 12px 28px rgba(8, 116, 255, 0.18);
 }
 
 .savings {
@@ -79,10 +83,11 @@
 .plan,
 .featuredPlan,
 .freeNote {
-  border: 1px solid rgba(168, 183, 202, 0.15);
+  border: 1px solid rgba(8, 116, 255, 0.12);
   border-radius: 24px;
-  background: linear-gradient(180deg, rgba(12, 22, 40, 0.92), rgba(6, 14, 27, 0.96));
-  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.28);
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 28px 76px rgba(8, 48, 110, 0.1);
+  backdrop-filter: blur(22px);
 }
 
 .plan,
@@ -91,23 +96,23 @@
 }
 
 .featuredPlan {
-  border-color: rgba(34, 230, 185, 0.44);
-  box-shadow: 0 0 52px rgba(34, 230, 185, 0.14), 0 30px 90px rgba(0, 0, 0, 0.28);
+  border-color: rgba(8, 116, 255, 0.32);
+  box-shadow: 0 0 0 1px rgba(8, 116, 255, 0.08), 0 32px 88px rgba(8, 116, 255, 0.16);
 }
 
 .planTop {
   min-height: 250px;
-  border-bottom: 1px solid rgba(168, 183, 202, 0.12);
+  border-bottom: 1px solid rgba(8, 116, 255, 0.09);
   padding: 1.6rem;
   text-align: center;
 }
 
 .planTop span {
   display: inline-flex;
-  border: 1px solid rgba(34, 230, 185, 0.24);
+  border: 1px solid rgba(8, 116, 255, 0.14);
   border-radius: 999px;
-  background: rgba(34, 230, 185, 0.1);
-  color: #22e6b9;
+  background: rgba(8, 116, 255, 0.08);
+  color: #0874ff;
   font-size: 0.72rem;
   font-weight: 950;
   letter-spacing: 0.08em;
@@ -115,8 +120,14 @@
   text-transform: uppercase;
 }
 
+.featuredPlan .planTop span {
+  background: linear-gradient(135deg, #0874ff, #31c9ff);
+  color: #ffffff;
+}
+
 .planTop h2 {
   margin: 1.1rem 0 1.2rem;
+  color: #061334;
   font-size: 1.45rem;
 }
 
@@ -128,12 +139,12 @@
 
 .price small,
 .price em {
-  color: #a8b7ca;
+  color: #60728e;
   font-style: normal;
 }
 
 .price strong {
-  color: #ffffff;
+  color: #061334;
   font-size: clamp(3rem, 8vw, 5rem);
   line-height: 0.9;
 }
@@ -148,28 +159,35 @@
 }
 
 .planGrid li {
-  color: #d8e6f5;
+  color: #536985;
   line-height: 1.45;
 }
 
 .planGrid li::before {
   content: "✓";
-  color: #22e6b9;
+  color: #0874ff;
   font-weight: 950;
   margin-right: 0.7rem;
 }
 
 .planGrid button {
   width: calc(100% - 3.2rem);
-  min-height: 48px;
+  min-height: 50px;
   margin: 1rem 1.6rem 1.6rem;
   border: 0;
   border-radius: 14px;
-  background: linear-gradient(135deg, #22e6b9, #39c8ff);
-  color: #03101b;
+  background: linear-gradient(135deg, #0874ff, #1265ed 56%, #31c9ff);
+  box-shadow: 0 18px 36px rgba(8, 116, 255, 0.22);
+  color: #ffffff;
   cursor: pointer;
   font: inherit;
   font-weight: 950;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.planGrid button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 22px 42px rgba(8, 116, 255, 0.26);
 }
 
 .freeNote {
@@ -179,7 +197,7 @@
 }
 
 .freeNote strong {
-  color: #ffffff;
+  color: #061334;
 }
 
 .freeNote p {
