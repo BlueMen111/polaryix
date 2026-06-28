@@ -97,6 +97,26 @@ export type UsageInfo = {
   is_premium: boolean;
 };
 
+export type ConvertedFile = {
+  id: string;
+  original_filename: string;
+  original_format: string;
+  target_format: string;
+  download_url?: string | null;
+  file_size: number;
+  status: "queued" | "processing" | "completed" | "failed" | "expired" | "deleted";
+  error_message?: string | null;
+  quality_requested?: string | null;
+  quality_delivered?: string | null;
+  is_premium_job?: boolean;
+  priority_level?: number;
+  created_at: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+  expires_at?: string | null;
+  deleted_at?: string | null;
+};
+
 async function parseJsonError(response: Response, fallback: string): Promise<string> {
   try {
     const errorData = await response.json();
@@ -376,6 +396,7 @@ export type LinkDownloadJob = {
   message: string;
   filename?: string | null;
   download_url?: string | null;
+  quality_delivered?: string | null;
 };
 
 export async function createLinkDownloadJob(payload: {
@@ -463,6 +484,27 @@ export async function getLinkPreview(url: string): Promise<LinkPreview> {
   }
 
   return parseJsonResponse<LinkPreview>(response, "Não foi possível carregar o preview.");
+}
+
+export async function listMyFiles(): Promise<{ files: ConvertedFile[] }> {
+  const response = await fetch(apiUrl("/me/files"), {
+    headers: authHeaders(),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Nao foi possivel carregar seus arquivos."));
+  }
+
+  return parseJsonResponse<{ files: ConvertedFile[] }>(response, "Nao foi possivel carregar seus arquivos.");
+}
+
+export async function downloadMyFile(file: ConvertedFile): Promise<string> {
+  const response = await fetch(apiUrl(`/me/files/${file.id}/download`), {
+    headers: authHeaders(),
+  });
+
+  return downloadBlobResponse(response, `${file.original_filename || "polaryix"}.${file.target_format?.toLowerCase() || "bin"}`);
 }
 
 export async function uploadDataset(file: File): Promise<{ dataset: DatasetAnalysis }> {

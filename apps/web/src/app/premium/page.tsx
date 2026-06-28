@@ -20,7 +20,7 @@ const plans = {
       name: "Pro Premium Anual",
       price: 12.99,
       badge: "Mais popular",
-      features: ["1 GB tamanho máximo de ficheiro", "3000 créditos de conversão por mês", "600 conversões simultâneas", "Prioridade premium"],
+      features: ["1 GB tamanho máximo de ficheiro", "3000 créditos de conversão por mês", "60 conversões simultâneas", "Prioridade premium"],
     },
   ],
   monthly: [
@@ -36,7 +36,7 @@ const plans = {
       name: "Pro Premium Mensal",
       price: 18.99,
       badge: "Máximo poder",
-      features: ["1 GB tamanho máximo de ficheiro", "3000 créditos de conversão por mês", "600 conversões simultâneas", "Prioridade premium"],
+      features: ["1 GB tamanho máximo de ficheiro", "3000 créditos de conversão por mês", "60 conversões simultâneas", "Prioridade premium"],
     },
   ],
 } satisfies Record<Billing, Array<{ id: string; name: string; price: number; badge: string; features: string[] }>>;

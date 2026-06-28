@@ -30,10 +30,10 @@ FREE_PLAN = PlanLimits(
 )
 
 PREMIUM_PLANS: dict[tuple[str, str], PlanLimits] = {
-    ("basic", "annual"): PlanLimits("basic", "annual", "Basic Anual", 4.99, 1000, 300, 30, 5, True),
-    ("pro", "annual"): PlanLimits("pro", "annual", "Pro Premium Anual", 12.99, 3000, 1024, 600, 10, True),
-    ("basic", "monthly"): PlanLimits("basic", "monthly", "Basic Mensal", 9.99, 1000, 300, 30, 5, True),
-    ("pro", "monthly"): PlanLimits("pro", "monthly", "Pro Premium Mensal", 18.99, 3000, 1024, 600, 10, True),
+    ("basic", "annual"): PlanLimits("basic", "annual", "Basic Anual", 4.99, 1000, 300, 30, 50, True),
+    ("pro", "annual"): PlanLimits("pro", "annual", "Pro Premium Anual", 12.99, 3000, 1024, 60, 100, True),
+    ("basic", "monthly"): PlanLimits("basic", "monthly", "Basic Mensal", 9.99, 1000, 300, 30, 50, True),
+    ("pro", "monthly"): PlanLimits("pro", "monthly", "Pro Premium Mensal", 18.99, 3000, 1024, 60, 100, True),
 }
 
 

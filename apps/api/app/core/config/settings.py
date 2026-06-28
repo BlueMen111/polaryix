@@ -21,6 +21,13 @@ class Settings(BaseSettings):
     google_client_id: str | None = None
     google_client_secret: str | None = None
     google_redirect_uri: str | None = None
+    conversion_workers: int = 2
+    file_retention_hours: int = 12
+    cleanup_interval_hours: int = 12
+    max_free_file_size_mb: int = 100
+    max_basic_file_size_mb: int = 300
+    max_pro_file_size_mb: int = 1024
+    admin_cleanup_token: str | None = None
 
     allowed_origins: list[str] = [
         "http://localhost:3000",

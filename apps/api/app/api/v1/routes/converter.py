@@ -7,6 +7,7 @@ import subprocess
 import tempfile
 import zipfile
 from datetime import UTC, datetime, timedelta
+from functools import partial
 from pathlib import Path
 from uuid import uuid4
 
@@ -21,6 +22,8 @@ except Exception:  # pragma: no cover - optional runtime dependency guard
 
 from app.core.config.settings import settings
 from app.core.auth_store import consume_user_credits, get_current_user, public_user
+from app.core.conversion_history import create_conversion_record, update_conversion_record
+from app.core.conversion_queue import submit_conversion_job
 from app.core.conversion.compatibility import (
     CONVERTIBLE_AUDIO_FORMATS,
     CONVERTIBLE_TABULAR_FORMATS,
@@ -56,7 +59,7 @@ TABULAR_FORMATS = CONVERTIBLE_TABULAR_FORMATS
 ARCHIVE_FORMATS = {"ZIP"}
 FREE_BATCH_LIMIT = 2
 BASIC_BATCH_LIMIT = 30
-PRO_BATCH_LIMIT = 600
+PRO_BATCH_LIMIT = 60
 
 SUPPORTED_FORMATS = REGISTERED_FORMATS
 SAFE_URL_PATTERN = re.compile(r"^https?://", re.IGNORECASE)
@@ -185,9 +188,18 @@ def _consume_account_credits(request: Request, account: dict, amount: int) -> No
 
 
 def _check_plan_file_size(file_size_bytes: int, account: dict) -> None:
-    max_bytes = int(account["limits"].max_file_size_mb) * 1024 * 1024
+    max_mb = int(account["limits"].max_file_size_mb)
+    plan = str(account.get("premium_plan") or account["limits"].plan)
+    if plan == "free":
+        max_mb = settings.max_free_file_size_mb
+    elif plan == "basic":
+        max_mb = settings.max_basic_file_size_mb
+    elif plan == "pro":
+        max_mb = settings.max_pro_file_size_mb
+
+    max_bytes = max_mb * 1024 * 1024
     if file_size_bytes > max_bytes:
-        raise FileSecurityError(f"Arquivo grande demais para seu plano. Limite atual: {account['limits'].max_file_size_mb} MB.")
+        raise FileSecurityError(f"Arquivo grande demais para seu plano. Limite atual: {max_mb} MB.")
 
 
 def _consume_credits(request: Request, amount: int, is_premium: bool = False, premium_plan: str = "basic") -> None:
@@ -427,9 +439,9 @@ def _link_download_candidates(download_format: str, is_premium: bool = False) ->
         return (
             "video",
             [
-                "bestvideo[height<=2160][vcodec^=avc1]+bestaudio[acodec^=mp4a]/bestvideo[height<=2160]+bestaudio",
-                "bestvideo[height<=1440][vcodec^=avc1]+bestaudio[acodec^=mp4a]/bestvideo[height<=1440]+bestaudio",
-                "bestvideo[height<=1080][vcodec^=avc1]+bestaudio[acodec^=mp4a]/bestvideo[height<=1080]+bestaudio",
+                "bestvideo[height<=2160]+bestaudio/best[height<=2160]",
+                "bestvideo[height<=1440]+bestaudio/best[height<=1440]",
+                "bestvideo[height<=1080]+bestaudio/best[height<=1080]",
                 "best[height<=1080][ext=mp4]/best[height<=1080]/best",
             ],
         )
@@ -553,6 +565,58 @@ def _is_compatible_mp4(input_path: Path) -> bool:
     return has_compatible_video and has_compatible_audio
 
 
+def _video_height(input_path: Path) -> int | None:
+    if shutil.which("ffprobe") is None or not input_path.exists():
+        return None
+
+    command = [
+        "ffprobe",
+        "-v",
+        "error",
+        "-select_streams",
+        "v:0",
+        "-show_entries",
+        "stream=height",
+        "-of",
+        "json",
+        str(input_path),
+    ]
+    result = subprocess.run(command, capture_output=True, text=True, timeout=30)
+    if result.returncode != 0:
+        return None
+
+    try:
+        streams = json.loads(result.stdout).get("streams", [])
+    except json.JSONDecodeError:
+        return None
+
+    if not streams:
+        return None
+
+    try:
+        return int(streams[0].get("height"))
+    except (TypeError, ValueError):
+        return None
+
+
+def _quality_label(path: Path, requested_media: str, download_format: str) -> str:
+    if requested_media == "audio":
+        return "MP3"
+
+    height = _video_height(path)
+    if height is None:
+        return download_format.upper()
+    if height >= 2160:
+        return "4K"
+    if height >= 1440:
+        return "1440p"
+    if height >= 1080:
+        return "1080p"
+    if height >= 720:
+        return "720p"
+    return f"{height}p"
+
+
 def _update_link_job(job_id: str, **updates: object) -> None:
     job = LINK_DOWNLOAD_JOBS.get(job_id)
     if not job:
@@ -568,7 +632,7 @@ def _prepare_link_download(
     download_format: str,
     is_premium: bool,
     progress_callback=None,
-) -> tuple[Path, str]:
+) -> tuple[Path, str, str]:
     if yt_dlp is None:
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
@@ -684,7 +748,7 @@ def _prepare_link_download(
     filename = f"{safe_title}{prepared_path.suffix}"
     emit_progress(100, "Arquivo pronto.")
 
-    return prepared_path, filename
+    return prepared_path, filename, _quality_label(prepared_path, requested_media, download_format)
 
 
 def _run_link_download_job(
@@ -696,17 +760,30 @@ def _run_link_download_job(
     premium_plan: str,
     usage_key: str,
     user_id: str | None = None,
+    history_id: str | None = None,
 ) -> None:
     try:
         def progress(percent: int, message: str) -> None:
             _update_link_job(job_id, status="running", progress=max(0, min(percent, 99)), message=message)
+            if history_id:
+                update_conversion_record(history_id, status="processing", started_at=datetime.now(UTC).isoformat())
 
-        prepared_path, filename = _prepare_link_download(normalized_url, media_type, download_format, is_premium, progress)
+        prepared_path, filename, quality_delivered = _prepare_link_download(normalized_url, media_type, download_format, is_premium, progress)
         cost = _download_credit_cost(download_format, media_type)
         if user_id:
             consume_user_credits(user_id, cost)
         else:
             _consume_credits_for_usage_key(usage_key, cost, is_premium, premium_plan)
+        if history_id:
+            update_conversion_record(
+                history_id,
+                status="completed",
+                finished_at=datetime.now(UTC).isoformat(),
+                output_path=str(prepared_path),
+                file_size=prepared_path.stat().st_size if prepared_path.exists() else 0,
+                download_url=f"/api/v1/me/files/{history_id}/download",
+                quality_delivered=quality_delivered,
+            )
         _update_link_job(
             job_id,
             status="ready",
@@ -715,11 +792,17 @@ def _run_link_download_job(
             file_path=str(prepared_path),
             filename=filename,
             download_url=f"/api/v1/converter/download-link/jobs/{job_id}/file",
+            quality_delivered=quality_delivered,
         )
     except HTTPException as exc:
+        if history_id:
+            update_conversion_record(history_id, status="failed", error_message=str(exc.detail), finished_at=datetime.now(UTC).isoformat())
         _update_link_job(job_id, status="error", progress=0, message=str(exc.detail))
     except Exception as exc:
-        _update_link_job(job_id, status="error", progress=0, message=f"Não foi possível baixar esse link: {_clean_error_message(exc)}")
+        message = f"Nao foi possivel baixar esse link: {_clean_error_message(exc)}"
+        if history_id:
+            update_conversion_record(history_id, status="failed", error_message=message, finished_at=datetime.now(UTC).isoformat())
+        _update_link_job(job_id, status="error", progress=0, message=message)
 
 
 def _convert_text(input_path: Path, output_path: Path) -> None:
@@ -926,12 +1009,37 @@ async def convert_file(
             workdir = Path(temp_dir)
             input_path = workdir / f"input-{uuid4().hex}.{source_format.lower()}"
             safe_name = await _save_upload(file, input_path, source_format, account)
-            output_path, output_name = _convert_stored_file(input_path, safe_name, source_format, target_format, workdir)
+            future = submit_conversion_job(
+                _convert_stored_file,
+                input_path,
+                safe_name,
+                source_format,
+                target_format,
+                workdir,
+                priority_level=int(account["limits"].priority_level),
+            )
+            output_path, output_name = future.result()
             _consume_account_credits(request, account, 1)
 
             final_path = settings.processed_path / "conversions" / f"{uuid4().hex}-{output_name}"
             final_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(output_path, final_path)
+            if account.get("user_id"):
+                record = create_conversion_record(
+                    user_id=account["user_id"],
+                    original_filename=safe_name,
+                    original_format=source_format,
+                    target_format=target_format,
+                    output_path=str(final_path),
+                    download_url="pending",
+                    file_size=final_path.stat().st_size,
+                    status="completed",
+                    is_premium_job=bool(account["is_premium"]),
+                    priority_level=int(account["limits"].priority_level),
+                    started_at=datetime.now(UTC).isoformat(),
+                    finished_at=datetime.now(UTC).isoformat(),
+                )
+                update_conversion_record(str(record["id"]), download_url=f"/api/v1/me/files/{record['id']}/download")
 
     except FileSecurityError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
@@ -983,8 +1091,15 @@ async def convert_batch(
                 safe_name = await _save_upload(file, input_path, source_format, account)
                 saved_files.append((input_path, safe_name))
 
-            for input_path, safe_name in saved_files:
-                converted.append(_convert_stored_file(input_path, safe_name, source_format, target_format, workdir))
+            futures = [
+                submit_conversion_job(
+                    partial(_convert_stored_file, input_path, safe_name, source_format, target_format, workdir),
+                    priority_level=int(account["limits"].priority_level),
+                )
+                for input_path, safe_name in saved_files
+            ]
+            for future in futures:
+                converted.append(future.result())
             _consume_account_credits(request, account, len(saved_files))
 
             zip_name = f"polaryix-conversoes-{uuid4().hex[:8]}.zip"
@@ -1002,6 +1117,25 @@ async def convert_batch(
             final_path = settings.processed_path / "conversions" / zip_name
             final_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(zip_path, final_path)
+            if account.get("user_id"):
+                for output_path, output_name in converted:
+                    individual_path = settings.processed_path / "conversions" / f"{uuid4().hex}-{output_name}"
+                    shutil.copyfile(output_path, individual_path)
+                    record = create_conversion_record(
+                        user_id=account["user_id"],
+                        original_filename=output_name,
+                        original_format=source_format,
+                        target_format=target_format,
+                        output_path=str(individual_path),
+                        download_url="pending",
+                        file_size=individual_path.stat().st_size,
+                        status="completed",
+                        is_premium_job=bool(account["is_premium"]),
+                        priority_level=int(account["limits"].priority_level),
+                        started_at=datetime.now(UTC).isoformat(),
+                        finished_at=datetime.now(UTC).isoformat(),
+                    )
+                    update_conversion_record(str(record["id"]), download_url=f"/api/v1/me/files/{record['id']}/download")
 
     except FileSecurityError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
@@ -1035,8 +1169,23 @@ async def create_download_link_job(
 
     job_id = uuid4().hex
     now = datetime.now(UTC).isoformat()
+    history_id = None
+    if account.get("user_id"):
+        record = create_conversion_record(
+            user_id=account["user_id"],
+            original_filename=normalized_url,
+            original_format="LINK",
+            target_format=selected_download_format.upper(),
+            status="queued",
+            quality_requested=selected_download_format.upper(),
+            is_premium_job=bool(account["is_premium"]),
+            priority_level=int(account["limits"].priority_level),
+        )
+        history_id = str(record["id"])
+
     LINK_DOWNLOAD_JOBS[job_id] = {
         "id": job_id,
+        "history_id": history_id,
         "status": "queued",
         "progress": 3,
         "message": "Download na fila...",
@@ -1046,7 +1195,7 @@ async def create_download_link_job(
         "updated_at": now,
     }
 
-    background_tasks.add_task(
+    submit_conversion_job(
         _run_link_download_job,
         job_id,
         normalized_url,
@@ -1056,6 +1205,8 @@ async def create_download_link_job(
         str(account["premium_plan"]),
         str(account["usage_key"]),
         account.get("user_id"),
+        history_id,
+        priority_level=int(account["limits"].priority_level),
     )
 
     return LINK_DOWNLOAD_JOBS[job_id]

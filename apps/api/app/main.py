@@ -1,9 +1,28 @@
+import asyncio
+import contextlib
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.routes import api_router
 from app.core.config.settings import settings
+from app.core.conversion_history import cleanup_expired_files
+from app.core.conversion_queue import start_conversion_workers
 from app.core.security.headers import SecurityHeadersMiddleware
+
+
+logger = logging.getLogger("polaryix.cleanup")
+
+
+async def cleanup_loop() -> None:
+    interval_seconds = max(settings.cleanup_interval_hours, 1) * 60 * 60
+    while True:
+        await asyncio.sleep(interval_seconds)
+        try:
+            cleanup_expired_files()
+        except Exception as exc:  # pragma: no cover
+            logger.warning("Automatic cleanup failed: %s", exc)
 
 
 def create_app() -> FastAPI:
@@ -27,6 +46,19 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(api_router)
+
+    @app.on_event("startup")
+    async def start_cleanup_task() -> None:
+        start_conversion_workers()
+        app.state.cleanup_task = asyncio.create_task(cleanup_loop())
+
+    @app.on_event("shutdown")
+    async def stop_cleanup_task() -> None:
+        task = getattr(app.state, "cleanup_task", None)
+        if task:
+            task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
 
     return app
 
