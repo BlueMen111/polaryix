@@ -148,7 +148,7 @@
   color: rgba(96, 114, 142, 0.72);
 }
 
-.terms {
+.form .terms {
   display: flex;
   align-items: center;
   gap: 0.65rem;
@@ -158,7 +158,7 @@
   line-height: 1.45;
 }
 
-.terms input {
+.form .terms input {
   width: 16px;
   height: 16px;
   min-height: 16px;
@@ -167,11 +167,11 @@
   padding: 0;
 }
 
-.terms span {
+.form .terms span {
   min-width: 0;
 }
 
-.terms a,
+.form .terms a,
 .footerText a {
   color: #0874ff;
   font-weight: 950;

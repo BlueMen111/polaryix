@@ -20,6 +20,7 @@ except Exception:  # pragma: no cover - optional runtime dependency guard
     yt_dlp = None
 
 from app.core.config.settings import settings
+from app.core.auth_store import consume_user_credits, get_current_user, public_user
 from app.core.conversion.compatibility import (
     CONVERTIBLE_AUDIO_FORMATS,
     CONVERTIBLE_TABULAR_FORMATS,
@@ -29,6 +30,7 @@ from app.core.conversion.compatibility import (
     registered_extensions_for_format,
     validate_conversion,
 )
+from app.core.premium import FREE_PLAN, get_plan_limits
 from app.core.security.file_security import FileSecurityError, validate_file_name, validate_upload_size
 
 
@@ -62,6 +64,7 @@ ANSI_PATTERN = re.compile(r"\x1b\[[0-9;]*m")
 PREMIUM_DOWNLOAD_OPTIONS = {"hd", "4k"}
 PLAN_MONTHLY_CREDITS = {"basic": "basic_monthly_credits", "pro": "pro_monthly_credits"}
 LINK_DOWNLOAD_JOBS: dict[str, dict] = {}
+ACTIVE_CONVERSIONS: dict[str, int] = {}
 YTDLP_HTTP_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -125,6 +128,66 @@ def _usage_key(request: Request) -> str:
 
     host = request.client.host if request.client else "anonymous"
     return f"ip:{host}"
+
+
+def _request_account(request: Request, is_premium: bool = False, premium_plan: str = "basic") -> dict:
+    user = get_current_user(request, required=False)
+    if user:
+        profile = public_user(user)
+        return {
+            "usage_key": f"user:{profile['id']}",
+            "user_id": profile["id"],
+            "is_authenticated": True,
+            "is_premium": bool(profile["is_premium"]),
+            "premium_plan": profile["plan"],
+            "billing": profile["billing"],
+            "limits": get_plan_limits(profile["plan"], profile["billing"], bool(profile["is_premium"])),
+            "credits_remaining": int(profile["credits_remaining"]),
+        }
+
+    limits = FREE_PLAN
+
+    return {
+        "usage_key": _usage_key(request),
+        "user_id": None,
+        "is_authenticated": False,
+        "is_premium": False,
+        "premium_plan": limits.plan,
+        "billing": limits.billing,
+        "limits": limits,
+        "credits_remaining": None,
+    }
+
+
+def _begin_conversion(account: dict, amount: int) -> None:
+    key = str(account["usage_key"])
+    limit = int(account["limits"].max_concurrent_conversions)
+    current = ACTIVE_CONVERSIONS.get(key, 0)
+    if current + amount > limit:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Seu plano permite {limit} conversões simultâneas.",
+        )
+    ACTIVE_CONVERSIONS[key] = current + amount
+
+
+def _finish_conversion(account: dict, amount: int) -> None:
+    key = str(account["usage_key"])
+    ACTIVE_CONVERSIONS[key] = max(ACTIVE_CONVERSIONS.get(key, 0) - amount, 0)
+
+
+def _consume_account_credits(request: Request, account: dict, amount: int) -> None:
+    if account.get("user_id"):
+        consume_user_credits(str(account["user_id"]), amount)
+        return
+
+    _consume_credits(request, amount, bool(account["is_premium"]), str(account["premium_plan"]))
+
+
+def _check_plan_file_size(file_size_bytes: int, account: dict) -> None:
+    max_bytes = int(account["limits"].max_file_size_mb) * 1024 * 1024
+    if file_size_bytes > max_bytes:
+        raise FileSecurityError(f"Arquivo grande demais para seu plano. Limite atual: {account['limits'].max_file_size_mb} MB.")
 
 
 def _consume_credits(request: Request, amount: int, is_premium: bool = False, premium_plan: str = "basic") -> None:
@@ -632,13 +695,18 @@ def _run_link_download_job(
     is_premium: bool,
     premium_plan: str,
     usage_key: str,
+    user_id: str | None = None,
 ) -> None:
     try:
         def progress(percent: int, message: str) -> None:
             _update_link_job(job_id, status="running", progress=max(0, min(percent, 99)), message=message)
 
         prepared_path, filename = _prepare_link_download(normalized_url, media_type, download_format, is_premium, progress)
-        _consume_credits_for_usage_key(usage_key, _download_credit_cost(download_format, media_type), is_premium, premium_plan)
+        cost = _download_credit_cost(download_format, media_type)
+        if user_id:
+            consume_user_credits(user_id, cost)
+        else:
+            _consume_credits_for_usage_key(usage_key, cost, is_premium, premium_plan)
         _update_link_job(
             job_id,
             status="ready",
@@ -738,12 +806,14 @@ def _convert_to_zip(input_path: Path, output_path: Path, original_name: str) -> 
         archive.write(input_path, arcname=Path(original_name).name)
 
 
-async def _save_upload(file: UploadFile, destination: Path, source_format: str) -> str:
+async def _save_upload(file: UploadFile, destination: Path, source_format: str, account: dict | None = None) -> str:
     safe_name = validate_file_name(file.filename or "arquivo")
     size_bytes = await validate_upload_size(file)
 
     if size_bytes <= 0:
         raise FileSecurityError("O arquivo enviado está vazio.")
+    if account is not None:
+        _check_plan_file_size(size_bytes, account)
 
     extension = Path(safe_name).suffix.lower()
     expected_extensions = registered_extensions_for_format(source_format)
@@ -808,6 +878,20 @@ async def get_usage(
 ) -> dict:
     """Retorna os créditos usados/restantes do cliente atual."""
 
+    account = _request_account(request, is_premium, premium_plan)
+    if account.get("user_id"):
+        user = get_current_user(request, required=True)
+        profile = public_user(user)
+        return {
+            "used": max(int(profile["monthly_credits"]) - int(profile["credits_remaining"]), 0),
+            "limit": profile["monthly_credits"],
+            "remaining": profile["credits_remaining"],
+            "reset_at": profile.get("plan_expires_at") or "",
+            "plan": profile["plan"],
+            "billing": profile["billing"],
+            "is_premium": profile["is_premium"],
+        }
+
     current_usage = _current_usage(request, is_premium, premium_plan)
     return {
         "used": current_usage["used"],
@@ -815,6 +899,7 @@ async def get_usage(
         "remaining": current_usage["remaining"],
         "reset_at": current_usage["reset_at"],
         "plan": current_usage["plan"],
+        "billing": "daily",
         "is_premium": current_usage["is_premium"],
     }
 
@@ -833,14 +918,16 @@ async def convert_file(
     source_format = _normalize_format(from_format)
     target_format = _normalize_format(to_format)
     _validate_conversion_or_raise(source_format, target_format)
+    account = _request_account(request, is_premium, premium_plan)
+    _begin_conversion(account, 1)
 
     try:
         with tempfile.TemporaryDirectory(prefix="polaryix-convert-") as temp_dir:
             workdir = Path(temp_dir)
             input_path = workdir / f"input-{uuid4().hex}.{source_format.lower()}"
-            safe_name = await _save_upload(file, input_path, source_format)
-            _consume_credits(request, 1, is_premium, premium_plan)
+            safe_name = await _save_upload(file, input_path, source_format, account)
             output_path, output_name = _convert_stored_file(input_path, safe_name, source_format, target_format, workdir)
+            _consume_account_credits(request, account, 1)
 
             final_path = settings.processed_path / "conversions" / f"{uuid4().hex}-{output_name}"
             final_path.parent.mkdir(parents=True, exist_ok=True)
@@ -848,6 +935,8 @@ async def convert_file(
 
     except FileSecurityError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    finally:
+        _finish_conversion(account, 1)
 
     return FileResponse(
         final_path,
@@ -870,7 +959,8 @@ async def convert_batch(
     source_format = _normalize_format(from_format)
     target_format = _normalize_format(to_format)
     _validate_conversion_or_raise(source_format, target_format)
-    limit = (PRO_BATCH_LIMIT if premium_plan.strip().lower() == "pro" else BASIC_BATCH_LIMIT) if is_premium else FREE_BATCH_LIMIT
+    account = _request_account(request, is_premium, premium_plan)
+    limit = int(account["limits"].max_concurrent_conversions)
 
     if not files:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Envie pelo menos um arquivo.")
@@ -881,6 +971,7 @@ async def convert_batch(
             detail=f"Limite de {limit} arquivos por lote para este plano.",
         )
 
+    _begin_conversion(account, len(files))
     try:
         with tempfile.TemporaryDirectory(prefix="polaryix-batch-") as temp_dir:
             workdir = Path(temp_dir)
@@ -889,13 +980,12 @@ async def convert_batch(
 
             for index, file in enumerate(files, start=1):
                 input_path = workdir / f"input-{index}-{uuid4().hex}.{source_format.lower()}"
-                safe_name = await _save_upload(file, input_path, source_format)
+                safe_name = await _save_upload(file, input_path, source_format, account)
                 saved_files.append((input_path, safe_name))
-
-            _consume_credits(request, len(saved_files), is_premium, premium_plan)
 
             for input_path, safe_name in saved_files:
                 converted.append(_convert_stored_file(input_path, safe_name, source_format, target_format, workdir))
+            _consume_account_credits(request, account, len(saved_files))
 
             zip_name = f"polaryix-conversoes-{uuid4().hex[:8]}.zip"
             zip_path = workdir / zip_name
@@ -915,6 +1005,8 @@ async def convert_batch(
 
     except FileSecurityError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    finally:
+        _finish_conversion(account, len(files))
 
     return FileResponse(
         final_path,
@@ -937,8 +1029,9 @@ async def create_download_link_job(
     if not SAFE_URL_PATTERN.match(normalized_url):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Informe uma URL http ou https válida.")
 
+    account = _request_account(request, is_premium, premium_plan)
     selected_download_format = download_format or ("mp3" if media_type == "audio" else "mp4")
-    _link_download_options(selected_download_format, is_premium)
+    _link_download_options(selected_download_format, bool(account["is_premium"]))
 
     job_id = uuid4().hex
     now = datetime.now(UTC).isoformat()
@@ -959,9 +1052,10 @@ async def create_download_link_job(
         normalized_url,
         media_type,
         selected_download_format,
-        is_premium,
-        premium_plan,
-        _usage_key(request),
+        bool(account["is_premium"]),
+        str(account["premium_plan"]),
+        str(account["usage_key"]),
+        account.get("user_id"),
     )
 
     return LINK_DOWNLOAD_JOBS[job_id]
@@ -1013,8 +1107,9 @@ async def download_link(
     if not SAFE_URL_PATTERN.match(normalized_url):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Informe uma URL http ou https válida.")
 
+    account = _request_account(request, is_premium, premium_plan)
     selected_download_format = download_format or ("mp3" if media_type == "audio" else "mp4")
-    requested_media, ytdlp_format = _link_download_options(selected_download_format, is_premium)
+    requested_media, ytdlp_format = _link_download_options(selected_download_format, bool(account["is_premium"]))
 
     output_dir = settings.processed_path / "link_downloads"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -1066,7 +1161,7 @@ async def download_link(
                 _transcode_to_compatible_mp4(prepared_path, compatible_path)
                 prepared_path = compatible_path
 
-        _consume_credits(request, _download_credit_cost(selected_download_format, media_type), is_premium, premium_plan)
+        _consume_account_credits(request, account, _download_credit_cost(selected_download_format, media_type))
 
     except HTTPException:
         raise

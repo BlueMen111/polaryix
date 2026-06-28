@@ -40,10 +40,28 @@ function apiHeaders(headers: HeadersInit = {}) {
   };
 }
 
+function getAuthToken() {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  return window.localStorage.getItem("polaryix:auth-token") ?? "";
+}
+
+function authHeaders(headers: HeadersInit = {}) {
+  const token = getAuthToken();
+  return {
+    ...apiHeaders(headers),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
 function usageHeaders(headers: HeadersInit = {}) {
+  const token = getAuthToken();
   return {
     ...apiHeaders(headers),
     "x-polaryix-client-id": getClientId(),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 }
 
@@ -52,6 +70,15 @@ export type AuthUser = {
   name: string;
   email: string;
   is_premium: boolean;
+  plan: string;
+  billing: string;
+  plan_started_at?: string | null;
+  plan_expires_at?: string | null;
+  credits_remaining?: number;
+  monthly_credits?: number;
+  max_file_size_mb?: number;
+  max_concurrent_conversions?: number;
+  priority_level?: number;
 };
 
 export type AuthResponse = {
@@ -65,6 +92,7 @@ export type UsageInfo = {
   remaining: number;
   reset_at: string;
   plan: string;
+  billing?: string;
   is_premium: boolean;
 };
 
@@ -107,13 +135,18 @@ export async function loginWithEmail(payload: { email: string; password: string 
   return parseJsonResponse<AuthResponse>(response, "Não foi possível entrar.");
 }
 
-export async function signupWithEmail(payload: { name: string; email: string; password: string }): Promise<AuthResponse> {
+export async function signupWithEmail(payload: { name: string; email: string; password: string; termsAccepted: boolean }): Promise<AuthResponse> {
   const response = await fetch(apiUrl("/auth/signup"), {
     method: "POST",
     headers: apiHeaders({
       "Content-Type": "application/json",
     }),
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      name: payload.name,
+      email: payload.email,
+      password: payload.password,
+      terms_accepted: payload.termsAccepted,
+    }),
   });
 
   if (!response.ok) {
@@ -127,6 +160,59 @@ export function persistAuthSession(data: AuthResponse) {
   window.localStorage.setItem("polaryix:auth-token", data.token);
   window.localStorage.setItem("polaryix:user", JSON.stringify(data.user));
   window.localStorage.setItem("polaryix:isPremium", String(data.user.is_premium));
+  window.localStorage.setItem("polaryix:premiumPlan", data.user.plan ?? "free");
+  window.localStorage.setItem("polaryix:premiumBilling", data.user.billing ?? "daily");
+}
+
+export function clearAuthSession() {
+  window.localStorage.removeItem("polaryix:auth-token");
+  window.localStorage.removeItem("polaryix:user");
+  window.localStorage.removeItem("polaryix:isPremium");
+  window.localStorage.removeItem("polaryix:premiumPlan");
+  window.localStorage.removeItem("polaryix:premiumBilling");
+}
+
+export async function getCurrentUser(): Promise<{ user: AuthUser }> {
+  const response = await fetch(apiUrl("/auth/me"), {
+    headers: authHeaders(),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Sessão expirada."));
+  }
+
+  return parseJsonResponse<{ user: AuthUser }>(response, "Não foi possível carregar sua conta.");
+}
+
+export async function logout() {
+  await fetch(apiUrl("/auth/logout"), {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  clearAuthSession();
+}
+
+export async function activatePremiumPlan(payload: { plan: "basic" | "pro"; billing: "monthly" | "annual" }): Promise<{ user: AuthUser }> {
+  const response = await fetch(apiUrl("/auth/premium/activate"), {
+    method: "POST",
+    headers: authHeaders({
+      "Content-Type": "application/json",
+    }),
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Não foi possível ativar o plano."));
+  }
+
+  const data = await parseJsonResponse<{ user: AuthUser }>(response, "Não foi possível ativar o plano.");
+  persistAuthSession({ token: getAuthToken(), user: data.user });
+  return data;
+}
+
+export function startGoogleLogin() {
+  window.location.href = apiUrl("/auth/oauth/google/start");
 }
 
 export async function getUsage(payload: { isPremium?: boolean; premiumPlan?: string } = {}): Promise<UsageInfo> {

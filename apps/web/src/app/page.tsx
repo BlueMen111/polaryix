@@ -10,7 +10,9 @@ import {
   downloadLinkJobFile,
   getLinkDownloadJob,
   getLinkPreview,
+  getCurrentUser,
   getUsage,
+  persistAuthSession,
 } from "@/lib/api";
 import { detectFormatFromFileName, validateConversion, validateFileForConversion } from "@/lib/conversionCompatibility";
 import styles from "./page.module.css";
@@ -158,8 +160,19 @@ export default function HomePage() {
   const [heroFormatFrom, heroFormatTo] = heroFormatPairs[heroFormatIndex];
 
   useEffect(() => {
+    const token = window.localStorage.getItem("polaryix:auth-token");
     setIsPremium(window.localStorage.getItem("polaryix:isPremium") === "true");
     setPremiumPlan(window.localStorage.getItem("polaryix:premiumPlan") ?? "basic");
+
+    if (token) {
+      getCurrentUser()
+        .then(({ user }) => {
+          persistAuthSession({ token, user });
+          setIsPremium(user.is_premium);
+          setPremiumPlan(user.plan);
+        })
+        .catch(() => undefined);
+    }
   }, []);
 
   useEffect(() => {

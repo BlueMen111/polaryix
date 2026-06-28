@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { activatePremiumPlan } from "@/lib/api";
 import styles from "./page.module.css";
 
 type Billing = "annual" | "monthly";
@@ -42,14 +43,30 @@ const plans = {
 
 export default function PremiumPage() {
   const [billing, setBilling] = useState<Billing>("annual");
+  const [status, setStatus] = useState("");
+  const [isActivating, setIsActivating] = useState("");
   const visiblePlans = plans[billing];
 
-  function selectPlan(planId: string) {
+  async function selectPlan(planId: string) {
+    const token = window.localStorage.getItem("polaryix:auth-token");
+    if (!token) {
+      window.location.href = `/login?next=/premium&plan=${planId}`;
+      return;
+    }
+
     const planType = planId.includes("pro") ? "pro" : "basic";
-    window.localStorage.setItem("polaryix:isPremium", "true");
-    window.localStorage.setItem("polaryix:premiumPlan", planType);
-    window.localStorage.setItem("polaryix:premiumBilling", billing);
-    window.location.href = "/";
+    setIsActivating(planId);
+    setStatus("Ativando plano...");
+
+    try {
+      await activatePremiumPlan({ plan: planType, billing });
+      setStatus("Plano ativado. Redirecionando...");
+      window.location.href = "/";
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Nao foi possivel ativar o plano.");
+    } finally {
+      setIsActivating("");
+    }
   }
 
   return (
@@ -89,12 +106,14 @@ export default function PremiumPage() {
               ))}
             </ul>
 
-            <button type="button" onClick={() => selectPlan(plan.id)}>
-              Continuar
+            <button type="button" onClick={() => selectPlan(plan.id)} disabled={isActivating === plan.id}>
+              {isActivating === plan.id ? "Ativando..." : "Continuar"}
             </button>
           </article>
         ))}
       </section>
+
+      {status ? <p className={styles.savings}>{status}</p> : null}
 
       <section className={styles.freeNote}>
         <strong>Plano gratuito</strong>

@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { persistAuthSession, signupWithEmail } from "@/lib/api";
+import { persistAuthSession, signupWithEmail, startGoogleLogin } from "@/lib/api";
 import styles from "./page.module.css";
 
 function GoogleIcon() {
@@ -21,6 +21,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [status, setStatus] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -28,7 +29,12 @@ export default function SignupPage() {
     event.preventDefault();
 
     if (password !== confirmPassword) {
-      setStatus("As senhas não coincidem.");
+      setStatus("As senhas nao coincidem.");
+      return;
+    }
+
+    if (!termsAccepted) {
+      setStatus("Aceite os termos de uso para criar sua conta.");
       return;
     }
 
@@ -36,12 +42,12 @@ export default function SignupPage() {
     setStatus("Criando sua conta...");
 
     try {
-      const session = await signupWithEmail({ name, email, password });
+      const session = await signupWithEmail({ name, email, password, termsAccepted });
       persistAuthSession(session);
       setStatus("Conta criada. Redirecionando...");
       window.location.href = "/";
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Não foi possível criar a conta.");
+      setStatus(error instanceof Error ? error.message : "Nao foi possivel criar a conta.");
     } finally {
       setIsSubmitting(false);
     }
@@ -51,13 +57,13 @@ export default function SignupPage() {
     <main className={styles.page}>
       <section className={styles.card} aria-labelledby="signup-title">
         <div className={styles.header}>
-          <p>Comece grátis</p>
+          <p>Comece gratis</p>
           <h1 id="signup-title">Crie sua conta Polaryix</h1>
-          <span>Guarde preferências, acompanhe histórico e libere o caminho para o Premium.</span>
+          <span>Guarde preferencias, acompanhe historico e libere o caminho para o Premium.</span>
         </div>
 
-        <div className={styles.socialRow} aria-label="Opções de cadastro social">
-          <button type="button" className={styles.googleButton} aria-label="Cadastrar com Google">
+        <div className={styles.socialRow} aria-label="Opcoes de cadastro social">
+          <button type="button" className={styles.googleButton} aria-label="Cadastrar com Google" onClick={startGoogleLogin}>
             <GoogleIcon />
           </button>
         </div>
@@ -69,54 +75,28 @@ export default function SignupPage() {
         <form onSubmit={handleSubmit} className={styles.form}>
           <label>
             Nome
-            <input
-              type="text"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Seu nome"
-              required
-              minLength={2}
-            />
+            <input type="text" value={name} onChange={(event) => setName(event.target.value)} placeholder="Seu nome" required minLength={2} />
           </label>
 
           <label>
             E-mail
-            <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="seu@email.com"
-              required
-            />
+            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="seu@email.com" required />
           </label>
 
           <label>
             Senha
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Mínimo de 8 caracteres"
-              required
-              minLength={8}
-            />
+            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Minimo de 8 caracteres" required minLength={8} />
           </label>
 
           <label>
             Confirmar senha
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
-              placeholder="Repita sua senha"
-              required
-            />
+            <input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Repita sua senha" required />
           </label>
 
           <label className={styles.terms}>
-            <input type="checkbox" required />
+            <input type="checkbox" required checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} />
             <span>
-              Aceito os termos de uso e a política de privacidade. <Link href="/terms">Saiba mais</Link>
+              Aceito os termos de uso e a politica de privacidade. <Link href="/terms">Saiba mais</Link>
             </span>
           </label>
 
@@ -128,7 +108,7 @@ export default function SignupPage() {
         {status ? <p className={styles.status}>{status}</p> : null}
 
         <p className={styles.footerText}>
-          Já tem conta? <Link href="/login">Entrar agora</Link>
+          Ja tem conta? <Link href="/login">Entrar agora</Link>
         </p>
       </section>
     </main>

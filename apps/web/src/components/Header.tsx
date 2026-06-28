@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import type { AuthUser } from "@/lib/api";
+import { logout } from "@/lib/api";
 import styles from "./Header.module.css";
 
 const conversionGroups = [
@@ -15,6 +17,24 @@ const conversionGroups = [
 
 export function Header() {
   const [isConversionsOpen, setIsConversionsOpen] = useState(false);
+  const [user, setUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    const rawUser = window.localStorage.getItem("polaryix:user");
+    if (rawUser) {
+      try {
+        setUser(JSON.parse(rawUser));
+      } catch {
+        setUser(null);
+      }
+    }
+  }, []);
+
+  async function handleLogout() {
+    await logout();
+    setUser(null);
+    window.location.href = "/";
+  }
 
   return (
     <header className={styles.header}>
@@ -64,9 +84,15 @@ export function Header() {
           <Link href="/files" className={styles.navLink}>
             Meus arquivos
           </Link>
-          <Link href="/login" className={styles.loginButton}>
-            Login
-          </Link>
+          {user ? (
+            <button type="button" className={styles.loginButton} onClick={handleLogout}>
+              {user.plan === "free" ? "Sair" : `${user.plan} • Sair`}
+            </button>
+          ) : (
+            <Link href="/login" className={styles.loginButton}>
+              Login
+            </Link>
+          )}
           <Link href="/premium" className={styles.signupButton}>
             Premium
           </Link>

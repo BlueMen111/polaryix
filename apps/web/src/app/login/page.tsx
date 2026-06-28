@@ -1,8 +1,8 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
-import { loginWithEmail, persistAuthSession } from "@/lib/api";
+import { getCurrentUser, loginWithEmail, persistAuthSession, startGoogleLogin } from "@/lib/api";
 import styles from "./page.module.css";
 
 function GoogleIcon() {
@@ -22,6 +22,28 @@ export default function LoginPage() {
   const [status, setStatus] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    const authError = params.get("auth_error");
+
+    if (authError) {
+      setStatus("Nao foi possivel concluir o login com Google.");
+      return;
+    }
+    if (!token) {
+      return;
+    }
+
+    window.localStorage.setItem("polaryix:auth-token", token);
+    getCurrentUser()
+      .then(({ user }) => {
+        persistAuthSession({ token, user });
+        window.location.href = "/";
+      })
+      .catch(() => setStatus("Sessao Google expirada. Tente entrar novamente."));
+  }, []);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -31,10 +53,10 @@ export default function LoginPage() {
     try {
       const session = await loginWithEmail({ email, password });
       persistAuthSession(session);
-      setStatus("Login concluído. Redirecionando...");
+      setStatus("Login concluido. Redirecionando...");
       window.location.href = "/";
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Não foi possível entrar.");
+      setStatus(error instanceof Error ? error.message : "Nao foi possivel entrar.");
     } finally {
       setIsSubmitting(false);
     }
@@ -46,11 +68,11 @@ export default function LoginPage() {
         <div className={styles.header}>
           <p>Conta Polaryix</p>
           <h1 id="login-title">Entre para continuar</h1>
-          <span>Acesse seus arquivos, limites diários e benefícios Premium.</span>
+          <span>Acesse seus arquivos, limites diarios e beneficios Premium.</span>
         </div>
 
-        <div className={styles.socialRow} aria-label="Opções de login social">
-          <button type="button" className={styles.googleButton} aria-label="Entrar com Google">
+        <div className={styles.socialRow} aria-label="Opcoes de login social">
+          <button type="button" className={styles.googleButton} aria-label="Entrar com Google" onClick={startGoogleLogin}>
             <GoogleIcon />
           </button>
         </div>
@@ -62,24 +84,12 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className={styles.form}>
           <label>
             E-mail
-            <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="seu@email.com"
-              required
-            />
+            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="seu@email.com" required />
           </label>
 
           <label>
             Senha
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Digite sua senha"
-              required
-            />
+            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Digite sua senha" required />
           </label>
 
           <div className={styles.formFooter}>
@@ -94,7 +104,7 @@ export default function LoginPage() {
         {status ? <p className={styles.status}>{status}</p> : null}
 
         <p className={styles.footerText}>
-          Ainda não tem uma conta? <Link href="/signup">Cadastre-se grátis</Link>
+          Ainda nao tem uma conta? <Link href="/signup">Cadastre-se gratis</Link>
         </p>
       </section>
     </main>

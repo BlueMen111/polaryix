@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     free_daily_credits: int = 30
     basic_monthly_credits: int = 1000
     pro_monthly_credits: int = 3000
+    frontend_url: str = "http://localhost:3000"
+    google_client_id: str | None = None
+    google_client_secret: str | None = None
+    google_redirect_uri: str | None = None
 
     allowed_origins: list[str] = [
         "http://localhost:3000",
