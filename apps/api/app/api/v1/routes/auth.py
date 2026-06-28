@@ -51,6 +51,11 @@ class ActivatePlanPayload(BaseModel):
     billing: str = Field(..., pattern="^(monthly|annual)$")
 
 
+class GoogleExchangePayload(BaseModel):
+    code: str = Field(..., min_length=8)
+    redirect_uri: str = Field(..., min_length=8)
+
+
 class AuthResponse(BaseModel):
     token: str
     user: dict
@@ -68,16 +73,17 @@ def _frontend_url() -> str:
     return str(settings.frontend_url).rstrip("/")
 
 
-def _exchange_google_code(code: str) -> dict:
+def _exchange_google_code(code: str, redirect_uri: str | None = None) -> dict:
     if not settings.google_client_id or not settings.google_client_secret or not settings.google_redirect_uri:
         raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Login Google ainda não foi configurado no servidor.")
 
+    final_redirect_uri = redirect_uri or settings.google_redirect_uri
     token_body = urlencode(
         {
             "code": code,
             "client_id": settings.google_client_id,
             "client_secret": settings.google_client_secret,
-            "redirect_uri": settings.google_redirect_uri,
+            "redirect_uri": final_redirect_uri,
             "grant_type": "authorization_code",
         }
     ).encode("utf-8")
@@ -185,6 +191,41 @@ async def start_google_oauth() -> RedirectResponse:
     return RedirectResponse(f"https://accounts.google.com/o/oauth2/v2/auth?{query}")
 
 
+def _login_or_create_google_user(profile: dict) -> AuthResponse:
+    email = _normalize_email(str(profile.get("email", "")))
+    name = str(profile.get("name") or email.split("@")[0])
+    google_id = str(profile.get("sub") or "")
+    picture = profile.get("picture")
+    users = read_users()
+    user = find_user_by_email(users, email)
+    now = datetime.now(UTC).isoformat()
+
+    if user:
+        user["google_id"] = user.get("google_id") or google_id
+        user["avatar_url"] = user.get("avatar_url") or picture
+        user["auth_provider"] = "google" if not user.get("password_hash") else user.get("auth_provider", "email")
+        user["updated_at"] = now
+    else:
+        user = create_user(name, email, auth_provider="google", google_id=google_id, terms_accepted=True)
+        user["avatar_url"] = picture
+        users.append(user)
+
+    write_users(users)
+    return AuthResponse(token=issue_session(user["id"]), user=public_user(user))
+
+
+@router.post("/oauth/google/exchange", response_model=AuthResponse)
+async def google_oauth_exchange(payload: GoogleExchangePayload) -> AuthResponse:
+    try:
+      profile = _exchange_google_code(payload.code, payload.redirect_uri)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Não foi possível concluir o login com Google.") from exc
+
+    return _login_or_create_google_user(profile)
+
+
 @router.get("/oauth/google/callback")
 async def google_oauth_callback(code: str | None = None, error: str | None = None) -> RedirectResponse:
     if error:
@@ -196,22 +237,5 @@ async def google_oauth_callback(code: str | None = None, error: str | None = Non
         profile = _exchange_google_code(code)
     except Exception:
         return RedirectResponse(f"{_frontend_url()}/login?auth_error=google")
-
-    email = _normalize_email(str(profile.get("email", "")))
-    name = str(profile.get("name") or email.split("@")[0])
-    google_id = str(profile.get("sub") or "")
-    users = read_users()
-    user = find_user_by_email(users, email)
-    now = datetime.now(UTC).isoformat()
-
-    if user:
-        user["google_id"] = user.get("google_id") or google_id
-        user["auth_provider"] = "google" if not user.get("password_hash") else user.get("auth_provider", "email")
-        user["updated_at"] = now
-    else:
-        user = create_user(name, email, auth_provider="google", google_id=google_id, terms_accepted=True)
-        users.append(user)
-
-    write_users(users)
-    token = issue_session(user["id"])
-    return RedirectResponse(f"{_frontend_url()}/login?token={token}")
+    session = _login_or_create_google_user(profile)
+    return RedirectResponse(f"{_frontend_url()}/login?token={session.token}")

@@ -86,6 +86,7 @@ export function Header() {
           </Link>
           {user ? (
             <button type="button" className={styles.loginButton} onClick={handleLogout}>
+              {user.avatar_url ? <img src={user.avatar_url} alt="" className={styles.avatar} /> : null}
               {user.plan === "free" ? "Sair" : `${user.plan} • Sair`}
             </button>
           ) : (

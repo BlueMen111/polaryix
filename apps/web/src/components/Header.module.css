@@ -95,6 +95,14 @@
   color: #0874ff;
 }
 
+.avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  object-fit: cover;
+  margin-right: 0.45rem;
+}
+
 .signupButton {
   min-width: 96px;
   min-height: 38px;

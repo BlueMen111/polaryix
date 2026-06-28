@@ -213,6 +213,7 @@ def public_user(user: dict) -> dict:
         "max_concurrent_conversions": int(user.get("max_concurrent_conversions", FREE_PLAN.max_concurrent_conversions)),
         "priority_level": int(user.get("priority_level", FREE_PLAN.priority_level)),
         "auth_provider": user.get("auth_provider", "email"),
+        "avatar_url": user.get("avatar_url"),
         "terms_accepted_at": user.get("terms_accepted_at"),
     }
 

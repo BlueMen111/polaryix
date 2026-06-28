@@ -79,6 +79,7 @@ export type AuthUser = {
   max_file_size_mb?: number;
   max_concurrent_conversions?: number;
   priority_level?: number;
+  avatar_url?: string | null;
 };
 
 export type AuthResponse = {
@@ -213,6 +214,25 @@ export async function activatePremiumPlan(payload: { plan: "basic" | "pro"; bill
 
 export function startGoogleLogin() {
   window.location.href = apiUrl("/auth/oauth/google/start");
+}
+
+export async function exchangeGoogleCode(payload: { code: string; redirectUri: string }): Promise<AuthResponse> {
+  const response = await fetch(apiUrl("/auth/oauth/google/exchange"), {
+    method: "POST",
+    headers: apiHeaders({
+      "Content-Type": "application/json",
+    }),
+    body: JSON.stringify({
+      code: payload.code,
+      redirect_uri: payload.redirectUri,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Não foi possível concluir o login com Google."));
+  }
+
+  return parseJsonResponse<AuthResponse>(response, "Não foi possível concluir o login com Google.");
 }
 
 export async function getUsage(payload: { isPremium?: boolean; premiumPlan?: string } = {}): Promise<UsageInfo> {
