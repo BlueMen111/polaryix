@@ -62,6 +62,15 @@ ANSI_PATTERN = re.compile(r"\x1b\[[0-9;]*m")
 PREMIUM_DOWNLOAD_OPTIONS = {"hd", "4k"}
 PLAN_MONTHLY_CREDITS = {"basic": "basic_monthly_credits", "pro": "pro_monthly_credits"}
 LINK_DOWNLOAD_JOBS: dict[str, dict] = {}
+YTDLP_HTTP_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/126.0.0.0 Safari/537.36"
+    ),
+    "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+    "Referer": "https://www.youtube.com/",
+}
 
 
 def _normalize_format(value: str) -> str:
@@ -314,10 +323,21 @@ def _clean_error_message(value: object) -> str:
     if "requested format is not available" in message.lower():
         return "Esse formato não está disponível para o link informado. Tente MP4, MP3 ou Full HD no Premium."
 
+    if "http error 403" in message.lower() or "forbidden" in message.lower():
+        return (
+            "O YouTube bloqueou uma das URLs temporárias durante o download. "
+            "Tente novamente; o Polaryix vai alternar para um formato mais estável automaticamente."
+        )
+
     return message
 
 
 def _link_download_options(download_format: str, is_premium: bool = False) -> tuple[str, str]:
+    requested_media, candidates = _link_download_candidates(download_format, is_premium)
+    return requested_media, candidates[0]
+
+
+def _link_download_candidates(download_format: str, is_premium: bool = False) -> tuple[str, list[str]]:
     option = download_format.strip().lower()
 
     if option in PREMIUM_DOWNLOAD_OPTIONS and not is_premium:
@@ -327,22 +347,28 @@ def _link_download_options(download_format: str, is_premium: bool = False) -> tu
         )
 
     if option == "mp3":
-        return "audio", "bestaudio/best"
+        return "audio", ["bestaudio[ext=m4a]/bestaudio/best"]
 
     if option == "mp4":
         return (
             "video",
-            "bestvideo[height<=720][vcodec^=avc1]+bestaudio[acodec^=mp4a]/"
-            "bestvideo[height<=720]+bestaudio/"
-            "best[height<=720][ext=mp4]/best[height<=720]/best",
+            [
+                "bestvideo[height<=720][vcodec^=avc1]+bestaudio[acodec^=mp4a]/bestvideo[height<=720]+bestaudio",
+                "best[height<=720][ext=mp4]/best[height<=720]",
+                "bestvideo[height<=480][vcodec^=avc1]+bestaudio[acodec^=mp4a]/best[height<=480][ext=mp4]/best[height<=480]",
+                "18/best[ext=mp4]/best",
+            ],
         )
 
     if option in {"hd", "4k"}:
         return (
             "video",
-            "bestvideo[height<=2160][vcodec^=avc1]+bestaudio[acodec^=mp4a]/"
-            "bestvideo[height<=2160]+bestaudio/"
-            "best[height<=2160][ext=mp4]/best[height<=2160]/best",
+            [
+                "bestvideo[height<=2160][vcodec^=avc1]+bestaudio[acodec^=mp4a]/bestvideo[height<=2160]+bestaudio",
+                "bestvideo[height<=1440][vcodec^=avc1]+bestaudio[acodec^=mp4a]/bestvideo[height<=1440]+bestaudio",
+                "bestvideo[height<=1080][vcodec^=avc1]+bestaudio[acodec^=mp4a]/bestvideo[height<=1080]+bestaudio",
+                "best[height<=1080][ext=mp4]/best[height<=1080]/best",
+            ],
         )
 
     raise HTTPException(
@@ -486,11 +512,10 @@ def _prepare_link_download(
             detail="Download por link requer yt-dlp instalado no ambiente.",
         )
 
-    requested_media, ytdlp_format = _link_download_options(download_format, is_premium)
+    requested_media, ytdlp_formats = _link_download_candidates(download_format, is_premium)
     output_dir = settings.processed_path / "link_downloads"
     output_dir.mkdir(parents=True, exist_ok=True)
     download_id = uuid4().hex
-    output_template = str(output_dir / f"{download_id}.%(ext)s")
 
     def emit_progress(percent: int, message: str) -> None:
         if progress_callback:
@@ -510,21 +535,29 @@ def _prepare_link_download(
             emit_progress(78, "Download concluído. Preparando arquivo...")
 
     ydl_opts = {
-        "outtmpl": output_template,
         "noplaylist": True,
         "quiet": True,
         "no_warnings": True,
         "progress_hooks": [hook],
-        "socket_timeout": 30,
-        "retries": 3,
-        "fragment_retries": 3,
+        "socket_timeout": 45,
+        "retries": 10,
+        "fragment_retries": 10,
+        "extractor_retries": 5,
+        "file_access_retries": 5,
         "continuedl": True,
+        "concurrent_fragment_downloads": 1,
+        "http_chunk_size": 10 * 1024 * 1024,
+        "http_headers": YTDLP_HTTP_HEADERS,
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["android", "web"],
+            }
+        },
     }
 
     if requested_media == "audio":
         ydl_opts.update(
             {
-                "format": ytdlp_format,
                 "postprocessors": [
                     {
                         "key": "FFmpegExtractAudio",
@@ -535,20 +568,41 @@ def _prepare_link_download(
             }
         )
     else:
-        ydl_opts["format"] = ytdlp_format
         ydl_opts["merge_output_format"] = "mp4"
 
     emit_progress(8, "Iniciando download...")
 
-    with yt_dlp.YoutubeDL(ydl_opts) as downloader:
-        info = downloader.extract_info(normalized_url, download=True)
-        prepared_path = Path(downloader.prepare_filename(info))
+    info = None
+    prepared_path: Path | None = None
+    last_error: Exception | None = None
+
+    for index, ytdlp_format in enumerate(ytdlp_formats, start=1):
+        attempt_id = download_id if index == 1 else f"{download_id}-{index}"
+        attempt_template = str(output_dir / f"{attempt_id}.%(ext)s")
+        attempt_opts = {**ydl_opts, "format": ytdlp_format, "outtmpl": attempt_template}
+
+        if index > 1:
+            emit_progress(12, "Tentando formato alternativo mais estável...")
+
+        try:
+            with yt_dlp.YoutubeDL(attempt_opts) as downloader:
+                info = downloader.extract_info(normalized_url, download=True)
+                prepared_path = Path(downloader.prepare_filename(info))
+            break
+        except Exception as exc:
+            last_error = exc
+            for partial_path in output_dir.glob(f"{attempt_id}*"):
+                if partial_path.is_file():
+                    partial_path.unlink(missing_ok=True)
+
+    if prepared_path is None:
+        raise last_error or RuntimeError("Não foi possível baixar esse link.")
 
     if requested_media == "audio":
         prepared_path = prepared_path.with_suffix(".mp3")
 
     if not prepared_path.exists():
-        candidates = sorted(output_dir.glob(f"{download_id}.*"), key=lambda path: path.stat().st_mtime, reverse=True)
+        candidates = sorted(output_dir.glob(f"{download_id}*.*"), key=lambda path: path.stat().st_mtime, reverse=True)
         prepared_path = candidates[0] if candidates else prepared_path
 
     if not prepared_path.exists() or prepared_path.stat().st_size == 0:
