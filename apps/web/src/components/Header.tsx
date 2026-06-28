@@ -67,7 +67,7 @@ export function Header() {
           <Link href="/login" className={styles.loginButton}>
             Login
           </Link>
-          <Link href="/signup" className={styles.signupButton}>
+          <Link href="/premium" className={styles.signupButton}>
             Premium
           </Link>
         </nav>

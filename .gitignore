@@ -14,7 +14,11 @@ storage/uploads/*
 storage/quarantine/*
 storage/processed/*
 storage/reports/*
+storage/auth/
+storage/usage/
 storage/private/
+apps/api/storage/auth/
+apps/api/storage/usage/
 apps/api/storage/private/
 *cookies*.txt
 .DS_Store

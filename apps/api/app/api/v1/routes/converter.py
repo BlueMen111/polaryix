@@ -5,10 +5,11 @@ import shutil
 import subprocess
 import tempfile
 import zipfile
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.responses import FileResponse
 from PIL import Image, UnidentifiedImageError
 
@@ -41,12 +42,14 @@ AUDIO_FORMATS = {"MP3", "WAV", "AAC", "OGG", "FLAC", "M4A", "WMA"}
 TEXT_FORMATS = {"TXT", "MD", "CSV", "JSON", "XML", "HTML"}
 ARCHIVE_FORMATS = {"ZIP"}
 FREE_BATCH_LIMIT = 2
-PREMIUM_BATCH_LIMIT = 10
+BASIC_BATCH_LIMIT = 30
+PRO_BATCH_LIMIT = 600
 
 SUPPORTED_FORMATS = IMAGE_FORMATS.keys() | VIDEO_FORMATS | AUDIO_FORMATS | TEXT_FORMATS | ARCHIVE_FORMATS
 SAFE_URL_PATTERN = re.compile(r"^https?://", re.IGNORECASE)
 ANSI_PATTERN = re.compile(r"\x1b\[[0-9;]*m")
-PREMIUM_DOWNLOAD_OPTIONS = {"hd", "best"}
+PREMIUM_DOWNLOAD_OPTIONS = {"hd"}
+PLAN_MONTHLY_CREDITS = {"basic": "basic_monthly_credits", "pro": "pro_monthly_credits"}
 
 
 def _normalize_format(value: str) -> str:
@@ -59,6 +62,156 @@ def _normalize_format(value: str) -> str:
         )
 
     return normalized
+
+
+def _usage_path() -> Path:
+    return settings.storage_path / "usage" / "credits.json"
+
+
+def _read_usage() -> dict:
+    path = _usage_path()
+    if not path.exists():
+        return {}
+
+    try:
+        import json
+
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+    return data if isinstance(data, dict) else {}
+
+
+def _write_usage(data: dict) -> None:
+    import json
+
+    path = _usage_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _usage_key(request: Request) -> str:
+    client_id = request.headers.get("x-polaryix-client-id", "").strip()
+    if client_id:
+        return f"client:{client_id[:120]}"
+
+    host = request.client.host if request.client else "anonymous"
+    return f"ip:{host}"
+
+
+def _consume_credits(request: Request, amount: int, is_premium: bool = False, premium_plan: str = "basic") -> None:
+    if amount <= 0:
+        return
+
+    now = datetime.now(UTC)
+    plan = premium_plan.strip().lower()
+    period = now.strftime("%Y-%m") if is_premium else now.strftime("%Y-%m-%d")
+    limit = getattr(settings, PLAN_MONTHLY_CREDITS.get(plan, "basic_monthly_credits")) if is_premium else settings.free_daily_credits
+    key = f"{_usage_key(request)}:{'premium' if is_premium else 'free'}:{plan if is_premium else 'daily'}:{period}"
+
+    usage = _read_usage()
+    current = int(usage.get(key, {}).get("used", 0))
+
+    if current + amount > limit:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Você não tem créditos suficientes. Limite: {limit}, usados: {current}, necessário: {amount}.",
+        )
+
+    usage[key] = {
+        "used": current + amount,
+        "limit": limit,
+        "period": period,
+        "plan": plan if is_premium else "free",
+        "updated_at": now.isoformat(),
+    }
+    _write_usage(usage)
+
+
+def _credit_bucket(request: Request, is_premium: bool = False, premium_plan: str = "basic") -> tuple[str, int, str, datetime]:
+    now = datetime.now(UTC)
+    plan = premium_plan.strip().lower()
+    limit = getattr(settings, PLAN_MONTHLY_CREDITS.get(plan, "basic_monthly_credits")) if is_premium else settings.free_daily_credits
+
+    if is_premium:
+        period = now.strftime("%Y-%m")
+        next_month = datetime(now.year + int(now.month == 12), 1 if now.month == 12 else now.month + 1, 1, tzinfo=UTC)
+        return f"{_usage_key(request)}:premium:{plan}:{period}", limit, period, next_month
+
+    return f"{_usage_key(request)}:free:rolling", limit, "24h", now + timedelta(hours=24)
+
+
+def _current_usage(request: Request, is_premium: bool = False, premium_plan: str = "basic") -> dict:
+    now = datetime.now(UTC)
+    key, limit, period, fallback_reset_at = _credit_bucket(request, is_premium, premium_plan)
+    usage = _read_usage()
+    record = usage.get(key, {})
+    used = int(record.get("used", 0))
+    reset_at = record.get("reset_at")
+
+    if is_premium:
+        reset_at = fallback_reset_at.isoformat()
+    elif reset_at is None:
+        used = 0
+        reset_at = fallback_reset_at.isoformat()
+    else:
+        try:
+            parsed_reset = datetime.fromisoformat(reset_at)
+        except ValueError:
+            parsed_reset = now
+        if parsed_reset <= now:
+            used = 0
+            reset_at = fallback_reset_at.isoformat()
+
+    return {
+        "key": key,
+        "used": used,
+        "limit": limit,
+        "remaining": max(limit - used, 0),
+        "period": period,
+        "reset_at": reset_at,
+        "plan": premium_plan.strip().lower() if is_premium else "free",
+        "is_premium": is_premium,
+    }
+
+
+def _consume_credits(request: Request, amount: int, is_premium: bool = False, premium_plan: str = "basic") -> None:
+    if amount <= 0:
+        return
+
+    usage = _read_usage()
+    current_usage = _current_usage(request, is_premium, premium_plan)
+    key = current_usage["key"]
+    current = int(current_usage["used"])
+    limit = int(current_usage["limit"])
+
+    if current + amount > limit:
+        detail = (
+            "Seus tokens gratuitos acabaram. Eles renovam apos 24h, mas voce pode se tornar Premium para ter acesso ilimitado de uso."
+            if not is_premium
+            else f"Voce nao tem creditos suficientes neste ciclo. Limite: {limit}, usados: {current}, necessario: {amount}."
+        )
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=detail)
+
+    usage[key] = {
+        "used": current + amount,
+        "limit": limit,
+        "period": current_usage["period"],
+        "plan": current_usage["plan"],
+        "reset_at": current_usage["reset_at"],
+        "updated_at": datetime.now(UTC).isoformat(),
+    }
+    _write_usage(usage)
+
+
+def _download_credit_cost(download_format: str, media_type: str) -> int:
+    option = download_format.strip().lower()
+    if option == "mp3" or media_type.strip().lower() == "audio":
+        return 2
+    if option in {"mp4", "hd"}:
+        return 5
+    return 1
 
 
 def _output_filename(input_name: str, target_format: str) -> str:
@@ -90,32 +243,32 @@ def _clean_error_message(value: object) -> str:
         )
 
     if "requested format is not available" in message.lower():
-        return "Esse formato não está disponível para o link informado. Tente MP4 compatível, 720p ou MP3."
+        return "Esse formato não está disponível para o link informado. Tente MP4, MP3 ou Full HD no Premium."
 
     return message
 
 
-def _link_download_options(download_format: str) -> tuple[str, str]:
+def _link_download_options(download_format: str, is_premium: bool = False) -> tuple[str, str]:
     option = download_format.strip().lower()
 
-    if option in PREMIUM_DOWNLOAD_OPTIONS:
+    if option in PREMIUM_DOWNLOAD_OPTIONS and not is_premium:
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="Essa qualidade é exclusiva do Premium. Use MP4 compatível, 720p ou MP3 no plano gratuito.",
+            detail="Essa qualidade é exclusiva do Premium. Use MP4 ou MP3 no plano gratuito.",
         )
 
     if option == "mp3":
         return "audio", "bestaudio/best"
 
-    if option == "720p":
-        return "video", "bestvideo[height<=720]+bestaudio/best[height<=720]/best"
-
     if option == "mp4":
         return "video", "bestvideo[height<=720]+bestaudio/best[height<=720]/best"
 
+    if option == "hd":
+        return "video", "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best"
+
     raise HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
-        detail="Formato de download inválido. Use mp4, mp3, 720p, hd ou best.",
+        detail="Formato de download inválido. Use mp4, mp3 ou hd.",
     )
 
 
@@ -252,16 +405,39 @@ def _convert_stored_file(
     return output_path, output_name
 
 
+@router.get("/usage")
+async def get_usage(
+    request: Request,
+    is_premium: bool = False,
+    premium_plan: str = "basic",
+) -> dict:
+    """Retorna os créditos usados/restantes do cliente atual."""
+
+    current_usage = _current_usage(request, is_premium, premium_plan)
+    return {
+        "used": current_usage["used"],
+        "limit": current_usage["limit"],
+        "remaining": current_usage["remaining"],
+        "reset_at": current_usage["reset_at"],
+        "plan": current_usage["plan"],
+        "is_premium": current_usage["is_premium"],
+    }
+
+
 @router.post("/convert-file")
 async def convert_file(
+    request: Request,
     file: UploadFile = File(...),
     from_format: str = Form(...),
     to_format: str = Form(...),
+    is_premium: bool = Form(False),
+    premium_plan: str = Form("basic"),
 ) -> FileResponse:
     """Converte arquivos enviados e devolve o resultado como download."""
 
     source_format = _normalize_format(from_format)
     target_format = _normalize_format(to_format)
+    _consume_credits(request, 1, is_premium, premium_plan)
 
     try:
         with tempfile.TemporaryDirectory(prefix="polaryix-convert-") as temp_dir:
@@ -286,16 +462,18 @@ async def convert_file(
 
 @router.post("/convert-batch")
 async def convert_batch(
+    request: Request,
     files: list[UploadFile] = File(...),
     from_format: str = Form(...),
     to_format: str = Form(...),
     is_premium: bool = Form(False),
+    premium_plan: str = Form("basic"),
 ) -> FileResponse:
     """Converte múltiplos arquivos e devolve um ZIP com os resultados."""
 
     source_format = _normalize_format(from_format)
     target_format = _normalize_format(to_format)
-    limit = PREMIUM_BATCH_LIMIT if is_premium else FREE_BATCH_LIMIT
+    limit = (PRO_BATCH_LIMIT if premium_plan.strip().lower() == "pro" else BASIC_BATCH_LIMIT) if is_premium else FREE_BATCH_LIMIT
 
     if not files:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Envie pelo menos um arquivo.")
@@ -305,6 +483,8 @@ async def convert_batch(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail=f"Limite de {limit} arquivos por lote para este plano.",
         )
+
+    _consume_credits(request, len(files), is_premium, premium_plan)
 
     try:
         with tempfile.TemporaryDirectory(prefix="polaryix-batch-") as temp_dir:
@@ -344,9 +524,12 @@ async def convert_batch(
 
 @router.post("/download-link")
 async def download_link(
+    request: Request,
     url: str = Form(...),
     media_type: str = Form("video"),
     download_format: str = Form("mp4"),
+    is_premium: bool = Form(False),
+    premium_plan: str = Form("basic"),
 ) -> FileResponse:
     """Baixa vídeo/áudio por URL e devolve um arquivo compatível."""
 
@@ -360,7 +543,9 @@ async def download_link(
     if not SAFE_URL_PATTERN.match(normalized_url):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Informe uma URL http ou https válida.")
 
-    requested_media, ytdlp_format = _link_download_options(download_format or ("mp3" if media_type == "audio" else "mp4"))
+    selected_download_format = download_format or ("mp3" if media_type == "audio" else "mp4")
+    requested_media, ytdlp_format = _link_download_options(selected_download_format, is_premium)
+    _consume_credits(request, _download_credit_cost(selected_download_format, media_type), is_premium, premium_plan)
 
     output_dir = settings.processed_path / "link_downloads"
     output_dir.mkdir(parents=True, exist_ok=True)

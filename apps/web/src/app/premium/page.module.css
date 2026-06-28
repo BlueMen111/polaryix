@@ -1,0 +1,202 @@
+.page {
+  min-height: calc(100vh - 78px);
+  padding: 4rem 1rem;
+  color: #eef7ff;
+}
+
+.hero {
+  width: min(980px, 100%);
+  margin: 0 auto 1.5rem;
+  text-align: center;
+}
+
+.hero p {
+  margin: 0 0 0.5rem;
+  color: #22e6b9;
+  font-size: 0.78rem;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(2.2rem, 5vw, 4.1rem);
+  background: linear-gradient(135deg, #ffffff 12%, #22e6b9 46%, #39c8ff 84%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero span,
+.savings,
+.freeNote p {
+  color: #a8b7ca;
+  line-height: 1.6;
+}
+
+.billingSwitch {
+  width: fit-content;
+  margin: 0 auto;
+  border: 1px solid rgba(168, 183, 202, 0.14);
+  border-radius: 999px;
+  background: rgba(3, 8, 23, 0.62);
+  padding: 0.25rem;
+  display: flex;
+  gap: 0.25rem;
+}
+
+.billingSwitch button {
+  min-width: 112px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #a8b7ca;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+  padding: 0.75rem 1.2rem;
+}
+
+.billingSwitch .active {
+  background: linear-gradient(135deg, #22e6b9, #39c8ff);
+  color: #03101b;
+}
+
+.savings {
+  margin: 0.85rem 0 2rem;
+  text-align: center;
+}
+
+.planGrid {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.plan,
+.featuredPlan,
+.freeNote {
+  border: 1px solid rgba(168, 183, 202, 0.15);
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(12, 22, 40, 0.92), rgba(6, 14, 27, 0.96));
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.28);
+}
+
+.plan,
+.featuredPlan {
+  overflow: hidden;
+}
+
+.featuredPlan {
+  border-color: rgba(34, 230, 185, 0.44);
+  box-shadow: 0 0 52px rgba(34, 230, 185, 0.14), 0 30px 90px rgba(0, 0, 0, 0.28);
+}
+
+.planTop {
+  min-height: 250px;
+  border-bottom: 1px solid rgba(168, 183, 202, 0.12);
+  padding: 1.6rem;
+  text-align: center;
+}
+
+.planTop span {
+  display: inline-flex;
+  border: 1px solid rgba(34, 230, 185, 0.24);
+  border-radius: 999px;
+  background: rgba(34, 230, 185, 0.1);
+  color: #22e6b9;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  padding: 0.42rem 0.7rem;
+  text-transform: uppercase;
+}
+
+.planTop h2 {
+  margin: 1.1rem 0 1.2rem;
+  font-size: 1.45rem;
+}
+
+.price {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.price small,
+.price em {
+  color: #a8b7ca;
+  font-style: normal;
+}
+
+.price strong {
+  color: #ffffff;
+  font-size: clamp(3rem, 8vw, 5rem);
+  line-height: 0.9;
+}
+
+.planGrid ul {
+  min-height: 230px;
+  list-style: none;
+  margin: 0;
+  padding: 1.5rem 1.6rem 0.5rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.planGrid li {
+  color: #d8e6f5;
+  line-height: 1.45;
+}
+
+.planGrid li::before {
+  content: "✓";
+  color: #22e6b9;
+  font-weight: 950;
+  margin-right: 0.7rem;
+}
+
+.planGrid button {
+  width: calc(100% - 3.2rem);
+  min-height: 48px;
+  margin: 1rem 1.6rem 1.6rem;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #22e6b9, #39c8ff);
+  color: #03101b;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 950;
+}
+
+.freeNote {
+  width: min(1120px, 100%);
+  margin: 1rem auto 0;
+  padding: 1.2rem 1.4rem;
+}
+
+.freeNote strong {
+  color: #ffffff;
+}
+
+.freeNote p {
+  margin: 0.45rem 0 0;
+}
+
+@media (max-width: 780px) {
+  .page {
+    padding: 2.2rem 1rem;
+  }
+
+  .planGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .planTop,
+  .planGrid ul {
+    min-height: auto;
+  }
+}

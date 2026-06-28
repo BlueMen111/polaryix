@@ -1,6 +1,109 @@
 import type { Dashboard, DatasetAnalysis } from "@/types";
 
 const API_BASE_URL = "/api/v1";
+const CLIENT_ID_KEY = "polaryix:client-id";
+
+function getClientId() {
+  let clientId = window.localStorage.getItem(CLIENT_ID_KEY);
+  if (!clientId) {
+    clientId = crypto.randomUUID();
+    window.localStorage.setItem(CLIENT_ID_KEY, clientId);
+  }
+
+  return clientId;
+}
+
+function usageHeaders() {
+  return {
+    "x-polaryix-client-id": getClientId(),
+  };
+}
+
+export type AuthUser = {
+  id: string;
+  name: string;
+  email: string;
+  is_premium: boolean;
+};
+
+export type AuthResponse = {
+  token: string;
+  user: AuthUser;
+};
+
+export type UsageInfo = {
+  used: number;
+  limit: number;
+  remaining: number;
+  reset_at: string;
+  plan: string;
+  is_premium: boolean;
+};
+
+async function parseJsonError(response: Response, fallback: string): Promise<string> {
+  try {
+    const errorData = await response.json();
+    return typeof errorData.detail === "string" ? errorData.detail : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export async function loginWithEmail(payload: { email: string; password: string }): Promise<AuthResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Não foi possível entrar."));
+  }
+
+  return response.json();
+}
+
+export async function signupWithEmail(payload: { name: string; email: string; password: string }): Promise<AuthResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Não foi possível criar a conta."));
+  }
+
+  return response.json();
+}
+
+export function persistAuthSession(data: AuthResponse) {
+  window.localStorage.setItem("polaryix:auth-token", data.token);
+  window.localStorage.setItem("polaryix:user", JSON.stringify(data.user));
+  window.localStorage.setItem("polaryix:isPremium", String(data.user.is_premium));
+}
+
+export async function getUsage(payload: { isPremium?: boolean; premiumPlan?: string } = {}): Promise<UsageInfo> {
+  const params = new URLSearchParams({
+    is_premium: String(Boolean(payload.isPremium)),
+    premium_plan: payload.premiumPlan ?? "basic",
+  });
+
+  const response = await fetch(`${API_BASE_URL}/converter/usage?${params.toString()}`, {
+    headers: usageHeaders(),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Não foi possível carregar seus tokens."));
+  }
+
+  return response.json();
+}
 
 async function downloadBlobResponse(response: Response, fallbackFilename: string): Promise<string> {
   if (!response.ok) {
@@ -36,14 +139,19 @@ export async function convertFile(payload: {
   file: File;
   fromFormat: string;
   toFormat: string;
+  isPremium?: boolean;
+  premiumPlan?: string;
 }): Promise<{ filename: string }> {
   const formData = new FormData();
   formData.append("file", payload.file);
   formData.append("from_format", payload.fromFormat);
   formData.append("to_format", payload.toFormat);
+  formData.append("is_premium", String(Boolean(payload.isPremium)));
+  formData.append("premium_plan", payload.premiumPlan ?? "basic");
 
   const response = await fetch(`${API_BASE_URL}/converter/convert-file`, {
     method: "POST",
+    headers: usageHeaders(),
     body: formData,
   });
 
@@ -57,6 +165,7 @@ export async function convertFiles(payload: {
   fromFormat: string;
   toFormat: string;
   isPremium: boolean;
+  premiumPlan?: string;
 }): Promise<{ filename: string }> {
   const formData = new FormData();
 
@@ -67,9 +176,11 @@ export async function convertFiles(payload: {
   formData.append("from_format", payload.fromFormat);
   formData.append("to_format", payload.toFormat);
   formData.append("is_premium", String(payload.isPremium));
+  formData.append("premium_plan", payload.premiumPlan ?? "basic");
 
   const response = await fetch(`${API_BASE_URL}/converter/convert-batch`, {
     method: "POST",
+    headers: usageHeaders(),
     body: formData,
   });
 
@@ -82,14 +193,19 @@ export async function downloadFromLink(payload: {
   url: string;
   mediaType: "video" | "audio";
   downloadFormat?: string;
+  isPremium?: boolean;
+  premiumPlan?: string;
 }): Promise<{ filename: string }> {
   const formData = new FormData();
   formData.append("url", payload.url);
   formData.append("media_type", payload.mediaType);
   formData.append("download_format", payload.downloadFormat ?? payload.mediaType);
+  formData.append("is_premium", String(Boolean(payload.isPremium)));
+  formData.append("premium_plan", payload.premiumPlan ?? "basic");
 
   const response = await fetch(`${API_BASE_URL}/converter/download-link`, {
     method: "POST",
+    headers: usageHeaders(),
     body: formData,
   });
 

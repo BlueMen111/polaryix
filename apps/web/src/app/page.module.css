@@ -235,9 +235,30 @@
 .sectionHeader,
 .downloadCopy,
 .testimonialHeader {
-  display: grid;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 0.35rem;
   margin-bottom: 1rem;
+}
+
+.testimonialHeader {
+  display: grid;
+}
+
+.tokenBadge {
+  border: 1px solid rgba(168, 183, 202, 0.16);
+  border-radius: 999px;
+  background: rgba(3, 8, 23, 0.46);
+  color: #a8b7ca;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 0.72rem;
+  font-size: 0.75rem;
+  font-weight: 850;
+  white-space: nowrap;
 }
 
 .sectionHeader p,
@@ -667,6 +688,19 @@
   line-height: 1.45;
 }
 
+.limitNotice {
+  border: 1px solid rgba(34, 230, 185, 0.22);
+  border-radius: 14px;
+  background: rgba(34, 230, 185, 0.08);
+  color: #dffdf8;
+  display: block;
+  font-size: 0.84rem;
+  font-weight: 850;
+  line-height: 1.45;
+  padding: 0.85rem;
+  text-decoration: none;
+}
+
 .downloadSection {
   display: grid;
   gap: 1rem;
@@ -676,6 +710,13 @@
   color: #a8b7ca;
   font-size: 0.82rem;
   line-height: 1.55;
+}
+
+.sectionHeader .tokenBadge,
+.downloadCopy .tokenBadge {
+  color: #a8b7ca;
+  font-size: 0.75rem;
+  line-height: 1;
 }
 
 .downloadTool {

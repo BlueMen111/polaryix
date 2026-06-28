@@ -1,0 +1,63 @@
+.page {
+  min-height: calc(100vh - 78px);
+  padding: 3rem 1rem;
+  color: #eef7ff;
+}
+
+.document {
+  width: min(860px, 100%);
+  margin: 0 auto;
+  border: 1px solid rgba(168, 183, 202, 0.16);
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(12, 22, 40, 0.92), rgba(6, 14, 27, 0.96));
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.28);
+  padding: clamp(1.4rem, 4vw, 2.4rem);
+}
+
+.eyebrow {
+  margin: 0 0 0.45rem;
+  color: #22e6b9;
+  font-size: 0.76rem;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.document h1 {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  background: linear-gradient(135deg, #ffffff 12%, #22e6b9 50%, #39c8ff 86%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.updated {
+  color: #a8b7ca;
+  margin: 0.65rem 0 2rem;
+}
+
+.document section {
+  border-top: 1px solid rgba(168, 183, 202, 0.12);
+  padding: 1.2rem 0;
+}
+
+.document h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+}
+
+.document p {
+  color: #c9d6e6;
+  line-height: 1.7;
+}
+
+.backLink {
+  display: inline-flex;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #22e6b9, #39c8ff);
+  color: #03101b;
+  font-weight: 950;
+  padding: 0.85rem 1.1rem;
+  text-decoration: none;
+}
