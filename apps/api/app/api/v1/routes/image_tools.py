@@ -17,7 +17,7 @@ from app.core.conversion_jobs import (
     public_job,
 )
 from app.core.image_tools import IMAGE_TOOL_COSTS, process_image_tool
-from app.core.image_tools.processing import SUPPORTED_IMAGE_FORMATS, validate_image_file
+from app.core.image_tools.processing import SUPPORTED_IMAGE_FORMATS, is_premium_user, should_apply_watermark, validate_image_file
 from app.core.image_tools.processing import warmup_remove_background_model
 from app.core.security.file_security import FileSecurityError, validate_file_name, validate_upload_size
 
@@ -34,7 +34,7 @@ except Exception as exc:  # pragma: no cover - startup should continue for non-r
 
 
 def _is_premium(user: dict) -> bool:
-    return bool(user.get("is_premium")) and str(user.get("plan") or "free") != "free"
+    return is_premium_user(user)
 
 
 async def _create_image_tool_job(
@@ -94,6 +94,10 @@ async def _create_image_tool_job(
         "contrast": contrast,
         "detail": detail,
         "intensity": intensity,
+        "alpha_threshold": 26,
+        "edge_smooth": 1.25,
+        "remove_small_artifacts": True,
+        "preserve_details": True,
     }
     try:
         job = create_job(
@@ -107,6 +111,10 @@ async def _create_image_tool_job(
             priority=priority,
             credits_cost=cost,
             is_premium=is_premium,
+            plan=user.get("plan"),
+            role=user.get("role"),
+            subscription_status=user.get("subscription_status"),
+            should_apply_watermark=should_apply_watermark(user, operation),
             original_size=size_bytes,
             tool_options=tool_options,
         )

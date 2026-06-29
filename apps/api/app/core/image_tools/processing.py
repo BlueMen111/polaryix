@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import threading
+from collections import deque
 from pathlib import Path
 from uuid import uuid4
 
@@ -28,6 +29,15 @@ SUPPORTED_IMAGE_FORMATS = {
     ".webp": "WEBP",
 }
 
+WATERMARK_OPERATIONS = {"upscale_image", "remaster_image"}
+
+REMOVE_BACKGROUND_DEFAULTS = {
+    "alpha_threshold": 26,
+    "edge_smooth": 1.25,
+    "remove_small_artifacts": True,
+    "preserve_details": True,
+}
+
 
 def process_image_tool(job: dict) -> dict:
     operation = str(job.get("operation") or "")
@@ -49,10 +59,10 @@ def process_image_tool(job: dict) -> dict:
 
         if operation == "remove_background":
             logger.info("Starting background removal for job %s", job.get("id"))
-            result = remove_background(input_path, image)
+            result = remove_background(input_path, image, job.get("tool_options") or {})
             transparency_ratio = _transparency_ratio(result)
             if transparency_ratio < 0.005:
-                raise RuntimeError("Nao foi possivel identificar o fundo automaticamente nesta imagem. Tente uma imagem com melhor contraste entre o objeto e o fundo.")
+                raise RuntimeError("Nao foi possivel remover o fundo automaticamente nesta imagem. Tente uma imagem com maior contraste entre o objeto e o fundo.")
             extension = ".png"
             save_format = "PNG"
             output_name = f"{Path(str(job.get('original_filename') or input_path.name)).stem}-polaryix-remove-background{extension}"
@@ -97,7 +107,7 @@ def process_image_tool(job: dict) -> dict:
         else:
             logger.info("Starting image upscaling for job %s", job.get("id"))
             result = upscale_image(image, job.get("tool_options") or {}, bool(job.get("is_premium")))
-            if not bool(job.get("is_premium")):
+            if should_apply_watermark(job, operation):
                 result = apply_watermark(result)
                 logger.info("Watermark applied to image tool job: %s", job.get("id"))
             extension = _output_extension(input_path, original_format)
@@ -119,22 +129,23 @@ def process_image_tool(job: dict) -> dict:
     }
 
 
-def remove_background(input_path: Path, image: Image.Image) -> Image.Image:
+def remove_background(input_path: Path, image: Image.Image, options: dict | None = None) -> Image.Image:
     global _rembg_session
     rembg_remove = _get_rembg_remove()
 
     rgba = ImageOps.exif_transpose(image).convert("RGBA")
+    settings_options = {**REMOVE_BACKGROUND_DEFAULTS, **(options or {})}
     with _rembg_lock:
         result = rembg_remove(
             rgba,
             session=_rembg_session,
             alpha_matting=True,
-            alpha_matting_foreground_threshold=240,
-            alpha_matting_background_threshold=10,
-            alpha_matting_erode_size=10,
+            alpha_matting_foreground_threshold=245,
+            alpha_matting_background_threshold=8,
+            alpha_matting_erode_size=8,
             post_process_mask=True,
         )
-    return result.convert("RGBA")
+    return _post_process_background_result(rgba, result.convert("RGBA"), settings_options)
 
 
 def warmup_remove_background_model() -> None:
@@ -205,6 +216,32 @@ def _float_option(options: dict, key: str, default: float, minimum: float, maxim
     return max(minimum, min(maximum, value))
 
 
+def is_premium_user(user: dict | None) -> bool:
+    if not user:
+        return False
+
+    plan = str(user.get("plan") or "").strip().lower()
+    role = str(user.get("role") or "").strip().lower()
+    subscription_status = str(user.get("subscription_status") or "").strip().lower()
+
+    if role == "vip":
+        return True
+    if subscription_status == "active":
+        return True
+    if plan in {"premium", "vip", "basic", "pro"}:
+        return True
+    return bool(user.get("is_premium")) and plan != "free"
+
+
+def should_apply_watermark(user: dict | None, operation: str) -> bool:
+    normalized_operation = "upscale_image" if operation == "remaster_image" else operation
+    if is_premium_user(user):
+        return False
+    if user and "should_apply_watermark" in user:
+        return bool(user.get("should_apply_watermark")) and normalized_operation in WATERMARK_OPERATIONS
+    return normalized_operation in WATERMARK_OPERATIONS
+
+
 def apply_watermark(image: Image.Image) -> Image.Image:
     rgba = image.convert("RGBA")
     overlay = Image.new("RGBA", rgba.size, (0, 0, 0, 0))
@@ -224,6 +261,75 @@ def apply_watermark(image: Image.Image) -> Image.Image:
     draw.text(position, text, fill=(255, 255, 255, 86), font=font)
     draw.text((position[0] + 1, position[1] + 1), text, fill=(6, 19, 52, 70), font=font)
     return Image.alpha_composite(rgba, overlay)
+
+
+def _post_process_background_result(original: Image.Image, result: Image.Image, options: dict) -> Image.Image:
+    alpha_threshold = int(_float_option(options, "alpha_threshold", REMOVE_BACKGROUND_DEFAULTS["alpha_threshold"], 1, 120))
+    edge_smooth = _float_option(options, "edge_smooth", REMOVE_BACKGROUND_DEFAULTS["edge_smooth"], 0, 4)
+    remove_small_artifacts = bool(options.get("remove_small_artifacts", REMOVE_BACKGROUND_DEFAULTS["remove_small_artifacts"]))
+    preserve_details = bool(options.get("preserve_details", REMOVE_BACKGROUND_DEFAULTS["preserve_details"]))
+
+    rgba = result.convert("RGBA")
+    alpha = rgba.getchannel("A")
+    if preserve_details:
+        alpha = alpha.point(lambda value: 0 if value < alpha_threshold else value)
+    else:
+        alpha = alpha.point(lambda value: 255 if value >= alpha_threshold else 0)
+
+    if remove_small_artifacts:
+        alpha = _remove_small_alpha_components(alpha, alpha_threshold)
+
+    if edge_smooth > 0:
+        alpha = alpha.filter(ImageFilter.GaussianBlur(radius=edge_smooth))
+        alpha = alpha.point(lambda value: 0 if value < max(2, alpha_threshold // 3) else value)
+
+    cleaned = Image.new("RGBA", rgba.size)
+    cleaned.paste(original.convert("RGBA"), (0, 0), alpha)
+    cleaned.putalpha(alpha)
+    return cleaned
+
+
+def _remove_small_alpha_components(alpha: Image.Image, threshold: int) -> Image.Image:
+    try:
+        import numpy as np
+    except Exception:
+        return _remove_small_alpha_components_pillow(alpha, threshold)
+
+    values = np.array(alpha, dtype=np.uint8)
+    foreground = values >= threshold
+    height, width = foreground.shape
+    visited = np.zeros_like(foreground, dtype=bool)
+    keep = np.zeros_like(foreground, dtype=bool)
+    min_area = max(80, int(width * height * 0.0015))
+
+    for y in range(height):
+        for x in range(width):
+            if not foreground[y, x] or visited[y, x]:
+                continue
+
+            component: list[tuple[int, int]] = []
+            queue: deque[tuple[int, int]] = deque([(x, y)])
+            visited[y, x] = True
+            while queue:
+                cx, cy = queue.popleft()
+                component.append((cx, cy))
+                for nx, ny in ((cx - 1, cy), (cx + 1, cy), (cx, cy - 1), (cx, cy + 1)):
+                    if 0 <= nx < width and 0 <= ny < height and foreground[ny, nx] and not visited[ny, nx]:
+                        visited[ny, nx] = True
+                        queue.append((nx, ny))
+
+            if len(component) >= min_area:
+                for cx, cy in component:
+                    keep[cy, cx] = True
+
+    cleaned = np.where(keep, values, 0).astype(np.uint8)
+    return Image.fromarray(cleaned, mode="L")
+
+
+def _remove_small_alpha_components_pillow(alpha: Image.Image, threshold: int) -> Image.Image:
+    mask = alpha.point(lambda value: 255 if value >= threshold else 0)
+    mask = mask.filter(ImageFilter.MedianFilter(size=3))
+    return Image.composite(alpha, Image.new("L", alpha.size, 0), mask)
 
 
 def _detect_format(path: Path, image: Image.Image) -> str:

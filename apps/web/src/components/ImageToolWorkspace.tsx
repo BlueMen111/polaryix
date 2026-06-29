@@ -68,12 +68,12 @@ export function ImageToolWorkspace({ operation, title, eyebrow, description, cos
 
   const planMessage = useMemo(() => {
     if (isPremium) {
-      return "Fila prioritaria Premium ativada. Controles avancados liberados. Resultado sem marca d'agua.";
+      return "Premium ativo. Fila prioritaria Premium ativada. Resultado sem marca d'agua.";
     }
     if (operation === "upscale_image") {
-      return "Fila padrao ativada. Upscaling Free inclui marca d'agua PolarYix.";
+      return "Fila padrao ativada. Upscaling Free inclui marca d'agua PolarYix. Assine Premium para remover marca d'agua.";
     }
-    return "Fila padrao ativada. Assine Premium para prioridade e resultado sem marca d'agua.";
+    return "Fila padrao ativada. Assine Premium para fila prioritaria.";
   }, [isPremium, operation]);
 
   useEffect(() => {
