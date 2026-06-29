@@ -1,0 +1,312 @@
+.page {
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 3rem 0 4rem;
+  color: #373737;
+}
+
+.hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.35rem;
+}
+
+.hero p {
+  margin: 0 0 0.45rem;
+  color: #0874ff;
+  font-size: 0.78rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  max-width: 760px;
+  margin: 0;
+  color: #061334;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 1.08;
+}
+
+.hero span,
+.topRow span,
+.uploadBox small,
+.jobBox span,
+.jobBox p,
+.status {
+  color: #60728e;
+  line-height: 1.5;
+}
+
+.hero a,
+.primaryButton {
+  min-height: 46px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0874ff, #1265ed 56%, #31c9ff);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  font-weight: 950;
+  padding: 0 1rem;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(340px, 0.8fr) minmax(0, 1.2fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.panel,
+.previewPanel {
+  border: 1px solid rgba(8, 116, 255, 0.12);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 24px 70px rgba(8, 48, 110, 0.1);
+  padding: 1.2rem;
+  backdrop-filter: blur(20px);
+}
+
+.panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.topRow {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.topRow strong {
+  width: fit-content;
+  border: 1px solid rgba(8, 116, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(8, 116, 255, 0.08);
+  color: #0874ff;
+  font-size: 0.76rem;
+  padding: 0.38rem 0.65rem;
+}
+
+.uploadBox {
+  min-height: 128px;
+  border: 1.5px dashed rgba(8, 116, 255, 0.28);
+  border-radius: 16px;
+  background: rgba(247, 251, 255, 0.72);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  gap: 0.25rem;
+  padding: 1rem;
+  text-align: center;
+}
+
+.uploadBox input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.uploadBox strong {
+  max-width: 100%;
+  color: #061334;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.primaryButton {
+  cursor: pointer;
+  box-shadow: 0 16px 30px rgba(8, 116, 255, 0.22);
+}
+
+.primaryButton:disabled {
+  cursor: progress;
+  opacity: 0.64;
+}
+
+.controls,
+.sliders,
+.jobBox {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.segmented button,
+.actions button {
+  min-height: 36px;
+  border: 1px solid rgba(8, 116, 255, 0.14);
+  border-radius: 10px;
+  background: #ffffff;
+  color: #0874ff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 900;
+  padding: 0 0.75rem;
+}
+
+.segmented .active {
+  background: rgba(8, 116, 255, 0.1);
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: #061334;
+  font-size: 0.86rem;
+  font-weight: 850;
+}
+
+.sliders label {
+  display: grid;
+  gap: 0.25rem;
+  color: #061334;
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+.locked,
+.jobBox {
+  border: 1px solid rgba(8, 116, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(247, 251, 255, 0.82);
+  padding: 0.85rem;
+}
+
+.locked {
+  color: #60728e;
+  font-size: 0.84rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.status {
+  margin: 0;
+  font-size: 0.86rem;
+}
+
+.previewPanel {
+  min-height: 430px;
+}
+
+.demo,
+.realPreview {
+  min-height: 390px;
+}
+
+.demo {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: #f7fbff;
+}
+
+.demo div {
+  width: min(320px, 72%);
+  aspect-ratio: 1.15;
+  border-radius: 22px;
+}
+
+.demo span {
+  position: absolute;
+  left: 1rem;
+  bottom: 1rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  color: #061334;
+  font-size: 0.86rem;
+  font-weight: 950;
+  padding: 0.55rem 0.8rem;
+}
+
+.removeDemo {
+  background:
+    linear-gradient(90deg, rgba(186, 155, 170, 0.8) 0 50%, transparent 50%),
+    conic-gradient(#e8eef7 25%, #ffffff 0 50%, #e8eef7 0 75%, #ffffff 0) 0 0 / 28px 28px;
+}
+
+.removeDemo div {
+  background: radial-gradient(circle at 50% 28%, #f1bc85 0 17%, transparent 18%), linear-gradient(160deg, transparent 0 36%, #f0c400 37% 100%);
+  filter: drop-shadow(0 20px 24px rgba(6, 19, 52, 0.18));
+}
+
+.optimizeDemo div {
+  background: linear-gradient(135deg, #0874ff, #31c9ff);
+  box-shadow: inset 0 0 0 20px rgba(255, 255, 255, 0.18);
+}
+
+.upscaleDemo div {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.78) 0 50%, transparent 50%),
+    repeating-linear-gradient(45deg, #0874ff 0 12px, #31c9ff 12px 24px);
+  image-rendering: pixelated;
+}
+
+.realPreview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.realPreview div,
+.pending {
+  min-width: 0;
+}
+
+.realPreview span {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: #0874ff;
+  font-size: 0.78rem;
+  font-weight: 950;
+}
+
+.realPreview img,
+.pending {
+  width: 100%;
+  aspect-ratio: 1;
+  border: 1px solid rgba(8, 116, 255, 0.12);
+  border-radius: 14px;
+  object-fit: contain;
+  background: conic-gradient(#e8eef7 25%, #ffffff 0 50%, #e8eef7 0 75%, #ffffff 0) 0 0 / 24px 24px;
+}
+
+.pending {
+  display: grid;
+  place-items: center;
+  color: #60728e;
+  padding: 1rem;
+  text-align: center;
+}
+
+@media (max-width: 860px) {
+  .hero,
+  .layout,
+  .realPreview {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    display: grid;
+    align-items: start;
+  }
+}

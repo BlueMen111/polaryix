@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import APIRouter, File, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.responses import FileResponse
 
 from app.core.auth_store import consume_user_credits, get_current_user, refund_user_credits
@@ -22,7 +22,7 @@ from app.core.image_tools.processing import warmup_remove_background_model
 from app.core.security.file_security import FileSecurityError, validate_file_name, validate_upload_size
 
 
-router = APIRouter(prefix="/image-tools", tags=["Image Tools"])
+router = APIRouter(tags=["Image Tools"])
 logger = logging.getLogger("polaryix.image_tools")
 
 configure_job_processor("image_tool", process_image_tool)
@@ -37,7 +37,20 @@ def _is_premium(user: dict) -> bool:
     return bool(user.get("is_premium")) and str(user.get("plan") or "free") != "free"
 
 
-async def _create_image_tool_job(request: Request, operation: str, file: UploadFile) -> dict:
+async def _create_image_tool_job(
+    request: Request,
+    operation: str,
+    file: UploadFile,
+    scale: int = 2,
+    keep_original_size: bool = False,
+    sharpness: float | None = None,
+    denoise: float | None = None,
+    contrast: float | None = None,
+    detail: float | None = None,
+    intensity: float | None = None,
+) -> dict:
+    if operation == "remaster_image":
+        operation = "upscale_image"
     user = get_current_user(request, required=True)
     safe_name = validate_file_name(file.filename or "image")
     suffix = Path(safe_name).suffix.lower()
@@ -48,7 +61,8 @@ async def _create_image_tool_job(request: Request, operation: str, file: UploadF
     if content_type and not content_type.startswith("image/"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="O arquivo enviado precisa ser uma imagem.")
 
-    cost = IMAGE_TOOL_COSTS[operation]
+    normalized_scale = 4 if scale == 4 else 2
+    cost = 10 if operation == "upscale_image" and normalized_scale == 4 else IMAGE_TOOL_COSTS[operation]
     upload_dir = settings.storage_path / "jobs" / "image_tools"
     upload_dir.mkdir(parents=True, exist_ok=True)
     input_path = upload_dir / f"{uuid4().hex}{suffix}"
@@ -71,6 +85,16 @@ async def _create_image_tool_job(request: Request, operation: str, file: UploadF
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
     priority = 10 if _is_premium(user) else 1
+    is_premium = _is_premium(user)
+    tool_options = {
+        "scale": normalized_scale if is_premium else 2,
+        "keep_original_size": keep_original_size if is_premium else False,
+        "sharpness": sharpness,
+        "denoise": denoise,
+        "contrast": contrast,
+        "detail": detail,
+        "intensity": intensity,
+    }
     try:
         job = create_job(
             user_id=str(user["id"]),
@@ -82,7 +106,9 @@ async def _create_image_tool_job(request: Request, operation: str, file: UploadF
             output_format="PNG" if operation == "remove_background" else SUPPORTED_IMAGE_FORMATS[suffix],
             priority=priority,
             credits_cost=cost,
-            is_premium=_is_premium(user),
+            is_premium=is_premium,
+            original_size=size_bytes,
+            tool_options=tool_options,
         )
     except Exception:
         refund_user_credits(str(user["id"]), cost)
@@ -93,28 +119,54 @@ async def _create_image_tool_job(request: Request, operation: str, file: UploadF
         "status": job["status"],
         "operation": operation,
         "tokens_cost": cost,
-        "is_premium": _is_premium(user),
+        "is_premium": is_premium,
         "queue_position": job.get("queue_position"),
         "job": job,
     }
 
 
-@router.post("/remove-background", status_code=status.HTTP_201_CREATED)
+@router.post("/image-tools/remove-background", status_code=status.HTTP_201_CREATED)
+@router.post("/image/remove-background", status_code=status.HTTP_201_CREATED)
 async def remove_background(request: Request, file: UploadFile = File(...)) -> dict:
     return await _create_image_tool_job(request, "remove_background", file)
 
 
-@router.post("/optimize", status_code=status.HTTP_201_CREATED)
+@router.post("/image-tools/optimize", status_code=status.HTTP_201_CREATED)
+@router.post("/image/optimize", status_code=status.HTTP_201_CREATED)
 async def optimize(request: Request, file: UploadFile = File(...)) -> dict:
     return await _create_image_tool_job(request, "optimize_image", file)
 
 
-@router.post("/remaster", status_code=status.HTTP_201_CREATED)
-async def remaster(request: Request, file: UploadFile = File(...)) -> dict:
-    return await _create_image_tool_job(request, "remaster_image", file)
+@router.post("/image-tools/remaster", status_code=status.HTTP_201_CREATED)
+@router.post("/image-tools/upscale", status_code=status.HTTP_201_CREATED)
+@router.post("/image/upscale", status_code=status.HTTP_201_CREATED)
+async def upscale(
+    request: Request,
+    file: UploadFile = File(...),
+    scale: int = Form(2),
+    keep_original_size: bool = Form(False),
+    sharpness: float | None = Form(None),
+    denoise: float | None = Form(None),
+    contrast: float | None = Form(None),
+    detail: float | None = Form(None),
+    intensity: float | None = Form(None),
+) -> dict:
+    return await _create_image_tool_job(
+        request,
+        "upscale_image",
+        file,
+        scale,
+        keep_original_size,
+        sharpness,
+        denoise,
+        contrast,
+        detail,
+        intensity,
+    )
 
 
-@router.get("/jobs/{job_id}")
+@router.get("/image-tools/jobs/{job_id}")
+@router.get("/image/jobs/{job_id}")
 async def get_image_tool_job(request: Request, job_id: str) -> dict:
     user = get_current_user(request, required=True)
     job = get_user_job(str(user["id"]), job_id)
@@ -135,7 +187,8 @@ async def get_image_tool_job(request: Request, job_id: str) -> dict:
     }
 
 
-@router.delete("/jobs/{job_id}")
+@router.delete("/image-tools/jobs/{job_id}")
+@router.delete("/image/jobs/{job_id}")
 async def cancel_image_tool_job(request: Request, job_id: str) -> dict:
     user = get_current_user(request, required=True)
     job = get_user_job(str(user["id"]), job_id)
@@ -144,7 +197,8 @@ async def cancel_image_tool_job(request: Request, job_id: str) -> dict:
     return {"job": cancel_user_job(str(user["id"]), job_id)}
 
 
-@router.get("/jobs/{job_id}/download")
+@router.get("/image-tools/jobs/{job_id}/download")
+@router.get("/image/jobs/{job_id}/download")
 async def download_image_tool_job(request: Request, job_id: str) -> FileResponse:
     user = get_current_user(request, required=True)
     job = get_user_job(str(user["id"]), job_id)

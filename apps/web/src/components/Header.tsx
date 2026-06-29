@@ -15,8 +15,15 @@ const conversionGroups = [
   { title: "Outros", items: ["SVG", "ICO", "JSON", "XML"] },
 ];
 
+const imageTools = [
+  { href: "/image/remove-background", title: "Remover Fundo", description: "PNG transparente" },
+  { href: "/image/optimize", title: "Otimizar Imagem", description: "Menor peso" },
+  { href: "/image/upscale", title: "Upscaling de Imagem", description: "Mais resolução" },
+];
+
 export function Header() {
   const [isConversionsOpen, setIsConversionsOpen] = useState(false);
+  const [isImageToolsOpen, setIsImageToolsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
 
@@ -40,6 +47,7 @@ export function Header() {
 
   function closeMenus() {
     setIsConversionsOpen(false);
+    setIsImageToolsOpen(false);
     setIsMobileMenuOpen(false);
   }
 
@@ -104,9 +112,29 @@ export function Header() {
           <Link href="/files" className={styles.navLink} onClick={closeMenus}>
             Meus arquivos
           </Link>
-          <Link href="/image-tools" className={styles.navLink} onClick={closeMenus}>
-            Ferramentas
-          </Link>
+          <div
+            className={`${styles.navItem} ${isImageToolsOpen ? styles.open : ""}`}
+            onMouseEnter={() => setIsImageToolsOpen(true)}
+            onMouseLeave={() => setIsImageToolsOpen(false)}
+          >
+            <button
+              type="button"
+              className={styles.navLink}
+              onClick={() => setIsImageToolsOpen((current) => !current)}
+              aria-expanded={isImageToolsOpen}
+            >
+              Edição de Imagem
+            </button>
+            <div className={styles.imageDropdown}>
+              {imageTools.map((tool) => (
+                <Link href={tool.href} key={tool.href} onClick={closeMenus}>
+                  <span aria-hidden="true">▣</span>
+                  <strong>{tool.title}</strong>
+                  <small>{tool.description}</small>
+                </Link>
+              ))}
+            </div>
+          </div>
           {user ? (
             <button type="button" className={styles.loginButton} onClick={handleLogout}>
               {user.avatar_url ? <img src={user.avatar_url} alt="" className={styles.avatar} /> : null}

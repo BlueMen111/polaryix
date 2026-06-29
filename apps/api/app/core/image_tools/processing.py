@@ -17,6 +17,7 @@ _rembg_lock = threading.Lock()
 IMAGE_TOOL_COSTS = {
     "remove_background": 1,
     "optimize_image": 2,
+    "upscale_image": 5,
     "remaster_image": 5,
 }
 
@@ -43,30 +44,75 @@ def process_image_tool(job: dict) -> dict:
         original_format = _detect_format(input_path, image)
         original_size = image.size
 
+        if operation == "remaster_image":
+            operation = "upscale_image"
+
         if operation == "remove_background":
+            logger.info("Starting background removal for job %s", job.get("id"))
             result = remove_background(input_path, image)
             extension = ".png"
             save_format = "PNG"
+            output_name = f"{Path(str(job.get('original_filename') or input_path.name)).stem}-polaryix-remove-background{extension}"
+            output_path = output_dir / f"{uuid4().hex}-{output_name}"
+            _save_image(result, output_path, save_format)
+            logger.info("Background removal saved for job %s: %s", job.get("id"), output_path)
+            return {
+                "output_path": str(output_path),
+                "file_size": output_path.stat().st_size,
+                "original_size": input_path.stat().st_size,
+                "final_size": output_path.stat().st_size,
+            }
         elif operation == "optimize_image":
+            logger.info("Starting image optimization for job %s", job.get("id"))
             result = optimize_image(image)
             extension = _output_extension(input_path, original_format)
             save_format = original_format
+            output_name = f"{Path(str(job.get('original_filename') or input_path.name)).stem}-polaryix-optimized{extension}"
+            output_path = output_dir / f"{uuid4().hex}-{output_name}"
+            _save_image(result, output_path, save_format, optimize_operation=True)
+            original_bytes = input_path.stat().st_size
+            final_bytes = output_path.stat().st_size
+            refund_credits = False
+            message = None
+            if final_bytes >= original_bytes:
+                output_path.write_bytes(input_path.read_bytes())
+                final_bytes = output_path.stat().st_size
+                refund_credits = True
+                message = "A imagem ja estava otimizada. Nenhuma reducao significativa foi possivel."
+                logger.info("Image already optimized for job %s; credits will be refunded.", job.get("id"))
+            reduction = max(0, round((1 - (final_bytes / max(original_bytes, 1))) * 100, 1))
+            return {
+                "output_path": str(output_path),
+                "file_size": final_bytes,
+                "original_size": original_bytes,
+                "final_size": final_bytes,
+                "reduction_percent": reduction,
+                "refund_credits": refund_credits,
+                "message": message,
+            }
         else:
-            result = remaster_image(image)
+            logger.info("Starting image upscaling for job %s", job.get("id"))
+            result = upscale_image(image, job.get("tool_options") or {}, bool(job.get("is_premium")))
             if not bool(job.get("is_premium")):
                 result = apply_watermark(result)
                 logger.info("Watermark applied to image tool job: %s", job.get("id"))
             extension = _output_extension(input_path, original_format)
             save_format = original_format
 
-        if result.size != original_size:
+        if operation != "upscale_image" and result.size != original_size:
             result = result.resize(original_size, Image.Resampling.LANCZOS)
 
-        output_name = f"{Path(str(job.get('original_filename') or input_path.name)).stem}-polaryix-{operation}{extension}"
+        output_name = f"{Path(str(job.get('original_filename') or input_path.name)).stem}-polaryix-upscale{extension}"
         output_path = output_dir / f"{uuid4().hex}-{output_name}"
         _save_image(result, output_path, save_format)
 
-    return {"output_path": str(output_path), "file_size": output_path.stat().st_size}
+    return {
+        "output_path": str(output_path),
+        "file_size": output_path.stat().st_size,
+        "original_size": input_path.stat().st_size,
+        "final_size": output_path.stat().st_size,
+        "message": f"{original_size[0]}x{original_size[1]} -> {result.size[0]}x{result.size[1]}",
+    }
 
 
 def remove_background(input_path: Path, image: Image.Image) -> Image.Image:
@@ -115,14 +161,44 @@ def optimize_image(image: Image.Image) -> Image.Image:
 
 
 def remaster_image(image: Image.Image) -> Image.Image:
+    return upscale_image(image, {"scale": 1, "keep_original_size": True}, False)
+
+
+def upscale_image(image: Image.Image, options: dict, is_premium: bool) -> Image.Image:
     original = ImageOps.exif_transpose(image).convert("RGBA")
-    enhanced = original.filter(ImageFilter.MedianFilter(size=3))
-    enhanced = ImageEnhance.Contrast(enhanced).enhance(1.1)
-    enhanced = ImageEnhance.Color(enhanced).enhance(1.06)
-    enhanced = ImageEnhance.Sharpness(enhanced).enhance(1.35)
-    detail = enhanced.filter(ImageFilter.UnsharpMask(radius=1.3, percent=120, threshold=4))
-    detail.putalpha(original.getchannel("A"))
-    return detail
+    scale = int(options.get("scale") or 2)
+    if scale not in {1, 2, 4}:
+        scale = 2
+    if not is_premium:
+        scale = 2
+
+    keep_original_size = bool(options.get("keep_original_size", False))
+    sharpness = _float_option(options, "sharpness", 1.45 if is_premium else 1.3, 0.7, 2.4)
+    denoise = _float_option(options, "denoise", 0.25 if is_premium else 0.18, 0.0, 1.0)
+    contrast = _float_option(options, "contrast", 1.08 if is_premium else 1.05, 0.8, 1.6)
+    detail = _float_option(options, "detail", 1.2 if is_premium else 1.08, 0.8, 1.8)
+    intensity = _float_option(options, "intensity", 1.0, 0.4, 1.6)
+
+    target_size = (original.width * scale, original.height * scale)
+    upscaled = original.resize(target_size, Image.Resampling.LANCZOS)
+    if denoise > 0:
+        upscaled = upscaled.filter(ImageFilter.MedianFilter(size=3))
+    upscaled = ImageEnhance.Contrast(upscaled).enhance(1 + ((contrast - 1) * intensity))
+    upscaled = ImageEnhance.Color(upscaled).enhance(1 + (0.05 * intensity))
+    upscaled = upscaled.filter(ImageFilter.UnsharpMask(radius=1.1, percent=int(110 * detail * intensity), threshold=3))
+    upscaled = ImageEnhance.Sharpness(upscaled).enhance(sharpness)
+
+    if keep_original_size:
+        upscaled = upscaled.resize(original.size, Image.Resampling.LANCZOS)
+    return upscaled
+
+
+def _float_option(options: dict, key: str, default: float, minimum: float, maximum: float) -> float:
+    try:
+        value = float(options.get(key, default))
+    except (TypeError, ValueError):
+        value = default
+    return max(minimum, min(maximum, value))
 
 
 def apply_watermark(image: Image.Image) -> Image.Image:
@@ -161,18 +237,20 @@ def _output_extension(path: Path, image_format: str) -> str:
     return ".jpg" if image_format == "JPEG" else f".{image_format.lower()}"
 
 
-def _save_image(image: Image.Image, output_path: Path, image_format: str) -> None:
+def _save_image(image: Image.Image, output_path: Path, image_format: str, optimize_operation: bool = False) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     save_kwargs: dict[str, object] = {"optimize": True}
 
     if image_format == "JPEG":
         image = _flatten_for_jpeg(image)
-        save_kwargs.update({"quality": 88, "progressive": True})
+        save_kwargs.update({"quality": 80 if optimize_operation else 88, "progressive": True})
     elif image_format == "PNG":
         image = image.convert("RGBA")
         save_kwargs.update({"compress_level": 9})
+        if optimize_operation and image.getchannel("A").getextrema() == (255, 255):
+            image = image.convert("RGB").quantize(colors=256, method=Image.Quantize.MEDIANCUT)
     elif image_format == "WEBP":
-        save_kwargs.update({"quality": 86, "method": 6})
+        save_kwargs.update({"quality": 80 if optimize_operation else 86, "method": 6})
         if image.mode not in {"RGBA", "RGB"}:
             image = image.convert("RGBA")
     else:

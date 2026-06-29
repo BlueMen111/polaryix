@@ -49,7 +49,9 @@ def read_jobs() -> list[dict]:
 def write_jobs(jobs: list[dict]) -> None:
     path = jobs_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(jobs, ensure_ascii=False, indent=2), encoding="utf-8")
+    temp_path = path.with_suffix(f"{path.suffix}.tmp")
+    temp_path.write_text(json.dumps(jobs, ensure_ascii=False, indent=2), encoding="utf-8")
+    temp_path.replace(path)
 
 
 def configure_conversion_job_processor(processor: JobProcessor) -> None:
@@ -92,6 +94,12 @@ def create_job(**values: object) -> dict:
         "credits_cost": int(values.get("credits_cost") or 1),
         "credits_charged": bool(values.get("credits_charged", True)),
         "credits_refunded": False,
+        "is_premium": bool(values.get("is_premium", False)),
+        "tool_options": values.get("tool_options") or {},
+        "original_size": values.get("original_size"),
+        "final_size": values.get("final_size"),
+        "reduction_percent": values.get("reduction_percent"),
+        "message": values.get("message"),
         "error_message": None,
         "created_at": values.get("created_at") or _now(),
         "started_at": None,
@@ -170,6 +178,11 @@ def public_job(job: dict) -> dict:
         "queue_position": queue_position(str(job.get("id"))) if job.get("status") == "queued" else None,
         "download_url": f"/api/v1/conversions/{job.get('id')}/download" if job.get("status") == "completed" else None,
         "is_priority": int(job.get("priority") or 0) >= 10,
+        "original_size": job.get("original_size"),
+        "final_size": job.get("final_size"),
+        "reduction_percent": job.get("reduction_percent"),
+        "message": job.get("message"),
+        "tool_options": job.get("tool_options") or {},
     }
 
 
@@ -211,6 +224,11 @@ def _complete_job(job_id: str, result: dict) -> None:
                 job["output_path"] = result.get("output_path")
                 job["finished_at"] = _now()
                 job["error_message"] = None
+                for field in ("original_size", "final_size", "reduction_percent", "message"):
+                    if field in result:
+                        job[field] = result.get(field)
+                if result.get("refund_credits"):
+                    _refund_job_credits(job)
                 update_conversion_record(
                     str(job_id),
                     status="completed",

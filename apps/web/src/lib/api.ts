@@ -144,7 +144,7 @@ export type ConversionJob = {
   is_priority?: boolean;
 };
 
-export type ImageToolOperation = "remove_background" | "optimize_image" | "remaster_image";
+export type ImageToolOperation = "remove_background" | "optimize_image" | "upscale_image" | "remaster_image";
 
 export type ImageToolJob = {
   id: string;
@@ -159,6 +159,11 @@ export type ImageToolJob = {
   credits_cost?: number;
   is_priority?: boolean;
   original_filename?: string;
+  original_size?: number | null;
+  final_size?: number | null;
+  reduction_percent?: number | null;
+  message?: string | null;
+  tool_options?: Record<string, unknown>;
 };
 
 async function parseJsonError(response: Response, fallback: string): Promise<string> {
@@ -615,14 +620,14 @@ function imageToolPath(operation: ImageToolOperation) {
   if (operation === "optimize_image") {
     return "/image-tools/optimize";
   }
-  return "/image-tools/remaster";
+  return "/image-tools/upscale";
 }
 
 function normalizeImageToolJob(payload: { job?: Partial<ImageToolJob> & { id?: string }; job_id?: string; operation?: ImageToolOperation; status?: ImageToolJob["status"]; queue_position?: number | null; download_url?: string | null; error_message?: string | null; created_at?: string; started_at?: string | null; finished_at?: string | null }): ImageToolJob {
   const job = payload.job ?? {};
   return {
     id: String(job.id ?? payload.job_id ?? ""),
-    operation: (job.operation ?? payload.operation ?? "optimize_image") as ImageToolOperation,
+    operation: ((job.operation ?? payload.operation ?? "optimize_image") === "remaster_image" ? "upscale_image" : (job.operation ?? payload.operation ?? "optimize_image")) as ImageToolOperation,
     status: (job.status ?? payload.status ?? "queued") as ImageToolJob["status"],
     queue_position: job.queue_position ?? payload.queue_position ?? null,
     created_at: String(job.created_at ?? payload.created_at ?? ""),
@@ -633,12 +638,37 @@ function normalizeImageToolJob(payload: { job?: Partial<ImageToolJob> & { id?: s
     credits_cost: job.credits_cost,
     is_priority: job.is_priority,
     original_filename: job.original_filename,
+    original_size: job.original_size ?? null,
+    final_size: job.final_size ?? null,
+    reduction_percent: job.reduction_percent ?? null,
+    message: job.message ?? null,
+    tool_options: job.tool_options ?? {},
   };
 }
 
-export async function createImageToolJob(payload: { operation: ImageToolOperation; file: File }): Promise<ImageToolJob> {
+export async function createImageToolJob(payload: {
+  operation: ImageToolOperation;
+  file: File;
+  scale?: 2 | 4;
+  keepOriginalSize?: boolean;
+  sharpness?: number;
+  denoise?: number;
+  contrast?: number;
+  detail?: number;
+  intensity?: number;
+}): Promise<ImageToolJob> {
   const formData = new FormData();
   formData.append("file", payload.file);
+  if (payload.operation === "upscale_image" || payload.operation === "remaster_image") {
+    formData.append("scale", String(payload.scale ?? 2));
+    formData.append("keep_original_size", String(Boolean(payload.keepOriginalSize)));
+    for (const key of ["sharpness", "denoise", "contrast", "detail", "intensity"] as const) {
+      const value = payload[key];
+      if (typeof value === "number") {
+        formData.append(key, String(value));
+      }
+    }
+  }
 
   const response = await fetch(apiUrl(imageToolPath(payload.operation)), {
     method: "POST",
