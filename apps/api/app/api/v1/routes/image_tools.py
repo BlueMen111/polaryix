@@ -18,6 +18,7 @@ from app.core.conversion_jobs import (
 )
 from app.core.image_tools import IMAGE_TOOL_COSTS, process_image_tool
 from app.core.image_tools.processing import SUPPORTED_IMAGE_FORMATS, validate_image_file
+from app.core.image_tools.processing import warmup_remove_background_model
 from app.core.security.file_security import FileSecurityError, validate_file_name, validate_upload_size
 
 
@@ -25,6 +26,11 @@ router = APIRouter(prefix="/image-tools", tags=["Image Tools"])
 logger = logging.getLogger("polaryix.image_tools")
 
 configure_job_processor("image_tool", process_image_tool)
+
+try:
+    warmup_remove_background_model()
+except Exception as exc:  # pragma: no cover - startup should continue for non-remove tools
+    logger.warning("Remove background model warmup failed: %s", exc)
 
 
 def _is_premium(user: dict) -> bool:

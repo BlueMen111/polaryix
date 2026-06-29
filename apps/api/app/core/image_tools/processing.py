@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import io
 import logging
+import threading
 from pathlib import Path
 from uuid import uuid4
 
@@ -9,13 +9,10 @@ from PIL import Image, ImageEnhance, ImageFilter, ImageOps, ImageDraw, ImageFont
 
 from app.core.config.settings import settings
 
-try:
-    from rembg import remove as rembg_remove
-except Exception:  # pragma: no cover - optional dependency
-    rembg_remove = None
-
 
 logger = logging.getLogger("polaryix.image_tools")
+_rembg_session = None
+_rembg_lock = threading.Lock()
 
 IMAGE_TOOL_COSTS = {
     "remove_background": 1,
@@ -73,33 +70,39 @@ def process_image_tool(job: dict) -> dict:
 
 
 def remove_background(input_path: Path, image: Image.Image) -> Image.Image:
-    if rembg_remove is not None:
-        data = input_path.read_bytes()
-        output = rembg_remove(data)
-        return Image.open(io.BytesIO(output)).convert("RGBA")
+    global _rembg_session
+    rembg_remove = _get_rembg_remove()
 
-    rgba = image.convert("RGBA")
-    pixels = rgba.load()
-    width, height = rgba.size
-    border_samples: list[tuple[int, int, int]] = []
-    for x in range(width):
-        border_samples.append(pixels[x, 0][:3])
-        border_samples.append(pixels[x, height - 1][:3])
-    for y in range(height):
-        border_samples.append(pixels[0, y][:3])
-        border_samples.append(pixels[width - 1, y][:3])
+    rgba = ImageOps.exif_transpose(image).convert("RGBA")
+    with _rembg_lock:
+        result = rembg_remove(
+            rgba,
+            session=_rembg_session,
+            alpha_matting=True,
+            alpha_matting_foreground_threshold=240,
+            alpha_matting_background_threshold=10,
+            alpha_matting_erode_size=10,
+            post_process_mask=True,
+        )
+    return result.convert("RGBA")
 
-    bg = tuple(sum(channel) // len(border_samples) for channel in zip(*border_samples))
-    threshold = 34
-    for y in range(height):
-        for x in range(width):
-            r, g, b, a = pixels[x, y]
-            distance = abs(r - bg[0]) + abs(g - bg[1]) + abs(b - bg[2])
-            if distance < threshold:
-                pixels[x, y] = (r, g, b, 0)
-            elif distance < threshold * 2:
-                pixels[x, y] = (r, g, b, int(a * min(1, distance / (threshold * 2))))
-    return rgba
+
+def warmup_remove_background_model() -> None:
+    _get_rembg_remove()
+
+
+def _get_rembg_remove():
+    global _rembg_session
+    try:
+        import onnxruntime  # noqa: F401
+        from rembg import new_session, remove as rembg_remove
+    except Exception as exc:
+        raise RuntimeError('Remocao de fundo requer a dependencia "rembg[cpu]" instalada no servidor.') from exc
+
+    with _rembg_lock:
+        if _rembg_session is None:
+            _rembg_session = new_session("u2net")
+    return rembg_remove
 
 
 def optimize_image(image: Image.Image) -> Image.Image:

@@ -5,6 +5,11 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+try:
+    import onnxruntime  # noqa: F401
+except Exception:  # pragma: no cover - optional unless remove-background is used
+    pass
+
 from app.api.v1.routes import api_router
 from app.core.config.settings import settings
 from app.core.conversion_history import cleanup_expired_files
