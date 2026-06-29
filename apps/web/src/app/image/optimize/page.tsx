@@ -1,12 +1,17 @@
+"use client";
+
 import { ImageToolWorkspace } from "@/components/ImageToolWorkspace";
+import { useLanguage } from "@/i18n/LanguageProvider";
 
 export default function OptimizeImagePage() {
+  const { t } = useLanguage();
+
   return (
     <ImageToolWorkspace
       operation="optimize_image"
-      eyebrow="Otimizar Imagem"
-      title="Reduza o peso sem mudar as dimensões"
-      description="Remove metadados e aplica compressão real em PNG, JPG e WEBP. Mostramos tamanho original, final e redução."
+      eyebrow={t("image.optimize.title")}
+      title={t("image.optimize.pageTitle")}
+      description={t("image.optimize.pageDescription")}
       cost="2 tokens"
     />
   );

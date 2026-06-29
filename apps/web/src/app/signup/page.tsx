@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+import { useLanguage } from "@/i18n/LanguageProvider";
 import { persistAuthSession, signupWithEmail, startGoogleLogin } from "@/lib/api";
 import styles from "./page.module.css";
 
@@ -17,6 +18,7 @@ function GoogleIcon() {
 }
 
 export default function SignupPage() {
+  const { t } = useLanguage();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,25 +31,25 @@ export default function SignupPage() {
     event.preventDefault();
 
     if (password !== confirmPassword) {
-      setStatus("As senhas nao coincidem.");
+      setStatus(t("auth.passwordMismatch"));
       return;
     }
 
     if (!termsAccepted) {
-      setStatus("Aceite os termos de uso para criar sua conta.");
+      setStatus(t("auth.acceptTermsError"));
       return;
     }
 
     setIsSubmitting(true);
-    setStatus("Criando sua conta...");
+    setStatus(t("auth.creatingAccount"));
 
     try {
       const session = await signupWithEmail({ name, email, password, termsAccepted });
       persistAuthSession(session);
-      setStatus("Conta criada. Redirecionando...");
+      setStatus(t("auth.accountCreated"));
       window.location.href = "/";
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Nao foi possivel criar a conta.");
+      setStatus(error instanceof Error ? error.message : t("auth.signupError"));
     } finally {
       setIsSubmitting(false);
     }
@@ -57,25 +59,25 @@ export default function SignupPage() {
     <main className={styles.page}>
       <section className={styles.card} aria-labelledby="signup-title">
         <div className={styles.header}>
-          <p>Comece gratis</p>
-          <h1 id="signup-title">Crie sua conta Polaryix</h1>
-          <span>Use o Google para entrar mais rapido ou cadastre com e-mail se preferir.</span>
+          <p>{t("auth.signupEyebrow")}</p>
+          <h1 id="signup-title">{t("auth.signupHeading")}</h1>
+          <span>{t("auth.signupSubtitle")}</span>
         </div>
 
-        <div className={styles.socialRow} aria-label="Opcoes de cadastro social">
-          <button type="button" className={styles.googleButton} aria-label="Cadastrar com Google" onClick={startGoogleLogin}>
+        <div className={styles.socialRow} aria-label={t("auth.socialSignup")}>
+          <button type="button" className={styles.googleButton} aria-label={t("auth.signupWithGoogle")} onClick={startGoogleLogin}>
             <GoogleIcon />
           </button>
         </div>
 
         <div className={styles.divider}>
-          <span>ou cadastre com e-mail</span>
+          <span>{t("auth.signupDivider")}</span>
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <label>
-            Nome
-            <input type="text" value={name} onChange={(event) => setName(event.target.value)} placeholder="Seu nome" required minLength={2} />
+            {t("auth.name")}
+            <input type="text" value={name} onChange={(event) => setName(event.target.value)} placeholder={t("auth.namePlaceholder")} required minLength={2} />
           </label>
 
           <label>
@@ -84,31 +86,31 @@ export default function SignupPage() {
           </label>
 
           <label>
-            Senha
-            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Minimo de 8 caracteres" required minLength={8} />
+            {t("auth.password")}
+            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder={t("auth.passwordMinPlaceholder")} required minLength={8} />
           </label>
 
           <label>
-            Confirmar senha
-            <input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Repita sua senha" required />
+            {t("auth.confirmPassword")}
+            <input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder={t("auth.confirmPasswordPlaceholder")} required />
           </label>
 
           <label className={styles.terms}>
             <input type="checkbox" required checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} />
             <span>
-              Aceito os termos de uso e a politica de privacidade. <Link href="/terms">Saiba mais</Link>
+              {t("auth.termsText")} <Link href="/terms">{t("auth.learnMore")}</Link>
             </span>
           </label>
 
           <button type="submit" className={styles.submitButton} disabled={isSubmitting}>
-            {isSubmitting ? "Criando..." : "Criar conta gratuita"}
+            {isSubmitting ? t("auth.creating") : t("auth.createFreeAccount")}
           </button>
         </form>
 
         {status ? <p className={styles.status}>{status}</p> : null}
 
         <p className={styles.footerText}>
-          Ja tem conta? <Link href="/login">Entrar agora</Link>
+          {t("auth.haveAccount")} <Link href="/login">{t("auth.loginNow")}</Link>
         </p>
       </section>
     </main>

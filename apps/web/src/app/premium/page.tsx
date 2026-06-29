@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLanguage } from "@/i18n/LanguageProvider";
 import { activatePremiumPlan } from "@/lib/api";
 import styles from "./page.module.css";
 
@@ -10,76 +11,45 @@ type PlanOption = {
   id: string;
   plan: PlanType;
   billing: Billing;
-  name: string;
+  nameKey: string;
   price: number;
-  badge: string;
-  features: string[];
+  badgeKey: string;
+  featureKeys: string[];
 };
 
-const basicFeatures = [
-  "300 MB tamanho máximo de ficheiro",
-  "1000 créditos de conversão por mês",
-  "30 conversões simultâneas",
-  "Fila prioritária Premium",
-  "Workspace com 100 MB e arquivos por até 24h",
-  "Resultado sem marca d'água nas ferramentas Premium",
-  "Dashboard, favoritos e ações rápidas no Workspace",
+const basicFeatureKeys = [
+  "premium.basicFeature1",
+  "premium.basicFeature2",
+  "premium.basicFeature3",
+  "premium.basicFeature4",
+  "premium.basicFeature5",
+  "premium.basicFeature6",
+  "premium.basicFeature7",
 ];
 
-const proFeatures = [
-  "1 GB tamanho máximo de ficheiro",
-  "3000 créditos de conversão por mês",
-  "60 conversões simultâneas",
-  "Prioridade Premium para alto volume",
-  "Workspace com 100 MB e arquivos por até 24h",
-  "Upscaling 2x/4x com controles avançados e sem marca d'água",
-  "Dashboard, favoritos e ações rápidas no Workspace",
+const proFeatureKeys = [
+  "premium.proFeature1",
+  "premium.proFeature2",
+  "premium.proFeature3",
+  "premium.proFeature4",
+  "premium.proFeature5",
+  "premium.proFeature6",
+  "premium.proFeature7",
 ];
 
 const plans = {
   annual: [
-    {
-      id: "basic-annual",
-      plan: "basic",
-      billing: "annual",
-      name: "Basic Anual",
-      price: 4.99,
-      badge: "Economize mais",
-      features: basicFeatures,
-    },
-    {
-      id: "pro-annual",
-      plan: "pro",
-      billing: "annual",
-      name: "Pro Premium Anual",
-      price: 12.99,
-      badge: "Mais popular",
-      features: proFeatures,
-    },
+    { id: "basic-annual", plan: "basic", billing: "annual", nameKey: "premium.basicAnnual", price: 4.99, badgeKey: "premium.saveMore", featureKeys: basicFeatureKeys },
+    { id: "pro-annual", plan: "pro", billing: "annual", nameKey: "premium.proAnnual", price: 12.99, badgeKey: "premium.popular", featureKeys: proFeatureKeys },
   ],
   monthly: [
-    {
-      id: "basic-monthly",
-      plan: "basic",
-      billing: "monthly",
-      name: "Basic Mensal",
-      price: 9.99,
-      badge: "Flexível",
-      features: basicFeatures,
-    },
-    {
-      id: "pro-monthly",
-      plan: "pro",
-      billing: "monthly",
-      name: "Pro Premium Mensal",
-      price: 18.99,
-      badge: "Máximo poder",
-      features: proFeatures,
-    },
+    { id: "basic-monthly", plan: "basic", billing: "monthly", nameKey: "premium.basicMonthly", price: 9.99, badgeKey: "premium.flexible", featureKeys: basicFeatureKeys },
+    { id: "pro-monthly", plan: "pro", billing: "monthly", nameKey: "premium.proMonthly", price: 18.99, badgeKey: "premium.maxPower", featureKeys: proFeatureKeys },
   ],
 } satisfies Record<Billing, PlanOption[]>;
 
 export default function PremiumPage() {
+  const { t } = useLanguage();
   const [billing, setBilling] = useState<Billing>("annual");
   const [status, setStatus] = useState("");
   const [isActivating, setIsActivating] = useState("");
@@ -110,41 +80,41 @@ export default function PremiumPage() {
     <main className={styles.page}>
       <section className={styles.hero}>
         <p>Polaryix Pass</p>
-        <h1>Escolha o plano certo</h1>
-        <span>Créditos mensais, fila prioritária, Workspace ampliado e ferramentas de imagem sem marca d'água para acelerar seu fluxo.</span>
+        <h1>{t("premium.title")}</h1>
+        <span>{t("premium.subtitle")}</span>
       </section>
 
-      <section className={styles.billingSwitch} aria-label="Selecionar cobrança">
+      <section className={styles.billingSwitch} aria-label="Selecionar cobranca">
         <button type="button" className={billing === "monthly" ? styles.active : undefined} onClick={() => setBilling("monthly")}>
-          Mensal
+          {t("premium.monthly")}
         </button>
         <button type="button" className={billing === "annual" ? styles.active : undefined} onClick={() => setBilling("annual")}>
-          Anual
+          {t("premium.annual")}
         </button>
       </section>
-      <p className={styles.savings}>Economize até 50% com planos anuais.</p>
+      <p className={styles.savings}>{t("premium.savings")}</p>
 
       <section className={styles.planGrid}>
         {visiblePlans.map((plan) => (
           <article key={plan.id} className={plan.id.includes("pro") ? styles.featuredPlan : styles.plan}>
             <div className={styles.planTop}>
-              <span>{plan.badge}</span>
-              <h2>{plan.name}</h2>
+              <span>{t(plan.badgeKey)}</span>
+              <h2>{t(plan.nameKey)}</h2>
               <div className={styles.price}>
                 <small>R$</small>
                 <strong>{plan.price}</strong>
-                <em>/ mês</em>
+                <em>/ mes</em>
               </div>
             </div>
 
             <ul>
-              {plan.features.map((feature) => (
-                <li key={feature}>{feature}</li>
+              {plan.featureKeys.map((featureKey) => (
+                <li key={featureKey}>{t(featureKey)}</li>
               ))}
             </ul>
 
             <button type="button" onClick={() => selectPlan(plan)} disabled={isActivating === plan.id}>
-              {isActivating === plan.id ? "Ativando..." : "Continuar"}
+              {isActivating === plan.id ? t("premium.activating") : t("premium.continue")}
             </button>
           </article>
         ))}
@@ -153,11 +123,8 @@ export default function PremiumPage() {
       {status ? <p className={styles.savings}>{status}</p> : null}
 
       <section className={styles.freeNote}>
-        <strong>Plano gratuito</strong>
-        <p>
-          Visitantes e usuários free têm 30 créditos por dia, 25 MB no Workspace por até 2h e fila padrão.
-          Upscaling Free pode incluir marca d'água PolarYix; Remover Fundo e Otimizar Imagem não aplicam marca d'água.
-        </p>
+        <strong>{t("premium.freePlan")}</strong>
+        <p>{t("premium.freeNote")}</p>
       </section>
     </main>
   );

@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
+import { useLanguage } from "@/i18n/LanguageProvider";
 import { getCurrentUser, loginWithEmail, persistAuthSession, startGoogleLogin } from "@/lib/api";
 import styles from "./page.module.css";
 
@@ -17,6 +18,7 @@ function GoogleIcon() {
 }
 
 export default function LoginPage() {
+  const { t } = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState("");
@@ -29,11 +31,11 @@ export default function LoginPage() {
 
     if (authError) {
       const messages: Record<string, string> = {
-        google_config: "Login com Google ainda nao foi configurado no servidor.",
-        missing_code: "Nao recebemos o codigo do Google. Tente novamente.",
-        google: "Nao foi possivel concluir o login com Google.",
+        google_config: t("auth.googleConfig"),
+        missing_code: t("auth.googleMissingCode"),
+        google: t("auth.googleError"),
       };
-      setStatus(messages[authError] ?? "Nao foi possivel concluir o login com Google.");
+      setStatus(messages[authError] ?? t("auth.googleError"));
       return;
     }
     if (!token) {
@@ -46,22 +48,22 @@ export default function LoginPage() {
         persistAuthSession({ token, user });
         window.location.href = "/";
       })
-      .catch(() => setStatus("Sessao Google expirada. Tente entrar novamente."));
-  }, []);
+      .catch(() => setStatus(t("auth.googleExpired")));
+  }, [t]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setIsSubmitting(true);
-    setStatus("Entrando...");
+    setStatus(t("auth.loggingIn"));
 
     try {
       const session = await loginWithEmail({ email, password });
       persistAuthSession(session);
-      setStatus("Login concluido. Redirecionando...");
+      setStatus(t("auth.loginDone"));
       window.location.href = "/";
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Nao foi possivel entrar.");
+      setStatus(error instanceof Error ? error.message : t("auth.loginError"));
     } finally {
       setIsSubmitting(false);
     }
@@ -71,19 +73,19 @@ export default function LoginPage() {
     <main className={styles.page}>
       <section className={styles.card} aria-labelledby="login-title">
         <div className={styles.header}>
-          <p>Conta Polaryix</p>
-          <h1 id="login-title">Entre para continuar</h1>
-          <span>Acesse seus arquivos, limites diarios e beneficios Premium.</span>
+          <p>{t("auth.loginEyebrow")}</p>
+          <h1 id="login-title">{t("auth.loginHeading")}</h1>
+          <span>{t("auth.loginSubtitle")}</span>
         </div>
 
-        <div className={styles.socialRow} aria-label="Opcoes de login social">
-          <button type="button" className={styles.googleButton} aria-label="Entrar com Google" onClick={startGoogleLogin}>
+        <div className={styles.socialRow} aria-label={t("auth.socialLogin")}>
+          <button type="button" className={styles.googleButton} aria-label={t("auth.loginWithGoogle")} onClick={startGoogleLogin}>
             <GoogleIcon />
           </button>
         </div>
 
         <div className={styles.divider}>
-          <span>ou entre com e-mail</span>
+          <span>{t("auth.emailDivider")}</span>
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
@@ -93,23 +95,23 @@ export default function LoginPage() {
           </label>
 
           <label>
-            Senha
-            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Digite sua senha" required />
+            {t("auth.password")}
+            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder={t("auth.passwordPlaceholder")} required />
           </label>
 
           <div className={styles.formFooter}>
-            <Link href="/signup">Criar conta</Link>
+            <Link href="/signup">{t("auth.createAccount")}</Link>
           </div>
 
           <button type="submit" className={styles.submitButton} disabled={isSubmitting}>
-            {isSubmitting ? "Entrando..." : "Entrar"}
+            {isSubmitting ? t("auth.loggingIn") : t("auth.login")}
           </button>
         </form>
 
         {status ? <p className={styles.status}>{status}</p> : null}
 
         <p className={styles.footerText}>
-          Ainda nao tem uma conta? <Link href="/signup">Cadastre-se gratis</Link>
+          {t("auth.noAccount")} <Link href="/signup">{t("auth.signupFree")}</Link>
         </p>
       </section>
     </main>

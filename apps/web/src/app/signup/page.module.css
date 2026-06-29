@@ -3,7 +3,7 @@
   display: grid;
   place-items: center;
   padding: 3rem 1rem;
-  color: #373737;
+  color: var(--text);
   background: transparent;
 }
 
@@ -13,8 +13,8 @@
   overflow: hidden;
   border: 1px solid rgba(8, 116, 255, 0.12);
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.84);
-  box-shadow: 0 30px 80px rgba(8, 48, 110, 0.12);
+  background: var(--card);
+  box-shadow: 0 30px 80px var(--shadow);
   padding: 2rem;
   backdrop-filter: blur(22px);
 }
@@ -55,7 +55,7 @@
 
 .header h1 {
   margin: 0;
-  color: #061334;
+  color: var(--heading);
   font-size: clamp(1.85rem, 4vw, 2.45rem);
   line-height: 1.06;
 }
@@ -63,7 +63,7 @@
 .header span {
   display: block;
   margin-top: 0.7rem;
-  color: #60728e;
+  color: var(--muted);
   line-height: 1.55;
 }
 
@@ -77,7 +77,7 @@
   height: 46px;
   border: 1px solid rgba(8, 116, 255, 0.12);
   border-radius: 999px;
-  background: #ffffff;
+  background: var(--surface-strong);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -102,7 +102,7 @@
   align-items: center;
   gap: 0.8rem;
   margin: 1.35rem 0;
-  color: #60728e;
+  color: var(--muted);
   font-size: 0.82rem;
 }
 
@@ -122,7 +122,7 @@
 .form label {
   display: grid;
   gap: 0.45rem;
-  color: #061334;
+  color: var(--heading);
   font-size: 0.9rem;
   font-weight: 850;
 }
@@ -132,8 +132,8 @@
   min-height: 50px;
   border: 1px solid rgba(8, 116, 255, 0.14);
   border-radius: 14px;
-  background: rgba(247, 251, 255, 0.9);
-  color: #061334;
+  background: var(--field);
+  color: var(--heading);
   font: inherit;
   padding: 0 0.95rem;
 }
@@ -152,7 +152,7 @@
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  color: #60728e;
+  color: var(--muted);
   font-size: 0.86rem;
   font-weight: 750;
   line-height: 1.45;
@@ -206,7 +206,7 @@
   border: 1px solid rgba(8, 116, 255, 0.14);
   border-radius: 14px;
   background: rgba(8, 116, 255, 0.07);
-  color: #536985;
+  color: var(--muted);
   line-height: 1.45;
   padding: 0.85rem;
 }
@@ -215,7 +215,7 @@
   position: relative;
   z-index: 1;
   margin: 1.4rem 0 0;
-  color: #60728e;
+  color: var(--muted);
   text-align: center;
 }
 

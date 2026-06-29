@@ -167,6 +167,27 @@ a {
   font-size: 12px;
 }
 
+html.dark [class*="panel" i],
+html.dark [class*="card" i],
+html.dark [class*="dropdown" i],
+html.dark [class*="toolbar" i],
+html.dark [class*="note" i],
+html.dark [class*="box" i] {
+  border-color: var(--border);
+}
+
+html.dark input,
+html.dark textarea,
+html.dark select {
+  background-color: var(--field);
+  color: var(--heading);
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: rgba(158, 177, 204, 0.72);
+}
+
 @media (max-width: 800px) {
   .grid-3,
   .grid-2 {

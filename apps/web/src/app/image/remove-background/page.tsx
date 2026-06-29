@@ -1,12 +1,17 @@
+"use client";
+
 import { ImageToolWorkspace } from "@/components/ImageToolWorkspace";
+import { useLanguage } from "@/i18n/LanguageProvider";
 
 export default function RemoveBackgroundPage() {
+  const { t } = useLanguage();
+
   return (
     <ImageToolWorkspace
       operation="remove_background"
-      eyebrow="Remover Fundo"
-      title="Remova o fundo e baixe em PNG transparente"
-      description="Ideal para produtos, perfis e imagens com objeto principal. Mantemos largura e altura originais."
+      eyebrow={t("image.removeBackground.title")}
+      title={t("image.removeBackground.pageTitle")}
+      description={t("image.removeBackground.pageDescription")}
       cost="1 token"
     />
   );
