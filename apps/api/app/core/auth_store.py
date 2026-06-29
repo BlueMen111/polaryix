@@ -262,3 +262,21 @@ def consume_user_credits(user_id: str, amount: int) -> dict:
     user["updated_at"] = datetime.now(UTC).isoformat()
     write_users(users)
     return user
+
+
+def refund_user_credits(user_id: str, amount: int) -> dict:
+    if amount <= 0:
+        return {}
+
+    users = read_users()
+    user = find_user_by_id(users, user_id)
+    if not user:
+        return {}
+
+    refresh_user_credits(user)
+    limit = int(user.get("monthly_credits", FREE_PLAN.monthly_credits))
+    current = int(user.get("credits_remaining", 0))
+    user["credits_remaining"] = min(current + amount, limit)
+    user["updated_at"] = datetime.now(UTC).isoformat()
+    write_users(users)
+    return user

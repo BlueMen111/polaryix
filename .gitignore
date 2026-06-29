@@ -16,9 +16,12 @@ storage/quarantine/*
 storage/processed/*
 storage/reports/*
 storage/auth/
+storage/history/
+storage/jobs/
 storage/usage/
 storage/private/
 apps/api/storage/auth/
+apps/api/storage/jobs/
 apps/api/storage/usage/
 apps/api/storage/private/
 *cookies*.txt

@@ -3,14 +3,17 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   AuthUser,
+  ConversionJob,
   LinkPreview,
   UsageInfo,
   UserComment,
-  convertFile,
-  convertFiles,
+  cancelConversionJob,
   createComment,
+  createConversionJob,
   createLinkDownloadJob,
+  downloadConversionJob,
   downloadLinkJobFile,
+  getConversionJob,
   getLinkDownloadJob,
   getLinkPreview,
   getCurrentUser,
@@ -186,6 +189,7 @@ export default function HomePage() {
   const [commentMessage, setCommentMessage] = useState("");
   const [commentStatus, setCommentStatus] = useState("");
   const [isPostingComment, setIsPostingComment] = useState(false);
+  const [conversionJobs, setConversionJobs] = useState<ConversionJob[]>([]);
   const [usage, setUsage] = useState<UsageInfo | null>(null);
   const [usageError, setUsageError] = useState("");
   const [heroFormatIndex, setHeroFormatIndex] = useState(0);
@@ -240,6 +244,26 @@ export default function HomePage() {
 
     return () => window.clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const activeJobs = conversionJobs.filter((job) => job.status === "queued" || job.status === "processing");
+    if (activeJobs.length === 0) {
+      return;
+    }
+
+    const interval = window.setInterval(async () => {
+      const updates = await Promise.allSettled(activeJobs.map((job) => getConversionJob(job.id)));
+      setConversionJobs((current) =>
+        current.map((job) => {
+          const index = activeJobs.findIndex((activeJob) => activeJob.id === job.id);
+          const update = index >= 0 ? updates[index] : null;
+          return update?.status === "fulfilled" ? update.value.job : job;
+        })
+      );
+    }, 2500);
+
+    return () => window.clearInterval(interval);
+  }, [conversionJobs]);
 
   async function refreshUsage() {
     try {
@@ -404,27 +428,31 @@ export default function HomePage() {
     }
 
     setIsConverting(true);
-    setStatus(selectedFiles.length > 1 ? `Convertendo ${selectedFiles.length} arquivos (${conversionLabel})...` : `Convertendo ${conversionLabel}...`);
+    setStatus(selectedFiles.length > 1 ? `Enviando ${selectedFiles.length} conversoes para a fila...` : "Enviando conversao para a fila...");
 
     try {
-      const result =
-        selectedFiles.length > 1
-          ? await convertFiles({
-            files: selectedFiles,
+      const token = window.localStorage.getItem("polaryix:auth-token");
+      if (!token) {
+        setStatus("Entre com Google ou e-mail para usar a fila de conversoes.");
+        return;
+      }
+
+      const created = await Promise.all(
+        selectedFiles.map((file) =>
+          createConversionJob({
+            file,
             fromFormat,
             toFormat,
-            isPremium,
-            premiumPlan,
           })
-          : await convertFile({
-              file: selectedFile as File,
-              fromFormat,
-              toFormat,
-              isPremium,
-              premiumPlan,
-            });
-
-      setStatus(`Conversão concluída. Download iniciado: ${result.filename}`);
+        )
+      );
+      const jobs = created.map((item) => item.job);
+      setConversionJobs((current) => [...jobs, ...current.filter((job) => !jobs.some((createdJob) => createdJob.id === job.id))]);
+      setStatus(
+        isPremium
+          ? "Conversao enviada. Priority queue enabled."
+          : "Conversao enviada. Aguardando na fila."
+      );
       await refreshUsage();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Erro ao converter arquivo.");
@@ -515,6 +543,51 @@ export default function HomePage() {
     } finally {
       setIsPostingComment(false);
     }
+  }
+
+  async function handleRefreshJob(jobId: string) {
+    try {
+      const { job } = await getConversionJob(jobId);
+      setConversionJobs((current) => current.map((item) => (item.id === job.id ? job : item)));
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Nao foi possivel atualizar a conversao.");
+    }
+  }
+
+  async function handleCancelJob(jobId: string) {
+    try {
+      const { job } = await cancelConversionJob(jobId);
+      setConversionJobs((current) => current.map((item) => (item.id === job.id ? job : item)));
+      setStatus("Conversao cancelada. Credito devolvido.");
+      await refreshUsage();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Nao foi possivel cancelar a conversao.");
+    }
+  }
+
+  async function handleDownloadJob(job: ConversionJob) {
+    try {
+      const filename = await downloadConversionJob(job);
+      setStatus(`Download iniciado: ${filename}`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Nao foi possivel baixar a conversao.");
+    }
+  }
+
+  function jobStatusLabel(job: ConversionJob) {
+    if (job.status === "queued") {
+      return `Aguardando na fila${job.queue_position ? ` - Posicao: ${job.queue_position}` : ""}`;
+    }
+    if (job.status === "processing") {
+      return "Processando";
+    }
+    if (job.status === "completed") {
+      return "Concluido";
+    }
+    if (job.status === "cancelled") {
+      return "Cancelado";
+    }
+    return "Falhou";
   }
 
   return (
@@ -694,6 +767,41 @@ export default function HomePage() {
                   ) : null}
                 </>
               )}
+
+              {conversionJobs.length > 0 ? (
+                <div className={styles.jobPanel} aria-label="Fila de conversoes">
+                  {conversionJobs.map((job) => (
+                    <article className={styles.jobCard} key={job.id}>
+                      <div>
+                        <strong>{job.original_filename}</strong>
+                        <span>
+                          {job.input_format} para {job.output_format}
+                        </span>
+                        {job.is_priority ? <em>Priority queue enabled</em> : null}
+                      </div>
+                      <p className={styles.statusText}>
+                        {jobStatusLabel(job)}
+                        {job.status === "failed" && job.error_message ? `: ${job.error_message}` : ""}
+                      </p>
+                      <div className={styles.jobActions}>
+                        <button type="button" onClick={() => handleRefreshJob(job.id)}>
+                          Atualizar status
+                        </button>
+                        {job.status === "queued" ? (
+                          <button type="button" onClick={() => handleCancelJob(job.id)}>
+                            Cancelar
+                          </button>
+                        ) : null}
+                        {job.status === "completed" ? (
+                          <button type="button" onClick={() => handleDownloadJob(job)}>
+                            Baixar
+                          </button>
+                        ) : null}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </section>
 

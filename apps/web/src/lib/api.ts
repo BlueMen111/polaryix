@@ -125,6 +125,25 @@ export type UserComment = {
   created_at: string;
 };
 
+export type ConversionJob = {
+  id: string;
+  user_id: string;
+  original_filename: string;
+  input_format: string;
+  output_format: string;
+  status: "queued" | "processing" | "completed" | "failed" | "cancelled";
+  priority: number;
+  credits_cost: number;
+  error_message?: string | null;
+  created_at: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+  cancelled_at?: string | null;
+  queue_position?: number | null;
+  download_url?: string | null;
+  is_priority?: boolean;
+};
+
 async function parseJsonError(response: Response, fallback: string): Promise<string> {
   try {
     const errorData = await response.json();
@@ -513,6 +532,63 @@ export async function downloadMyFile(file: ConvertedFile): Promise<string> {
   });
 
   return downloadBlobResponse(response, `${file.original_filename || "polaryix"}.${file.target_format?.toLowerCase() || "bin"}`);
+}
+
+export async function createConversionJob(payload: {
+  file: File;
+  fromFormat: string;
+  toFormat: string;
+}): Promise<{ job: ConversionJob }> {
+  const formData = new FormData();
+  formData.append("file", payload.file);
+  formData.append("from_format", payload.fromFormat);
+  formData.append("to_format", payload.toFormat);
+
+  const response = await fetch(apiUrl("/conversions"), {
+    method: "POST",
+    headers: authHeaders(),
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Nao foi possivel criar a conversao."));
+  }
+
+  return parseJsonResponse<{ job: ConversionJob }>(response, "Nao foi possivel criar a conversao.");
+}
+
+export async function getConversionJob(jobId: string): Promise<{ job: ConversionJob }> {
+  const response = await fetch(apiUrl(`/conversions/${jobId}`), {
+    headers: authHeaders(),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Nao foi possivel consultar a conversao."));
+  }
+
+  return parseJsonResponse<{ job: ConversionJob }>(response, "Nao foi possivel consultar a conversao.");
+}
+
+export async function cancelConversionJob(jobId: string): Promise<{ job: ConversionJob }> {
+  const response = await fetch(apiUrl(`/conversions/${jobId}`), {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Nao foi possivel cancelar a conversao."));
+  }
+
+  return parseJsonResponse<{ job: ConversionJob }>(response, "Nao foi possivel cancelar a conversao.");
+}
+
+export async function downloadConversionJob(job: ConversionJob): Promise<string> {
+  const response = await fetch(apiUrl(`/conversions/${job.id}/download`), {
+    headers: authHeaders(),
+  });
+
+  return downloadBlobResponse(response, `${job.original_filename || "polaryix"}.${job.output_format?.toLowerCase() || "bin"}`);
 }
 
 export async function listComments(): Promise<{ comments: UserComment[] }> {

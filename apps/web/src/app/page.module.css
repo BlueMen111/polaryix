@@ -511,6 +511,69 @@
   padding: 0.85rem;
 }
 
+.jobPanel {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.jobCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(180px, 0.8fr) auto;
+  gap: 0.85rem;
+  align-items: center;
+  border: 1px solid rgba(8, 116, 255, 0.12);
+  border-radius: 16px;
+  background: rgba(247, 251, 255, 0.82);
+  padding: 0.85rem;
+}
+
+.jobCard div {
+  min-width: 0;
+}
+
+.jobCard strong {
+  display: block;
+  color: #061334;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jobCard span,
+.jobCard em {
+  display: block;
+  margin-top: 0.18rem;
+  color: #60728e;
+  font-size: 0.76rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.jobCard em {
+  color: #0874ff;
+}
+
+.jobActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.jobActions button {
+  min-height: 36px;
+  border: 1px solid rgba(8, 116, 255, 0.14);
+  border-radius: 10px;
+  background: #ffffff;
+  color: #0874ff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 900;
+  padding: 0 0.75rem;
+}
+
 .fileQueue {
   overflow: hidden;
   border: 1px solid rgba(8, 116, 255, 0.12);
@@ -1085,6 +1148,14 @@
 
   .fileQueueActions {
     grid-template-columns: 1fr;
+  }
+
+  .jobCard {
+    grid-template-columns: 1fr;
+  }
+
+  .jobActions {
+    justify-content: flex-start;
   }
 
   .queueConvertAll {

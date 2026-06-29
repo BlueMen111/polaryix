@@ -106,7 +106,7 @@ def public_record(record: dict) -> dict:
     deleted_at = record.get("deleted_at")
     status_value = str(record.get("status") or "queued")
 
-    if deleted_at and status_value not in {"expired", "deleted"}:
+    if deleted_at and status_value not in {"expired", "deleted", "cancelled", "failed"}:
         status_value = "expired"
     elif expires_at:
         try:
