@@ -50,6 +50,9 @@ def process_image_tool(job: dict) -> dict:
         if operation == "remove_background":
             logger.info("Starting background removal for job %s", job.get("id"))
             result = remove_background(input_path, image)
+            transparency_ratio = _transparency_ratio(result)
+            if transparency_ratio < 0.005:
+                raise RuntimeError("Nao foi possivel identificar o fundo automaticamente nesta imagem. Tente uma imagem com melhor contraste entre o objeto e o fundo.")
             extension = ".png"
             save_format = "PNG"
             output_name = f"{Path(str(job.get('original_filename') or input_path.name)).stem}-polaryix-remove-background{extension}"
@@ -61,6 +64,7 @@ def process_image_tool(job: dict) -> dict:
                 "file_size": output_path.stat().st_size,
                 "original_size": input_path.stat().st_size,
                 "final_size": output_path.stat().st_size,
+                "message": f"Fundo removido. Transparencia detectada em {round(transparency_ratio * 100, 1)}% da imagem.",
             }
         elif operation == "optimize_image":
             logger.info("Starting image optimization for job %s", job.get("id"))
@@ -143,7 +147,7 @@ def _get_rembg_remove():
         import onnxruntime  # noqa: F401
         from rembg import new_session, remove as rembg_remove
     except Exception as exc:
-        raise RuntimeError('Remocao de fundo requer a dependencia "rembg[cpu]" instalada no servidor.') from exc
+        raise RuntimeError("A remocao de fundo ainda nao esta disponivel no servidor. A dependencia rembg[cpu] precisa ser instalada.") from exc
 
     with _rembg_lock:
         if _rembg_session is None:
@@ -268,6 +272,15 @@ def _flatten_for_jpeg(image: Image.Image) -> Image.Image:
     background = Image.new("RGB", rgba.size, (255, 255, 255))
     background.paste(rgba, mask=rgba.getchannel("A"))
     return background
+
+
+def _transparency_ratio(image: Image.Image) -> float:
+    rgba = image.convert("RGBA")
+    alpha = rgba.getchannel("A")
+    histogram = alpha.histogram()
+    transparent_pixels = sum(histogram[:250])
+    total_pixels = max(rgba.width * rgba.height, 1)
+    return transparent_pixels / total_pixels
 
 
 def validate_image_file(path: Path) -> None:

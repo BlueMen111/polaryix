@@ -132,7 +132,8 @@
 
 .controls,
 .sliders,
-.jobBox {
+.jobBox,
+.creditsBox {
   display: grid;
   gap: 0.75rem;
 }
@@ -179,16 +180,65 @@
 }
 
 .locked,
-.jobBox {
+.jobBox,
+.creditsBox {
   border: 1px solid rgba(8, 116, 255, 0.12);
   border-radius: 14px;
   background: rgba(247, 251, 255, 0.82);
   padding: 0.85rem;
 }
 
+.creditsBox {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.creditsBox span {
+  min-width: 0;
+  color: #60728e;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.creditsBox strong {
+  display: block;
+  color: #061334;
+  font-size: 0.95rem;
+}
+
+.creditsBox p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #c83333;
+  font-size: 0.84rem;
+  font-weight: 850;
+}
+
+.fileInfo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.fileInfo span {
+  border: 1px solid rgba(8, 116, 255, 0.14);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #60728e;
+  font-size: 0.78rem;
+  font-weight: 850;
+  padding: 0.35rem 0.55rem;
+}
+
 .locked {
   color: #60728e;
   font-size: 0.84rem;
+}
+
+.sliders small {
+  color: #60728e;
+  font-size: 0.78rem;
+  line-height: 1.45;
 }
 
 .actions {
@@ -281,7 +331,8 @@
 }
 
 .realPreview img,
-.pending {
+.pending,
+.localPreview {
   width: 100%;
   aspect-ratio: 1;
   border: 1px solid rgba(8, 116, 255, 0.12);
@@ -290,12 +341,40 @@
   background: conic-gradient(#e8eef7 25%, #ffffff 0 50%, #e8eef7 0 75%, #ffffff 0) 0 0 / 24px 24px;
 }
 
-.pending {
+.pending,
+.localPreview {
   display: grid;
   place-items: center;
   color: #60728e;
   padding: 1rem;
   text-align: center;
+}
+
+.localPreview {
+  position: relative;
+  overflow: hidden;
+}
+
+.localPreview img {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  object-fit: contain;
+  transition: filter 160ms ease, transform 160ms ease;
+}
+
+.localPreview small {
+  position: absolute;
+  left: 0.75rem;
+  bottom: 0.75rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #061334;
+  font-size: 0.72rem;
+  font-weight: 900;
+  padding: 0.35rem 0.55rem;
 }
 
 @media (max-width: 860px) {
@@ -308,5 +387,9 @@
   .hero {
     display: grid;
     align-items: start;
+  }
+
+  .creditsBox {
+    grid-template-columns: 1fr;
   }
 }

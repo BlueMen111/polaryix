@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, CSSProperties, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ImageToolJob,
@@ -10,6 +10,7 @@ import {
   downloadImageToolJob,
   getCurrentUser,
   getImageToolJob,
+  getImageToolJobResult,
   persistAuthSession,
   type AuthUser,
 } from "@/lib/api";
@@ -23,10 +24,20 @@ type Props = {
   cost: string;
 };
 
+type FileInfo = {
+  width: number;
+  height: number;
+  format: string;
+  size: number;
+};
+
 export function ImageToolWorkspace({ operation, title, eyebrow, description, cost }: Props) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [fileInfo, setFileInfo] = useState<FileInfo | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
+  const [resultUrl, setResultUrl] = useState("");
+  const [resultFilename, setResultFilename] = useState("");
   const [job, setJob] = useState<ImageToolJob | null>(null);
   const [status, setStatus] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -40,54 +51,129 @@ export function ImageToolWorkspace({ operation, title, eyebrow, description, cos
 
   const isPremium = Boolean(user?.is_premium);
   const active = job?.status === "queued" || job?.status === "processing";
-  const resultUrl = job?.status === "completed" ? `/api/v1/image-tools/jobs/${job.id}/download` : "";
+  const costNumber = operation === "remove_background" ? 1 : operation === "optimize_image" ? 2 : isPremium && scale === 4 ? 10 : 5;
+  const credits = user?.credits_remaining;
+  const afterCredits = typeof credits === "number" ? Math.max(credits - costNumber, 0) : null;
+  const insufficientCredits = typeof credits === "number" && credits < costNumber;
   const statusText = job ? statusLabel(job) : status;
   const demoClass = operation === "remove_background" ? styles.removeDemo : operation === "optimize_image" ? styles.optimizeDemo : styles.upscaleDemo;
 
+  const localUpscaleStyle = useMemo<CSSProperties>(
+    () => ({
+      filter: `contrast(${contrast}) saturate(${1 + intensity * 0.08}) brightness(${1 + (detail - 1) * 0.04})`,
+      transform: `scale(${1 + Math.min(Math.max(sharpness - 1, 0), 1) * 0.025})`,
+    }),
+    [contrast, detail, intensity, sharpness]
+  );
+
   const planMessage = useMemo(() => {
     if (isPremium) {
-      return "Fila prioritária Premium ativada. Controles avançados liberados e resultado sem marca d'água.";
+      return "Fila prioritaria Premium ativada. Controles avancados liberados. Resultado sem marca d'agua.";
     }
     if (operation === "upscale_image") {
-      return "Processamento em fila padrão. Usuários Free recebem marca d'água no Upscaling.";
+      return "Fila padrao ativada. Upscaling Free inclui marca d'agua PolarYix.";
     }
-    return "Processamento em fila padrão. Atualize para Premium para prioridade na fila.";
+    return "Fila padrao ativada. Assine Premium para prioridade e resultado sem marca d'agua.";
   }, [isPremium, operation]);
 
   useEffect(() => {
+    refreshUser();
+  }, []);
+
+  async function refreshUser() {
     const token = window.localStorage.getItem("polaryix:auth-token");
     if (!token) {
       return;
     }
-    getCurrentUser()
-      .then(({ user }) => {
-        persistAuthSession({ token, user });
-        setUser(user);
-      })
-      .catch(() => setUser(null));
-  }, []);
+
+    try {
+      const data = await getCurrentUser();
+      persistAuthSession({ token, user: data.user });
+      setUser(data.user);
+    } catch {
+      setUser(null);
+    }
+  }
 
   useEffect(() => {
     if (!file) {
       setPreviewUrl("");
+      setFileInfo(null);
       return;
     }
+
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
+    const image = new Image();
+    image.onload = () => {
+      setFileInfo({
+        width: image.naturalWidth,
+        height: image.naturalHeight,
+        format: file.type.replace("image/", "").toUpperCase() || file.name.split(".").pop()?.toUpperCase() || "IMAGEM",
+        size: file.size,
+      });
+    };
+    image.src = url;
+
     return () => URL.revokeObjectURL(url);
   }, [file]);
+
+  useEffect(() => {
+    setResultFilename("");
+    setResultUrl((previous) => {
+      if (previous) URL.revokeObjectURL(previous);
+      return "";
+    });
+  }, [file, operation]);
 
   useEffect(() => {
     if (!active || !job) {
       return;
     }
+
     const interval = window.setInterval(async () => {
-      const updated = await getImageToolJob(job.id);
-      setJob(updated);
-      setStatus(statusLabel(updated));
+      try {
+        const updated = await getImageToolJob(job.id);
+        setJob(updated);
+        setStatus(statusLabel(updated));
+        if (updated.status === "completed" || updated.status === "failed" || updated.status === "cancelled") {
+          refreshUser();
+        }
+      } catch (error) {
+        setStatus(error instanceof Error ? error.message : "Nao foi possivel consultar o processamento.");
+      }
     }, 2500);
+
     return () => window.clearInterval(interval);
   }, [active, job]);
+
+  useEffect(() => {
+    if (job?.status !== "completed" || resultUrl) {
+      return;
+    }
+
+    let cancelled = false;
+    getImageToolJobResult(job)
+      .then((result) => {
+        if (cancelled) {
+          URL.revokeObjectURL(result.url);
+          return;
+        }
+        setResultUrl(result.url);
+        setResultFilename(result.filename);
+      })
+      .catch((error) => setStatus(error instanceof Error ? error.message : "Nao foi possivel carregar o resultado."));
+
+    return () => {
+      cancelled = true;
+    };
+  }, [job, resultUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (resultUrl) URL.revokeObjectURL(resultUrl);
+    };
+  }, [resultUrl]);
 
   function handleFile(event: ChangeEvent<HTMLInputElement>) {
     const selected = event.target.files?.[0] ?? null;
@@ -105,6 +191,11 @@ export function ImageToolWorkspace({ operation, title, eyebrow, description, cos
       setStatus("Escolha uma imagem PNG, JPG ou WEBP.");
       return;
     }
+    if (insufficientCredits) {
+      setStatus("Creditos insuficientes. Compre mais tokens para continuar.");
+      return;
+    }
+
     setIsSubmitting(true);
     setStatus("Enviando para a fila...");
     try {
@@ -121,8 +212,9 @@ export function ImageToolWorkspace({ operation, title, eyebrow, description, cos
       });
       setJob(created);
       setStatus(statusLabel(created));
+      refreshUser();
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Não foi possível processar a imagem.");
+      setStatus(error instanceof Error ? error.message : "Nao foi possivel processar a imagem.");
     } finally {
       setIsSubmitting(false);
     }
@@ -133,6 +225,7 @@ export function ImageToolWorkspace({ operation, title, eyebrow, description, cos
     const updated = await getImageToolJob(job.id);
     setJob(updated);
     setStatus(statusLabel(updated));
+    refreshUser();
   }
 
   async function handleCancel() {
@@ -140,6 +233,7 @@ export function ImageToolWorkspace({ operation, title, eyebrow, description, cos
     const updated = await cancelImageToolJob(job.id);
     setJob(updated);
     setStatus("Job cancelado. Tokens devolvidos.");
+    refreshUser();
   }
 
   async function handleDownload() {
@@ -166,11 +260,26 @@ export function ImageToolWorkspace({ operation, title, eyebrow, description, cos
             <span>{planMessage}</span>
           </div>
 
+          <div className={styles.creditsBox}>
+            <span>Seus creditos: <strong>{typeof credits === "number" ? credits : "Entre para ver"}</strong></span>
+            <span>Custo desta operacao: <strong>{costNumber}</strong></span>
+            <span>Apos processar: <strong>{afterCredits ?? "-"}</strong></span>
+            {insufficientCredits ? <p>Creditos insuficientes. Compre mais tokens para continuar.</p> : null}
+          </div>
+
           <label className={styles.uploadBox}>
             <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleFile} />
             <strong>{file?.name ?? "Selecionar imagem"}</strong>
             <small>PNG, JPG ou WEBP</small>
           </label>
+
+          {fileInfo ? (
+            <div className={styles.fileInfo}>
+              <span>{fileInfo.format}</span>
+              <span>{formatBytes(fileInfo.size)}</span>
+              <span>{fileInfo.width}x{fileInfo.height}</span>
+            </div>
+          ) : null}
 
           {operation === "upscale_image" ? (
             <div className={styles.controls}>
@@ -189,28 +298,30 @@ export function ImageToolWorkspace({ operation, title, eyebrow, description, cos
               {isPremium ? (
                 <div className={styles.sliders}>
                   <Range label="Nitidez" value={sharpness} min={0.7} max={2.4} step={0.05} onChange={setSharpness} />
-                  <Range label="Redução de ruído" value={denoise} min={0} max={1} step={0.05} onChange={setDenoise} />
+                  <Range label="Reducao de ruido" value={denoise} min={0} max={1} step={0.05} onChange={setDenoise} />
                   <Range label="Contraste" value={contrast} min={0.8} max={1.6} step={0.05} onChange={setContrast} />
                   <Range label="Detalhes" value={detail} min={0.8} max={1.8} step={0.05} onChange={setDetail} />
                   <Range label="Intensidade" value={intensity} min={0.4} max={1.6} step={0.05} onChange={setIntensity} />
+                  <small>A previa e aproximada. O resultado final pode ter qualidade superior apos o processamento.</small>
                 </div>
               ) : (
-                <div className={styles.locked}>Assine Premium para liberar escala 4x, ajustes finos e remover a marca d'água.</div>
+                <div className={styles.locked}>Controles avancados estao disponiveis no Premium. Free usa preset automatico com marca d'agua.</div>
               )}
             </div>
           ) : null}
 
-          <button type="button" className={styles.primaryButton} onClick={handleProcess} disabled={isSubmitting}>
+          <button type="button" className={styles.primaryButton} onClick={handleProcess} disabled={isSubmitting || insufficientCredits}>
             {isSubmitting ? "Enviando..." : "Processar imagem"}
           </button>
 
           {job ? (
             <div className={styles.jobBox}>
               <strong>{statusLabel(job)}</strong>
-              {job.queue_position ? <span>Posição na fila: {job.queue_position}</span> : null}
+              {job.queue_position ? <span>Posicao na fila: {job.queue_position}</span> : null}
               {job.credits_cost ? <span>Tokens cobrados: {job.credits_cost}</span> : null}
-              {job.original_size || job.final_size ? <span>{formatBytes(job.original_size)} → {formatBytes(job.final_size)}</span> : null}
-              {typeof job.reduction_percent === "number" ? <span>Redução: {job.reduction_percent}%</span> : null}
+              {job.original_size || job.final_size ? <span>{formatBytes(job.original_size)} {"->"} {formatBytes(job.final_size)}</span> : null}
+              {typeof job.reduction_percent === "number" ? <span>Reducao: {job.reduction_percent}%</span> : null}
+              {resultFilename ? <span>Arquivo pronto: {resultFilename}</span> : null}
               {job.message ? <p>{job.message}</p> : null}
               {job.error_message ? <p>{job.error_message}</p> : null}
               <div className={styles.actions}>
@@ -233,13 +344,24 @@ export function ImageToolWorkspace({ operation, title, eyebrow, description, cos
               </div>
               <div>
                 <span>Depois</span>
-                {resultUrl ? <img src={resultUrl} alt="Resultado processado" /> : <div className={styles.pending}>Resultado após o processamento</div>}
+                {resultUrl ? (
+                  <img src={resultUrl} alt="Resultado processado" />
+                ) : operation === "upscale_image" && isPremium ? (
+                  <div className={styles.localPreview}>
+                    <img src={previewUrl} alt="Previa aproximada do upscaling" style={localUpscaleStyle} />
+                    <small>Previa local {scale}x</small>
+                  </div>
+                ) : active ? (
+                  <div className={styles.pending}>{operation === "remove_background" ? "Removendo fundo..." : operation === "optimize_image" ? "Otimizando imagem..." : "Processando upscaling..."}</div>
+                ) : (
+                  <div className={styles.pending}>Resultado apos o processamento</div>
+                )}
               </div>
             </div>
           ) : (
             <div className={`${styles.demo} ${demoClass}`} aria-hidden="true">
               <div />
-              <span>{operation === "optimize_image" ? "2.8 MB → 420 KB" : operation === "upscale_image" ? "512x512 → 1024x1024" : "Antes / Depois"}</span>
+              <span>{operation === "optimize_image" ? "2.8 MB -> 420 KB" : operation === "upscale_image" ? "512x512 -> 1024x1024" : "Veja como o fundo e removido automaticamente"}</span>
             </div>
           )}
         </div>
@@ -258,9 +380,9 @@ function Range({ label, value, min, max, step, onChange }: { label: string; valu
 }
 
 function statusLabel(job: ImageToolJob) {
-  if (job.status === "queued") return `Aguardando na fila${job.queue_position ? ` - posição ${job.queue_position}` : ""}`;
+  if (job.status === "queued") return `Aguardando na fila${job.queue_position ? ` - posicao ${job.queue_position}` : ""}`;
   if (job.status === "processing") return "Processando imagem";
-  if (job.status === "completed") return "Concluído";
+  if (job.status === "completed") return "Concluido";
   if (job.status === "cancelled") return "Cancelado";
   return "Falhou";
 }

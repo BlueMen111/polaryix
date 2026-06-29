@@ -359,6 +359,25 @@ async function downloadBlobResponse(response: Response, fallbackFilename: string
   return filename;
 }
 
+async function blobResponse(response: Response, fallbackFilename: string): Promise<{ blob: Blob; filename: string }> {
+  if (!response.ok) {
+    const fallback = response.status === 401 ? "Voce nao tem permissao para baixar este arquivo." : "Operacao nao concluida.";
+    throw new Error(await parseJsonError(response, fallback));
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (contentType.toLowerCase().includes("text/html")) {
+    const body = await response.text();
+    const preview = body.replace(/\s+/g, " ").trim().slice(0, 160);
+    throw new Error(`${API_HTML_ERROR}${preview ? ` Trecho recebido: ${preview}` : ""}`);
+  }
+
+  const disposition = response.headers.get("content-disposition") ?? "";
+  const filenameMatch = disposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^"]+)"?/i);
+  const filename = decodeURIComponent(filenameMatch?.[1] ?? filenameMatch?.[2] ?? fallbackFilename);
+  return { blob: await response.blob(), filename };
+}
+
 export async function convertFile(payload: {
   file: File;
   fromFormat: string;
@@ -718,6 +737,16 @@ export async function downloadImageToolJob(job: ImageToolJob): Promise<string> {
   });
 
   return downloadBlobResponse(response, job.original_filename ?? "polaryix-image");
+}
+
+export async function getImageToolJobResult(job: ImageToolJob): Promise<{ url: string; filename: string; blob: Blob }> {
+  const response = await fetch(apiUrl(`/image-tools/jobs/${job.id}/download`), {
+    headers: authHeaders(),
+    cache: "no-store",
+  });
+
+  const { blob, filename } = await blobResponse(response, job.original_filename ?? "polaryix-image");
+  return { blob, filename, url: URL.createObjectURL(blob) };
 }
 
 export async function listComments(): Promise<{ comments: UserComment[] }> {
