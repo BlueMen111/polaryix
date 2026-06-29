@@ -81,7 +81,14 @@
   gap: 0.45rem;
 }
 
-.topRow strong {
+.badgeRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.badgeRow strong {
   width: fit-content;
   border: 1px solid rgba(8, 116, 255, 0.14);
   border-radius: 999px;
@@ -132,8 +139,7 @@
 
 .controls,
 .sliders,
-.jobBox,
-.creditsBox {
+.jobBox {
   display: grid;
   gap: 0.75rem;
 }
@@ -180,38 +186,22 @@
 }
 
 .locked,
-.jobBox,
-.creditsBox {
+.jobBox {
   border: 1px solid rgba(8, 116, 255, 0.12);
   border-radius: 14px;
   background: rgba(247, 251, 255, 0.82);
   padding: 0.85rem;
 }
 
-.creditsBox {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.5rem;
-}
-
-.creditsBox span {
-  min-width: 0;
-  color: #60728e;
-  font-size: 0.82rem;
-  line-height: 1.35;
-}
-
-.creditsBox strong {
-  display: block;
-  color: #061334;
-  font-size: 0.95rem;
-}
-
-.creditsBox p {
-  grid-column: 1 / -1;
+.creditWarning {
   margin: 0;
+  border: 1px solid rgba(200, 51, 51, 0.16);
+  border-radius: 14px;
+  background: rgba(255, 245, 245, 0.86);
   color: #c83333;
   font-size: 0.84rem;
   font-weight: 850;
+  padding: 0.85rem;
 }
 
 .fileInfo {
@@ -389,7 +379,8 @@
     align-items: start;
   }
 
-  .creditsBox {
-    grid-template-columns: 1fr;
+  .badgeRow {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

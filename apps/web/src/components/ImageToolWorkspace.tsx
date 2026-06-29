@@ -53,7 +53,6 @@ export function ImageToolWorkspace({ operation, title, eyebrow, description, cos
   const active = job?.status === "queued" || job?.status === "processing";
   const costNumber = operation === "remove_background" ? 1 : operation === "optimize_image" ? 2 : isPremium && scale === 4 ? 10 : 5;
   const credits = user?.credits_remaining;
-  const afterCredits = typeof credits === "number" ? Math.max(credits - costNumber, 0) : null;
   const insufficientCredits = typeof credits === "number" && credits < costNumber;
   const statusText = job ? statusLabel(job) : status;
   const demoClass = operation === "remove_background" ? styles.removeDemo : operation === "optimize_image" ? styles.optimizeDemo : styles.upscaleDemo;
@@ -192,7 +191,7 @@ export function ImageToolWorkspace({ operation, title, eyebrow, description, cos
       return;
     }
     if (insufficientCredits) {
-      setStatus("Creditos insuficientes. Compre mais tokens para continuar.");
+      setStatus("Créditos insuficientes. Compre mais tokens para continuar.");
       return;
     }
 
@@ -256,16 +255,14 @@ export function ImageToolWorkspace({ operation, title, eyebrow, description, cos
       <section className={styles.layout}>
         <div className={styles.panel}>
           <div className={styles.topRow}>
-            <strong>{cost}</strong>
+            <div className={styles.badgeRow}>
+              <strong>{cost}</strong>
+              <strong>{typeof credits === "number" ? `${credits} créditos restantes` : "Entre para ver créditos"}</strong>
+            </div>
             <span>{planMessage}</span>
           </div>
 
-          <div className={styles.creditsBox}>
-            <span>Seus creditos: <strong>{typeof credits === "number" ? credits : "Entre para ver"}</strong></span>
-            <span>Custo desta operacao: <strong>{costNumber}</strong></span>
-            <span>Apos processar: <strong>{afterCredits ?? "-"}</strong></span>
-            {insufficientCredits ? <p>Creditos insuficientes. Compre mais tokens para continuar.</p> : null}
-          </div>
+          {insufficientCredits ? <p className={styles.creditWarning}>Créditos insuficientes. Compre mais tokens para continuar.</p> : null}
 
           <label className={styles.uploadBox}>
             <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleFile} />
