@@ -117,6 +117,33 @@ export type ConvertedFile = {
   deleted_at?: string | null;
 };
 
+export type WorkspaceFile = ConvertedFile & {
+  size_bytes?: number;
+  operation_type?: string;
+  mime_type?: string | null;
+  extension?: string;
+  is_favorite?: boolean;
+};
+
+export type StorageSummary = {
+  used: number;
+  limit: number;
+  percent: number;
+  retention_hours: number;
+};
+
+export type DashboardSummary = {
+  user: AuthUser;
+  plan: string;
+  credits: number;
+  storage: StorageSummary;
+  workspace_count: number;
+  favorite_count: number;
+  active_jobs: WorkspaceFile[];
+  recent_jobs: WorkspaceFile[];
+  favorite_files: WorkspaceFile[];
+};
+
 export type UserComment = {
   id: string;
   message: string;
@@ -573,6 +600,70 @@ export async function downloadMyFile(file: ConvertedFile): Promise<string> {
   });
 
   return downloadBlobResponse(response, `${file.original_filename || "polaryix"}.${file.target_format?.toLowerCase() || "bin"}`);
+}
+
+export async function getDashboard(): Promise<DashboardSummary> {
+  const response = await fetch(apiUrl("/dashboard"), {
+    headers: authHeaders(),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Nao foi possivel carregar o dashboard."));
+  }
+
+  return parseJsonResponse<DashboardSummary>(response, "Nao foi possivel carregar o dashboard.");
+}
+
+export async function listWorkspaceFiles(payload: { q?: string; filter?: "all" | "favorites" | "expired" | "completed" | "queued" | "processing" | "failed" | "deleted" } = {}): Promise<{ files: WorkspaceFile[]; storage: StorageSummary }> {
+  const params = new URLSearchParams();
+  if (payload.q) params.set("q", payload.q);
+  if (payload.filter) params.set("filter", payload.filter);
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  const response = await fetch(apiUrl(`/workspace${suffix}`), {
+    headers: authHeaders(),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Nao foi possivel carregar o Workspace."));
+  }
+
+  return parseJsonResponse<{ files: WorkspaceFile[]; storage: StorageSummary }>(response, "Nao foi possivel carregar o Workspace.");
+}
+
+export async function favoriteWorkspaceFile(fileId: string, favorite: boolean): Promise<{ file: WorkspaceFile }> {
+  const response = await fetch(apiUrl(`/workspace/${fileId}/favorite`), {
+    method: favorite ? "POST" : "DELETE",
+    headers: authHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Nao foi possivel atualizar o favorito."));
+  }
+
+  return parseJsonResponse<{ file: WorkspaceFile }>(response, "Nao foi possivel atualizar o favorito.");
+}
+
+export async function deleteWorkspaceFile(fileId: string): Promise<{ file: WorkspaceFile; storage: StorageSummary }> {
+  const response = await fetch(apiUrl(`/workspace/${fileId}`), {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Nao foi possivel excluir o arquivo."));
+  }
+
+  return parseJsonResponse<{ file: WorkspaceFile; storage: StorageSummary }>(response, "Nao foi possivel excluir o arquivo.");
+}
+
+export async function downloadWorkspaceFile(file: WorkspaceFile): Promise<string> {
+  const response = await fetch(apiUrl(`/workspace/${file.id}/download`), {
+    headers: authHeaders(),
+  });
+
+  return downloadBlobResponse(response, file.original_filename ?? "polaryix-workspace");
 }
 
 export async function createConversionJob(payload: {

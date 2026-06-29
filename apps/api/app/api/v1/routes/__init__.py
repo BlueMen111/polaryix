@@ -13,6 +13,7 @@ from app.api.v1.routes.datasets import router as datasets_router
 from app.api.v1.routes.health import router as health_router
 from app.api.v1.routes.image_tools import router as image_tools_router
 from app.api.v1.routes.me import router as me_router
+from app.api.v1.routes.workspace import router as workspace_router
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -29,3 +30,4 @@ api_router.include_router(converter_router)
 api_router.include_router(image_tools_router)
 api_router.include_router(datasets_router)
 api_router.include_router(dashboards_router)
+api_router.include_router(workspace_router)

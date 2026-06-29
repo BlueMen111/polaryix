@@ -1,0 +1,215 @@
+.page {
+  width: min(1180px, calc(100% - 32px));
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 3rem 0 4rem;
+  color: #061334;
+}
+
+.panel,
+.heroPanel,
+.quickPanel,
+.listPanel,
+.statCard {
+  border: 1px solid rgba(8, 116, 255, 0.14);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 24px 70px rgba(8, 48, 110, 0.1);
+  backdrop-filter: blur(22px);
+}
+
+.panel,
+.heroPanel,
+.quickPanel,
+.listPanel {
+  border-radius: 24px;
+  padding: 1.35rem;
+}
+
+.heroPanel {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.4rem;
+  color: #0874ff;
+  font-size: 0.76rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.heroPanel h1,
+.quickPanel h2,
+.listHeader h2 {
+  margin: 0;
+  color: #061334;
+}
+
+.heroPanel h1 {
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  line-height: 1.05;
+}
+
+.heroPanel p:not(.eyebrow),
+.message,
+.statCard small,
+.activityList span {
+  color: #60728e;
+  line-height: 1.55;
+}
+
+.heroPanel a,
+.quickActions a,
+.listHeader a {
+  border-radius: 14px;
+  color: #fff;
+  font-weight: 950;
+  text-decoration: none;
+}
+
+.heroPanel a,
+.quickActions a {
+  background: linear-gradient(135deg, #0874ff, #31c9ff);
+  box-shadow: 0 16px 34px rgba(8, 116, 255, 0.22);
+  padding: 0.85rem 1rem;
+}
+
+.statsGrid,
+.contentGrid {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.statsGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.statCard {
+  border-radius: 18px;
+  padding: 1rem;
+}
+
+.statCard span {
+  color: #60728e;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.statCard strong {
+  display: block;
+  margin: 0.55rem 0 0.25rem;
+  color: #061334;
+  font-size: clamp(1.45rem, 3vw, 2rem);
+}
+
+.quickPanel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.quickActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.contentGrid {
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+}
+
+.listHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.listHeader a {
+  background: rgba(8, 116, 255, 0.1);
+  color: #0874ff;
+  padding: 0.55rem 0.75rem;
+}
+
+.activityList {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.activityList article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  border: 1px solid rgba(8, 116, 255, 0.1);
+  border-radius: 16px;
+  background: rgba(247, 251, 255, 0.72);
+  padding: 0.8rem;
+}
+
+.activityList strong,
+.activityList span {
+  display: block;
+}
+
+.activityList strong {
+  color: #061334;
+}
+
+.activityList small {
+  border-radius: 999px;
+  background: #edf5ff;
+  color: #0874ff;
+  font-weight: 900;
+  padding: 0.35rem 0.55rem;
+  white-space: nowrap;
+}
+
+.completed {
+  background: #e7fff8 !important;
+  color: #008c70 !important;
+}
+
+.failed,
+.expired,
+.deleted {
+  background: #fff1f1 !important;
+  color: #d63f3f !important;
+}
+
+@media (max-width: 900px) {
+  .statsGrid,
+  .contentGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .heroPanel,
+  .quickPanel {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 620px) {
+  .page {
+    width: min(100% - 20px, 1180px);
+    padding: 1.2rem 0 2.4rem;
+  }
+
+  .statsGrid,
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .heroPanel a,
+  .quickActions,
+  .quickActions a {
+    width: 100%;
+  }
+}

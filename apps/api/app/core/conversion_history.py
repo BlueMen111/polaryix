@@ -40,8 +40,47 @@ def write_history(records: list[dict]) -> None:
     path.write_text(json.dumps(records, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def is_premium_user(user: dict | None) -> bool:
+    if not user:
+        return False
+    plan = str(user.get("plan") or "free").lower()
+    return (bool(user.get("is_premium")) and plan != "free") or plan in {"basic", "pro", "premium", "vip"} or str(user.get("role") or "").lower() == "vip"
+
+
+def storage_limit_bytes(user: dict | None) -> int:
+    limit_mb = settings.premium_storage_limit_mb if is_premium_user(user) else settings.free_storage_limit_mb
+    return int(limit_mb) * 1024 * 1024
+
+
+def retention_hours(user: dict | None) -> int:
+    return int(settings.premium_file_retention_hours if is_premium_user(user) else settings.free_file_retention_hours)
+
+
+def storage_used_bytes(user_id: str) -> int:
+    total = 0
+    for record in read_history():
+        public = public_record(record)
+        if record.get("user_id") != user_id or public["status"] not in {"completed", "queued", "processing"}:
+            continue
+        if record.get("deleted_at"):
+            continue
+        total += int(record.get("file_size") or 0)
+    return total
+
+
+def ensure_storage_available(user: dict, incoming_bytes: int = 0) -> None:
+    used = storage_used_bytes(str(user["id"]))
+    limit = storage_limit_bytes(user)
+    if used + max(int(incoming_bytes), 0) > limit:
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="Voce atingiu o limite de armazenamento do seu plano.")
+
+
 def create_conversion_record(**values: object) -> dict:
     now = _now()
+    user = values.get("user") if isinstance(values.get("user"), dict) else None
+    expires_at = values.get("expires_at")
+    if expires_at is None:
+        expires_at = (now + timedelta(hours=retention_hours(user))).isoformat() if user else (now + timedelta(hours=settings.file_retention_hours)).isoformat()
     record = {
         "id": str(values.get("id") or uuid4()),
         "user_id": values.get("user_id"),
@@ -53,6 +92,10 @@ def create_conversion_record(**values: object) -> dict:
         "download_url": values.get("download_url"),
         "file_size": int(values.get("file_size") or 0),
         "status": values.get("status") or "queued",
+        "operation_type": values.get("operation_type") or values.get("target_format") or "conversion",
+        "mime_type": values.get("mime_type"),
+        "extension": values.get("extension") or str(values.get("target_format") or "").lower(),
+        "is_favorite": bool(values.get("is_favorite", False)),
         "error_message": values.get("error_message"),
         "quality_requested": values.get("quality_requested"),
         "quality_delivered": values.get("quality_delivered"),
@@ -61,7 +104,7 @@ def create_conversion_record(**values: object) -> dict:
         "created_at": values.get("created_at") or now.isoformat(),
         "started_at": values.get("started_at"),
         "finished_at": values.get("finished_at"),
-        "expires_at": values.get("expires_at") or (now + timedelta(hours=settings.file_retention_hours)).isoformat(),
+        "expires_at": expires_at,
         "deleted_at": values.get("deleted_at"),
     }
 
@@ -88,6 +131,39 @@ def update_conversion_record(record_id: str, **updates: object) -> dict | None:
     return public_record(updated)
 
 
+def set_favorite(user_id: str, record_id: str, favorite: bool) -> dict:
+    records = read_history()
+    updated: dict | None = None
+    for record in records:
+        if record.get("id") == record_id and record.get("user_id") == user_id:
+            record["is_favorite"] = favorite
+            updated = record
+            break
+    if updated is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Arquivo nao encontrado.")
+    write_history(records)
+    return public_record(updated)
+
+
+def delete_user_record(user_id: str, record_id: str) -> dict:
+    current = _now()
+    records = read_history()
+    updated: dict | None = None
+    for record in records:
+        if record.get("id") == record_id and record.get("user_id") == user_id:
+            for field in ("input_path", "output_path"):
+                _delete_storage_file(record.get(field))
+            record["status"] = "deleted"
+            record["deleted_at"] = current.isoformat()
+            record["download_url"] = None
+            updated = record
+            break
+    if updated is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Arquivo nao encontrado.")
+    write_history(records)
+    return public_record(updated)
+
+
 def get_user_record(user_id: str, record_id: str) -> dict:
     record = next((item for item in read_history() if item.get("id") == record_id and item.get("user_id") == user_id), None)
     if not record:
@@ -99,6 +175,24 @@ def list_user_records(user_id: str, limit: int = 20) -> list[dict]:
     records = [record for record in read_history() if record.get("user_id") == user_id]
     records.sort(key=lambda item: str(item.get("created_at") or ""), reverse=True)
     return [public_record(record) for record in records[: max(1, min(limit, 100))]]
+
+
+def list_workspace_records(user_id: str, limit: int = 100, favorite: bool | None = None, search: str | None = None, status_filter: str | None = None) -> list[dict]:
+    normalized_search = (search or "").strip().lower()
+    records = []
+    for record in read_history():
+        if record.get("user_id") != user_id:
+            continue
+        public = public_record(record)
+        if favorite is not None and bool(public.get("is_favorite")) is not favorite:
+            continue
+        if normalized_search and normalized_search not in str(public.get("original_filename") or "").lower():
+            continue
+        if status_filter and status_filter != "all" and public.get("status") != status_filter:
+            continue
+        records.append(public)
+    records.sort(key=lambda item: str(item.get("created_at") or ""), reverse=True)
+    return records[: max(1, min(limit, 200))]
 
 
 def public_record(record: dict) -> dict:
@@ -122,7 +216,12 @@ def public_record(record: dict) -> dict:
         "target_format": record.get("target_format"),
         "download_url": record.get("download_url") if status_value == "completed" else None,
         "file_size": record.get("file_size"),
+        "size_bytes": record.get("file_size"),
         "status": status_value,
+        "operation_type": record.get("operation_type") or record.get("target_format") or "conversion",
+        "mime_type": record.get("mime_type"),
+        "extension": record.get("extension") or str(record.get("target_format") or "").lower(),
+        "is_favorite": bool(record.get("is_favorite", False)),
         "error_message": record.get("error_message"),
         "quality_requested": record.get("quality_requested"),
         "quality_delivered": record.get("quality_delivered"),
@@ -134,6 +233,23 @@ def public_record(record: dict) -> dict:
         "expires_at": record.get("expires_at"),
         "deleted_at": record.get("deleted_at"),
     }
+
+
+def _delete_storage_file(value: object) -> bool:
+    if not value:
+        return False
+    path = Path(str(value)).resolve()
+    try:
+        storage_root = settings.storage_path.resolve()
+        if storage_root not in path.parents and path != storage_root:
+            logger.warning("Skipped delete outside storage: %s", path)
+            return False
+        if path.exists() and path.is_file():
+            path.unlink()
+            return True
+    except OSError as exc:
+        logger.warning("Failed to delete file %s: %s", path, exc)
+    return False
 
 
 def cleanup_expired_files(now: datetime | None = None) -> dict:

@@ -17,7 +17,7 @@ from app.api.v1.routes.converter import (
 )
 from app.core.auth_store import consume_user_credits, get_current_user, refund_user_credits
 from app.core.config.settings import settings
-from app.core.conversion_history import create_conversion_record, update_conversion_record
+from app.core.conversion_history import create_conversion_record, ensure_storage_available, update_conversion_record
 from app.core.conversion_jobs import (
     cancel_user_job,
     configure_conversion_job_processor,
@@ -92,6 +92,7 @@ async def create_conversion(
 
     try:
         safe_name = await _save_upload(file, input_path, source_format, account)
+        ensure_storage_available(user, input_path.stat().st_size)
         consume_user_credits(str(user["id"]), credits_cost)
         logger.info("Conversion credits debited: user=%s amount=%s", user["id"], credits_cost)
     except FileSecurityError as exc:
@@ -117,6 +118,9 @@ async def create_conversion(
             status="queued",
             is_premium_job=priority >= 10,
             priority_level=priority,
+            user=user,
+            operation_type="conversion",
+            extension=target_format.lower(),
         )
     except Exception:
         refund_user_credits(str(user["id"]), credits_cost)

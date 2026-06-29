@@ -109,9 +109,19 @@ export function Header() {
             </div>
           </div>
 
-          <Link href="/files" className={styles.navLink} onClick={closeMenus}>
-            Meus arquivos
-          </Link>
+          {user ? (
+            <>
+              <Link href="/files" className={styles.navLink} onClick={closeMenus}>
+                Meus arquivos
+              </Link>
+              <Link href="/dashboard" className={styles.navLink} onClick={closeMenus}>
+                Dashboard
+              </Link>
+              <Link href="/workspace" className={styles.navLink} onClick={closeMenus}>
+                Workspace
+              </Link>
+            </>
+          ) : null}
           <div
             className={`${styles.navItem} ${isImageToolsOpen ? styles.open : ""}`}
             onMouseEnter={() => setIsImageToolsOpen(true)}

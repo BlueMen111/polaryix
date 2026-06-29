@@ -22,7 +22,7 @@ except Exception:  # pragma: no cover - optional runtime dependency guard
 
 from app.core.config.settings import settings
 from app.core.auth_store import consume_user_credits, get_current_user, public_user
-from app.core.conversion_history import create_conversion_record, update_conversion_record
+from app.core.conversion_history import create_conversion_record, ensure_storage_available, update_conversion_record
 from app.core.conversion_queue import submit_conversion_job
 from app.core.conversion.compatibility import (
     CONVERTIBLE_AUDIO_FORMATS,
@@ -159,6 +159,17 @@ def _request_account(request: Request, is_premium: bool = False, premium_plan: s
         "billing": limits.billing,
         "limits": limits,
         "credits_remaining": None,
+    }
+
+
+def _account_user(account: dict) -> dict | None:
+    if not account.get("user_id"):
+        return None
+    return {
+        "id": account.get("user_id"),
+        "is_premium": bool(account.get("is_premium")),
+        "plan": account.get("premium_plan") or "free",
+        "billing": account.get("billing") or "daily",
     }
 
 
@@ -1025,8 +1036,10 @@ async def convert_file(
             final_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(output_path, final_path)
             if account.get("user_id"):
+                ensure_storage_available(_account_user(account) or {}, final_path.stat().st_size)
                 record = create_conversion_record(
                     user_id=account["user_id"],
+                    user=_account_user(account),
                     original_filename=safe_name,
                     original_format=source_format,
                     target_format=target_format,
@@ -1036,10 +1049,12 @@ async def convert_file(
                     status="completed",
                     is_premium_job=bool(account["is_premium"]),
                     priority_level=int(account["limits"].priority_level),
+                    operation_type="conversion",
+                    extension=target_format.lower(),
                     started_at=datetime.now(UTC).isoformat(),
                     finished_at=datetime.now(UTC).isoformat(),
                 )
-                update_conversion_record(str(record["id"]), download_url=f"/api/v1/me/files/{record['id']}/download")
+                update_conversion_record(str(record["id"]), download_url=f"/api/v1/workspace/{record['id']}/download")
 
     except FileSecurityError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
@@ -1121,8 +1136,10 @@ async def convert_batch(
                 for output_path, output_name in converted:
                     individual_path = settings.processed_path / "conversions" / f"{uuid4().hex}-{output_name}"
                     shutil.copyfile(output_path, individual_path)
+                    ensure_storage_available(_account_user(account) or {}, individual_path.stat().st_size)
                     record = create_conversion_record(
                         user_id=account["user_id"],
+                        user=_account_user(account),
                         original_filename=output_name,
                         original_format=source_format,
                         target_format=target_format,
@@ -1132,10 +1149,12 @@ async def convert_batch(
                         status="completed",
                         is_premium_job=bool(account["is_premium"]),
                         priority_level=int(account["limits"].priority_level),
+                        operation_type="conversion",
+                        extension=target_format.lower(),
                         started_at=datetime.now(UTC).isoformat(),
                         finished_at=datetime.now(UTC).isoformat(),
                     )
-                    update_conversion_record(str(record["id"]), download_url=f"/api/v1/me/files/{record['id']}/download")
+                    update_conversion_record(str(record["id"]), download_url=f"/api/v1/workspace/{record['id']}/download")
 
     except FileSecurityError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
@@ -1173,6 +1192,7 @@ async def create_download_link_job(
     if account.get("user_id"):
         record = create_conversion_record(
             user_id=account["user_id"],
+            user=_account_user(account),
             original_filename=normalized_url,
             original_format="LINK",
             target_format=selected_download_format.upper(),
@@ -1180,6 +1200,8 @@ async def create_download_link_job(
             quality_requested=selected_download_format.upper(),
             is_premium_job=bool(account["is_premium"]),
             priority_level=int(account["limits"].priority_level),
+            operation_type=f"download_{media_type}",
+            extension=selected_download_format.lower(),
         )
         history_id = str(record["id"])
 

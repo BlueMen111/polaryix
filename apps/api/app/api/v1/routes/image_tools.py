@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 
 from app.core.auth_store import consume_user_credits, get_current_user, refund_user_credits
 from app.core.config.settings import settings
+from app.core.conversion_history import create_conversion_record, ensure_storage_available
 from app.core.conversion_jobs import (
     cancel_user_job,
     configure_job_processor,
@@ -77,6 +78,7 @@ async def _create_image_tool_job(
             while chunk := await file.read(1024 * 1024):
                 buffer.write(chunk)
         validate_image_file(input_path)
+        ensure_storage_available(user, input_path.stat().st_size)
         consume_user_credits(str(user["id"]), cost)
         logger.info("Image tool credits debited: user=%s operation=%s amount=%s", user["id"], operation, cost)
     except FileSecurityError as exc:
@@ -120,6 +122,20 @@ async def _create_image_tool_job(
             should_apply_watermark=should_apply_watermark(user, operation),
             original_size=size_bytes,
             tool_options=tool_options,
+        )
+        create_conversion_record(
+            id=job["id"],
+            user_id=str(user["id"]),
+            user=user,
+            original_filename=safe_name,
+            original_format=SUPPORTED_IMAGE_FORMATS[suffix],
+            target_format="PNG" if operation == "remove_background" else SUPPORTED_IMAGE_FORMATS[suffix],
+            input_path=str(input_path),
+            status="queued",
+            operation_type=operation,
+            is_premium_job=is_premium,
+            priority_level=priority,
+            extension="png" if operation == "remove_background" else suffix.lstrip("."),
         )
     except Exception:
         refund_user_credits(str(user["id"]), cost)

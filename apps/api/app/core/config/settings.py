@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     max_concurrent_conversions: int = 2
     file_retention_hours: int = 12
     cleanup_interval_hours: int = 12
+    free_storage_limit_mb: int = 25
+    premium_storage_limit_mb: int = 100
+    free_file_retention_hours: int = 2
+    premium_file_retention_hours: int = 24
     max_free_file_size_mb: int = 100
     max_basic_file_size_mb: int = 300
     max_pro_file_size_mb: int = 1024
