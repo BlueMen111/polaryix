@@ -6,7 +6,7 @@ from collections import deque
 from pathlib import Path
 from uuid import uuid4
 
-from PIL import Image, ImageChops, ImageEnhance, ImageFilter, ImageOps, ImageDraw, ImageFont, UnidentifiedImageError
+from PIL import Image, ImageEnhance, ImageFilter, ImageOps, ImageDraw, ImageFont, UnidentifiedImageError
 
 from app.core.config.settings import settings
 
@@ -32,15 +32,13 @@ SUPPORTED_IMAGE_FORMATS = {
 WATERMARK_OPERATIONS = {"upscale_image", "remaster_image"}
 
 REMOVE_BACKGROUND_DEFAULTS = {
-    "alpha_threshold": 12,
-    "edge_smooth": 0.85,
+    "alpha_threshold": 8,
+    "edge_smooth": 0.65,
     "remove_small_artifacts": True,
     "preserve_details": True,
-    "model": "u2net",
-    "combine_conservative_mask": True,
-    "preserve_object_color": True,
-    "object_color_distance": 28,
-    "object_mask_expand": 33,
+    "model": "birefnet-general",
+    "fallback_model": "isnet-general-use",
+    "use_alpha_matting": False,
 }
 
 
@@ -143,31 +141,12 @@ def remove_background(input_path: Path, image: Image.Image, options: dict | None
     with _rembg_lock:
         session = _get_rembg_session(model_name)
         try:
-            result = rembg_remove(
-                rgba,
-                session=session,
-                alpha_matting=True,
-                alpha_matting_foreground_threshold=245,
-                alpha_matting_background_threshold=8,
-                alpha_matting_erode_size=4,
-                post_process_mask=True,
-            )
+            result = _run_rembg_remove(rembg_remove, rgba, session, bool(settings_options.get("use_alpha_matting", False)))
         except Exception as exc:
-            logger.warning("Remove background alpha matting failed; falling back to conservative mask: %s", exc)
-            result = rembg_remove(
-                rgba,
-                session=session,
-                alpha_matting=False,
-                post_process_mask=False,
-            )
-        if bool(settings_options.get("combine_conservative_mask", True)):
-            conservative = rembg_remove(
-                rgba,
-                session=session,
-                alpha_matting=False,
-                post_process_mask=False,
-            )
-            result = _combine_alpha_masks(result.convert("RGBA"), conservative.convert("RGBA"))
+            fallback_model = str(settings_options.get("fallback_model") or "isnet-general-use")
+            logger.warning("Remove background model %s failed; falling back to %s: %s", model_name, fallback_model, exc)
+            session = _get_rembg_session(fallback_model)
+            result = _run_rembg_remove(rembg_remove, rgba, session, False)
     return _post_process_background_result(rgba, result.convert("RGBA"), settings_options)
 
 
@@ -191,10 +170,33 @@ def _get_rembg_session(model_name: str):
     except Exception as exc:
         raise RuntimeError("A remocao de fundo ainda nao esta disponivel no servidor. A dependencia rembg[cpu] precisa ser instalada.") from exc
 
-    normalized = model_name if model_name in {"u2net", "isnet-general-use"} else "u2net"
+    normalized = model_name if model_name in {"u2net", "isnet-general-use", "birefnet-general", "bria-rmbg"} else "birefnet-general"
     if normalized not in _rembg_sessions:
         _rembg_sessions[normalized] = new_session(normalized)
     return _rembg_sessions[normalized]
+
+
+def _run_rembg_remove(rembg_remove, image: Image.Image, session, use_alpha_matting: bool) -> Image.Image:
+    if use_alpha_matting:
+        try:
+            return rembg_remove(
+                image,
+                session=session,
+                alpha_matting=True,
+                alpha_matting_foreground_threshold=245,
+                alpha_matting_background_threshold=8,
+                alpha_matting_erode_size=3,
+                post_process_mask=True,
+            )
+        except Exception as exc:
+            logger.warning("Remove background alpha matting failed; retrying without matting: %s", exc)
+
+    return rembg_remove(
+        image,
+        session=session,
+        alpha_matting=False,
+        post_process_mask=True,
+    )
 
 
 def optimize_image(image: Image.Image) -> Image.Image:
@@ -302,9 +304,6 @@ def _post_process_background_result(original: Image.Image, result: Image.Image, 
 
     rgba = result.convert("RGBA")
     alpha = rgba.getchannel("A")
-    if bool(options.get("preserve_object_color", REMOVE_BACKGROUND_DEFAULTS["preserve_object_color"])):
-        alpha = _preserve_object_color_regions(original, alpha, alpha_threshold, options)
-
     if preserve_details:
         alpha = alpha.point(lambda value: 0 if value < alpha_threshold else value)
     else:
@@ -321,65 +320,6 @@ def _post_process_background_result(original: Image.Image, result: Image.Image, 
     cleaned.paste(original.convert("RGBA"), (0, 0), alpha)
     cleaned.putalpha(alpha)
     return cleaned
-
-
-def _combine_alpha_masks(primary: Image.Image, conservative: Image.Image) -> Image.Image:
-    primary_rgba = primary.convert("RGBA")
-    conservative_alpha = conservative.convert("RGBA").getchannel("A")
-    combined_alpha = ImageChops.lighter(primary_rgba.getchannel("A"), conservative_alpha)
-    primary_rgba.putalpha(combined_alpha)
-    return primary_rgba
-
-
-def _preserve_object_color_regions(original: Image.Image, alpha: Image.Image, threshold: int, options: dict) -> Image.Image:
-    try:
-        import numpy as np
-    except Exception:
-        return alpha
-
-    rgb_image = original.convert("RGB")
-    rgb = np.array(rgb_image, dtype=np.int16)
-    alpha_values = np.array(alpha, dtype=np.uint8)
-    height, width = alpha_values.shape
-    if width < 4 or height < 4:
-        return alpha
-
-    border = max(4, min(width, height) // 32)
-    border_pixels = np.concatenate(
-        [
-            rgb[:border, :, :].reshape(-1, 3),
-            rgb[-border:, :, :].reshape(-1, 3),
-            rgb[:, :border, :].reshape(-1, 3),
-            rgb[:, -border:, :].reshape(-1, 3),
-        ],
-        axis=0,
-    )
-    background = np.median(border_pixels, axis=0)
-    distance = np.sqrt(np.sum((rgb - background) ** 2, axis=2))
-    color_threshold = _float_option(options, "object_color_distance", REMOVE_BACKGROUND_DEFAULTS["object_color_distance"], 8, 90)
-
-    current_foreground = alpha_values >= threshold
-    if not current_foreground.any():
-        return alpha
-
-    ys, xs = np.where(current_foreground)
-    pad_x = max(8, int(width * 0.08))
-    pad_y = max(8, int(height * 0.08))
-    x1 = max(int(xs.min()) - pad_x, 0)
-    x2 = min(int(xs.max()) + pad_x, width - 1)
-    y1 = max(int(ys.min()) - pad_y, 0)
-    y2 = min(int(ys.max()) + pad_y, height - 1)
-    object_region = np.zeros_like(current_foreground, dtype=bool)
-    object_region[y1 : y2 + 1, x1 : x2 + 1] = True
-
-    expand_size = int(_float_option(options, "object_mask_expand", REMOVE_BACKGROUND_DEFAULTS["object_mask_expand"], 3, 81))
-    if expand_size % 2 == 0:
-        expand_size += 1
-    expanded_alpha = np.array(alpha.point(lambda value: 255 if value >= threshold else 0).filter(ImageFilter.MaxFilter(expand_size)), dtype=np.uint8) > 0
-
-    preserve_mask = (distance >= color_threshold) & object_region & expanded_alpha
-    preserved = np.where(preserve_mask, np.maximum(alpha_values, 250), alpha_values).astype(np.uint8)
-    return Image.fromarray(preserved, mode="L")
 
 
 def _remove_small_alpha_components(alpha: Image.Image, threshold: int) -> Image.Image:

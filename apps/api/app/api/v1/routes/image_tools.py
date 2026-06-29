@@ -94,15 +94,13 @@ async def _create_image_tool_job(
         "contrast": contrast,
         "detail": detail,
         "intensity": intensity,
-        "alpha_threshold": 12,
-        "edge_smooth": 0.85,
+        "alpha_threshold": 8,
+        "edge_smooth": 0.65,
         "remove_small_artifacts": True,
         "preserve_details": True,
-        "model": "u2net",
-        "combine_conservative_mask": True,
-        "preserve_object_color": True,
-        "object_color_distance": 28,
-        "object_mask_expand": 33,
+        "model": "birefnet-general",
+        "fallback_model": "isnet-general-use",
+        "use_alpha_matting": False,
     }
     try:
         job = create_job(

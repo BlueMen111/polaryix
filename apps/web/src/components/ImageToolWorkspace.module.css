@@ -322,7 +322,8 @@
 
 .realPreview img,
 .pending,
-.localPreview {
+.localPreview,
+.processingPreview {
   width: 100%;
   aspect-ratio: 1;
   border: 1px solid rgba(8, 116, 255, 0.12);
@@ -332,7 +333,8 @@
 }
 
 .pending,
-.localPreview {
+.localPreview,
+.processingPreview {
   display: grid;
   place-items: center;
   color: #60728e;
@@ -345,6 +347,12 @@
   overflow: hidden;
 }
 
+.processingPreview {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+}
+
 .localPreview img {
   width: 100%;
   height: 100%;
@@ -353,6 +361,52 @@
   background: transparent;
   object-fit: contain;
   transition: filter 160ms ease, transform 160ms ease;
+}
+
+.processingPreview img {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  filter: saturate(0.92) contrast(0.96);
+  object-fit: contain;
+}
+
+.processingPreview::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0) 0 44%, rgba(255, 255, 255, 0.78) 50%, rgba(255, 255, 255, 0) 56%),
+    conic-gradient(from 45deg, rgba(232, 238, 247, 0.34) 25%, rgba(255, 255, 255, 0.28) 0 50%, rgba(232, 238, 247, 0.34) 0 75%, rgba(255, 255, 255, 0.28) 0) 0 0 / 22px 22px;
+  animation: scanImage 1.7s ease-in-out infinite;
+  mix-blend-mode: screen;
+}
+
+.processingPreview i {
+  position: absolute;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background:
+    conic-gradient(#e8eef7 25%, #ffffff 0 50%, #e8eef7 0 75%, #ffffff 0) 0 0 / 14px 14px;
+  box-shadow: 0 12px 26px rgba(8, 48, 110, 0.16);
+  animation: spriteFloat 2.1s ease-in-out infinite;
+}
+
+.processingPreview small {
+  position: absolute;
+  left: 50%;
+  bottom: 0.75rem;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #061334;
+  font-size: 0.72rem;
+  font-weight: 900;
+  padding: 0.42rem 0.65rem;
+  white-space: nowrap;
 }
 
 .localPreview small {
@@ -365,6 +419,31 @@
   font-size: 0.72rem;
   font-weight: 900;
   padding: 0.35rem 0.55rem;
+}
+
+@keyframes scanImage {
+  0% {
+    clip-path: inset(0 100% 0 0);
+  }
+
+  55% {
+    clip-path: inset(0 0 0 0);
+  }
+
+  100% {
+    clip-path: inset(0 0 0 100%);
+  }
+}
+
+@keyframes spriteFloat {
+  0%,
+  100% {
+    transform: translate(-80px, -70px) rotate(-8deg);
+  }
+
+  50% {
+    transform: translate(80px, 58px) rotate(8deg);
+  }
 }
 
 @media (max-width: 860px) {

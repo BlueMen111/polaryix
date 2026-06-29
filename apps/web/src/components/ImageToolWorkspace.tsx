@@ -349,7 +349,11 @@ export function ImageToolWorkspace({ operation, title, eyebrow, description, cos
                     <small>Previa local {scale}x</small>
                   </div>
                 ) : active ? (
-                  <div className={styles.pending}>{operation === "remove_background" ? "Removendo fundo..." : operation === "optimize_image" ? "Otimizando imagem..." : "Processando upscaling..."}</div>
+                  <div className={styles.processingPreview}>
+                    <img src={previewUrl} alt="" />
+                    <i />
+                    <small>{operation === "remove_background" ? "Removendo fundo..." : operation === "optimize_image" ? "Otimizando imagem..." : "Processando upscaling..."}</small>
+                  </div>
                 ) : (
                   <div className={styles.pending}>Resultado apos o processamento</div>
                 )}
