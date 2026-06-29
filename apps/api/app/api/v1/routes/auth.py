@@ -176,7 +176,7 @@ async def activate_plan(request: Request, payload: ActivatePlanPayload) -> dict:
 @router.get("/oauth/google/start")
 async def start_google_oauth() -> RedirectResponse:
     if not settings.google_client_id or not settings.google_redirect_uri:
-        raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Configure GOOGLE_CLIENT_ID e GOOGLE_REDIRECT_URI no servidor.")
+        return RedirectResponse(f"{_frontend_url()}/login?auth_error=google_config")
 
     query = urlencode(
         {

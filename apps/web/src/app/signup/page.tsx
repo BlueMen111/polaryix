@@ -59,7 +59,7 @@ export default function SignupPage() {
         <div className={styles.header}>
           <p>Comece gratis</p>
           <h1 id="signup-title">Crie sua conta Polaryix</h1>
-          <span>Guarde preferencias, acompanhe historico e libere o caminho para o Premium.</span>
+          <span>Use o Google para entrar mais rapido ou cadastre com e-mail se preferir.</span>
         </div>
 
         <div className={styles.socialRow} aria-label="Opcoes de cadastro social">

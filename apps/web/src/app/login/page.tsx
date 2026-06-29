@@ -28,7 +28,12 @@ export default function LoginPage() {
     const authError = params.get("auth_error");
 
     if (authError) {
-      setStatus("Nao foi possivel concluir o login com Google.");
+      const messages: Record<string, string> = {
+        google_config: "Login com Google ainda nao foi configurado no servidor.",
+        missing_code: "Nao recebemos o codigo do Google. Tente novamente.",
+        google: "Nao foi possivel concluir o login com Google.",
+      };
+      setStatus(messages[authError] ?? "Nao foi possivel concluir o login com Google.");
       return;
     }
     if (!token) {
