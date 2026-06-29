@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useLanguage } from "@/i18n/LanguageProvider";
 import {
   convertWorkspaceFile,
   deleteWorkspaceFile,
@@ -15,9 +16,9 @@ import {
 import styles from "./page.module.css";
 
 const filters = [
-  { id: "all", label: "Todos" },
-  { id: "favorites", label: "Favoritos" },
-  { id: "expired", label: "Expirados" },
+  { id: "all", labelKey: "workspace.all" },
+  { id: "favorites", labelKey: "workspace.favorites" },
+  { id: "expired", labelKey: "workspace.expired" },
 ] as const;
 
 function formatBytes(value?: number | null) {
@@ -27,38 +28,39 @@ function formatBytes(value?: number | null) {
   return `${(value / 1024 ** index).toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
 }
 
-function formatDate(value?: string | null) {
+function formatDate(value: string | null | undefined, locale: string) {
   if (!value) return "-";
-  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
+  return new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
 }
 
-function statusLabel(status: WorkspaceFile["status"]) {
+function statusLabel(status: WorkspaceFile["status"], t: (key: string) => string) {
   const labels: Record<WorkspaceFile["status"], string> = {
-    queued: "Aguardando",
-    processing: "Processando",
-    completed: "Concluido",
-    failed: "Falhou",
-    expired: "Expirado",
-    deleted: "Excluido",
+    queued: t("common.queued"),
+    processing: t("common.processing"),
+    completed: t("common.completed"),
+    failed: t("common.failed"),
+    expired: t("common.expired"),
+    deleted: t("common.deleted"),
   };
   return labels[status] ?? status;
 }
 
 export default function WorkspacePage() {
+  const { language, t } = useLanguage();
   const [files, setFiles] = useState<WorkspaceFile[]>([]);
   const [storage, setStorage] = useState<StorageSummary | null>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<(typeof filters)[number]["id"]>("all");
-  const [status, setStatus] = useState("Carregando Workspace...");
+  const [status, setStatus] = useState(t("workspace.loading"));
   const [busyId, setBusyId] = useState("");
   const [targetFormats, setTargetFormats] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const folderInputRef = useRef<HTMLInputElement | null>(null);
 
   const storageText = useMemo(() => {
-    if (!storage) return "Carregando armazenamento...";
-    return `Voce esta usando ${formatBytes(storage.used)} de ${formatBytes(storage.limit)}.`;
-  }, [storage]);
+    if (!storage) return t("workspace.storageLoading");
+    return t("workspace.storageUsage", { used: formatBytes(storage.used), limit: formatBytes(storage.limit) });
+  }, [storage, t]);
 
   useEffect(() => {
     if (!window.localStorage.getItem("polaryix:auth-token")) {
@@ -73,9 +75,9 @@ export default function WorkspacePage() {
       const data = await listWorkspaceFiles({ q: nextQuery, filter });
       setFiles(data.files);
       setStorage(data.storage);
-      setStatus(data.files.length ? "" : "Seu Workspace ainda esta vazio. Envie ou processe um arquivo para comecar.");
+      setStatus(data.files.length ? "" : t("workspace.empty"));
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Nao foi possivel carregar o Workspace.");
+      setStatus(error instanceof Error ? error.message : t("workspace.loadError"));
     }
   }
 
@@ -85,7 +87,7 @@ export default function WorkspacePage() {
       await favoriteWorkspaceFile(file.id, !file.is_favorite);
       await refresh();
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Nao foi possivel atualizar favorito.");
+      setStatus(error instanceof Error ? error.message : t("workspace.favoriteError"));
     } finally {
       setBusyId("");
     }
@@ -99,7 +101,7 @@ export default function WorkspacePage() {
       setFiles((current) => current.filter((item) => item.id !== file.id));
       await refresh();
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Nao foi possivel excluir o arquivo.");
+      setStatus(error instanceof Error ? error.message : t("workspace.deleteError"));
     } finally {
       setBusyId("");
     }
@@ -110,7 +112,7 @@ export default function WorkspacePage() {
     try {
       await downloadWorkspaceFile(file);
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Nao foi possivel baixar o arquivo.");
+      setStatus(error instanceof Error ? error.message : t("workspace.downloadError"));
     } finally {
       setBusyId("");
     }
@@ -120,30 +122,30 @@ export default function WorkspacePage() {
     const selected = Array.from(event.target.files ?? []);
     event.target.value = "";
     if (!selected.length) return;
-    setStatus("Enviando arquivos para o Workspace...");
+    setStatus(t("workspace.uploading"));
     try {
       const result = await uploadWorkspaceFiles(selected);
       setStorage(result.storage);
       await refresh();
-      setStatus(`${selected.length} arquivo(s) enviados para o Workspace.`);
+      setStatus(t("workspace.uploaded", { count: selected.length }));
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Nao foi possivel enviar os arquivos.");
+      setStatus(error instanceof Error ? error.message : t("workspace.uploadError"));
     }
   }
 
   async function handleConvert(file: WorkspaceFile) {
     const target = (targetFormats[file.id] || "").trim();
     if (!target) {
-      setStatus("Informe o formato de destino. Exemplo: png, jpg, pdf, mp4.");
+      setStatus(t("workspace.targetFormatRequired"));
       return;
     }
     setBusyId(file.id);
     try {
       await convertWorkspaceFile(file.id, target);
       await refresh();
-      setStatus(`Conversao para ${target.toUpperCase()} enviada para a fila.`);
+      setStatus(t("workspace.conversionQueued", { format: target.toUpperCase() }));
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Nao foi possivel criar a conversao.");
+      setStatus(error instanceof Error ? error.message : t("workspace.conversionError"));
     } finally {
       setBusyId("");
     }
@@ -154,9 +156,9 @@ export default function WorkspacePage() {
     try {
       await processWorkspaceImage(file.id, operation, 2);
       await refresh();
-      setStatus("Processamento de imagem enviado para a fila.");
+      setStatus(t("workspace.imageQueued"));
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Nao foi possivel processar a imagem.");
+      setStatus(error instanceof Error ? error.message : t("workspace.imageError"));
     } finally {
       setBusyId("");
     }
@@ -170,15 +172,15 @@ export default function WorkspacePage() {
     <main className={styles.page}>
       <section className={styles.headerPanel}>
         <div>
-          <p className={styles.eyebrow}>Workspace</p>
-          <h1>Sua Area de Trabalho</h1>
-          <p>Organize seus arquivos, resultados e conversoes em um so lugar.</p>
+          <p className={styles.eyebrow}>{t("workspace.eyebrow")}</p>
+          <h1>{t("workspace.title")}</h1>
+          <p>{t("workspace.subtitle")}</p>
         </div>
         <div className={styles.storageCard}>
-          <strong>Armazenamento</strong>
+          <strong>{t("dashboard.storage")}</strong>
           <span>{storageText}</span>
           <i style={{ width: `${Math.min(storage?.percent ?? 0, 100)}%` }} />
-          <small>{storage?.retention_hours === 24 ? "Premium: arquivos armazenados por ate 24h." : "Free: arquivos armazenados por ate 2h."}</small>
+          <small>{storage?.retention_hours === 24 ? t("workspace.premiumRetention") : t("workspace.freeRetention")}</small>
         </div>
       </section>
 
@@ -187,19 +189,19 @@ export default function WorkspacePage() {
         <input ref={folderInputRef} className={styles.hiddenInput} type="file" multiple onChange={handleUpload} {...{ webkitdirectory: "", directory: "" }} />
         <input
           value={query}
-          placeholder="Buscar por nome"
+          placeholder={t("workspace.searchPlaceholder")}
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === "Enter") refresh(event.currentTarget.value);
           }}
         />
-        <button type="button" onClick={() => refresh()}>Buscar</button>
-        <button type="button" onClick={() => fileInputRef.current?.click()}>Enviar arquivos</button>
-        <button type="button" onClick={() => folderInputRef.current?.click()}>Enviar pasta</button>
+        <button type="button" onClick={() => refresh()}>{t("common.search")}</button>
+        <button type="button" onClick={() => fileInputRef.current?.click()}>{t("workspace.uploadFiles")}</button>
+        <button type="button" onClick={() => folderInputRef.current?.click()}>{t("workspace.uploadFolder")}</button>
         <div>
           {filters.map((item) => (
             <button key={item.id} type="button" className={filter === item.id ? styles.activeFilter : undefined} onClick={() => setFilter(item.id)}>
-              {item.label}
+              {t(item.labelKey)}
             </button>
           ))}
         </div>
@@ -214,36 +216,36 @@ export default function WorkspacePage() {
             return (
               <article key={file.id} className={styles.fileCard}>
                 <div className={styles.fileTop}>
-                  <span>{file.extension || file.target_format || "file"}</span>
-                  <button type="button" onClick={() => handleFavorite(file)} disabled={busyId === file.id} aria-label={file.is_favorite ? "Desfavoritar" : "Favoritar"}>
+                  <span>{file.extension || file.target_format || t("common.file")}</span>
+                  <button type="button" onClick={() => handleFavorite(file)} disabled={busyId === file.id} aria-label={file.is_favorite ? t("common.unfavorite") : t("common.favorite")}>
                     {file.is_favorite ? "★" : "☆"}
                   </button>
                 </div>
                 <strong>{file.original_filename}</strong>
-                <p>{file.operation_type || file.target_format} · {formatBytes(file.size_bytes ?? file.file_size)}</p>
+                <p>{file.operation_type || file.target_format} - {formatBytes(file.size_bytes ?? file.file_size)}</p>
                 <div className={styles.meta}>
-                  <span className={styles[file.status]}>{statusLabel(file.status)}</span>
-                  <span>Expira em {formatDate(file.expires_at)}</span>
+                  <span className={styles[file.status]}>{statusLabel(file.status, t)}</span>
+                  <span>{t("workspace.expiresAt", { date: formatDate(file.expires_at, language) })}</span>
                 </div>
                 <div className={styles.actions}>
-                  <button type="button" onClick={() => handleDownload(file)} disabled={!canDownload || busyId === file.id}>Baixar</button>
-                  <button type="button" onClick={() => handleDelete(file)} disabled={busyId === file.id}>Excluir</button>
+                  <button type="button" onClick={() => handleDownload(file)} disabled={!canDownload || busyId === file.id}>{t("common.download")}</button>
+                  <button type="button" onClick={() => handleDelete(file)} disabled={busyId === file.id}>{t("common.delete")}</button>
                 </div>
                 {file.status === "completed" ? (
                   <div className={styles.reuseBox}>
                     <div>
                       <input
                         value={targetFormats[file.id] ?? ""}
-                        placeholder="Converter para..."
+                        placeholder={t("workspace.convertTo")}
                         onChange={(event) => setTargetFormats((current) => ({ ...current, [file.id]: event.target.value }))}
                       />
-                      <button type="button" onClick={() => handleConvert(file)} disabled={busyId === file.id}>Converter</button>
+                      <button type="button" onClick={() => handleConvert(file)} disabled={busyId === file.id}>{t("common.convert")}</button>
                     </div>
                     {isImage(file) ? (
                       <div>
-                        <button type="button" onClick={() => handleImageTool(file, "optimize_image")} disabled={busyId === file.id}>Otimizar</button>
-                        <button type="button" onClick={() => handleImageTool(file, "remove_background")} disabled={busyId === file.id}>Remover fundo</button>
-                        <button type="button" onClick={() => handleImageTool(file, "upscale_image")} disabled={busyId === file.id}>Upscaling</button>
+                        <button type="button" onClick={() => handleImageTool(file, "optimize_image")} disabled={busyId === file.id}>{t("common.optimize")}</button>
+                        <button type="button" onClick={() => handleImageTool(file, "remove_background")} disabled={busyId === file.id}>{t("common.removeBackground")}</button>
+                        <button type="button" onClick={() => handleImageTool(file, "upscale_image")} disabled={busyId === file.id}>{t("common.upscale")}</button>
                       </div>
                     ) : null}
                   </div>

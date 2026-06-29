@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useLanguage } from "@/i18n/LanguageProvider";
 import { getDashboard, type DashboardSummary, type WorkspaceFile } from "@/lib/api";
 import styles from "./page.module.css";
 
@@ -12,26 +13,27 @@ function formatBytes(value: number) {
   return `${(value / 1024 ** index).toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
 }
 
-function formatDate(value?: string | null) {
+function formatDate(value: string | null | undefined, locale: string) {
   if (!value) return "-";
-  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
+  return new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
 }
 
-function statusLabel(status: WorkspaceFile["status"]) {
+function statusLabel(status: WorkspaceFile["status"], t: (key: string) => string) {
   const labels: Record<WorkspaceFile["status"], string> = {
-    queued: "Aguardando",
-    processing: "Processando",
-    completed: "Concluido",
-    failed: "Falhou",
-    expired: "Expirado",
-    deleted: "Excluido",
+    queued: t("common.queued"),
+    processing: t("common.processing"),
+    completed: t("common.completed"),
+    failed: t("common.failed"),
+    expired: t("common.expired"),
+    deleted: t("common.deleted"),
   };
   return labels[status] ?? status;
 }
 
 export default function DashboardPage() {
+  const { language, t } = useLanguage();
   const [dashboard, setDashboard] = useState<DashboardSummary | null>(null);
-  const [status, setStatus] = useState("Carregando dashboard...");
+  const [status, setStatus] = useState(t("dashboard.loading"));
 
   useEffect(() => {
     if (!window.localStorage.getItem("polaryix:auth-token")) {
@@ -44,8 +46,8 @@ export default function DashboardPage() {
         setDashboard(data);
         setStatus("");
       })
-      .catch((error) => setStatus(error instanceof Error ? error.message : "Nao foi possivel carregar o dashboard."));
-  }, []);
+      .catch((error) => setStatus(error instanceof Error ? error.message : t("dashboard.loadError")));
+  }, [t]);
 
   if (!dashboard) {
     return (
@@ -63,36 +65,40 @@ export default function DashboardPage() {
     <main className={styles.page}>
       <section className={styles.heroPanel}>
         <div>
-          <p className={styles.eyebrow}>Dashboard</p>
-          <h1>Ola, {dashboard.user.name}</h1>
-          <p>Aqui esta um resumo da sua conta PolarYix.</p>
+          <p className={styles.eyebrow}>{t("dashboard.eyebrow")}</p>
+          <h1>{t("dashboard.greeting", { name: dashboard.user.name })}</h1>
+          <p>{t("dashboard.subtitle")}</p>
         </div>
-        <Link href="/workspace">Abrir Workspace</Link>
+        <Link href="/workspace">{t("dashboard.openWorkspace")}</Link>
       </section>
 
       <section className={styles.statsGrid}>
-        <Stat label="Creditos disponiveis" value={String(dashboard.credits)} detail="Tokens da sua conta" />
-        <Stat label="Plano atual" value={dashboard.plan === "free" ? "Free" : dashboard.plan.toUpperCase()} detail={dashboard.user.is_premium ? "Fila prioritaria ativa" : "Upgrade libera mais limites"} />
-        <Stat label="Armazenamento" value={storageText} detail={`${dashboard.storage.percent}% usado`} />
-        <Stat label="Arquivos no Workspace" value={String(dashboard.workspace_count)} detail={`${dashboard.favorite_count} favoritos`} />
+        <Stat label={t("dashboard.availableCredits")} value={String(dashboard.credits)} detail={t("dashboard.accountTokens")} />
+        <Stat
+          label={t("dashboard.currentPlan")}
+          value={dashboard.plan === "free" ? "Free" : dashboard.plan.toUpperCase()}
+          detail={dashboard.user.is_premium ? t("dashboard.priorityActive") : t("dashboard.upgradeLimits")}
+        />
+        <Stat label={t("dashboard.storage")} value={storageText} detail={t("dashboard.used", { percent: dashboard.storage.percent })} />
+        <Stat label={t("dashboard.workspaceFiles")} value={String(dashboard.workspace_count)} detail={t("dashboard.favoritesCount", { count: dashboard.favorite_count })} />
       </section>
 
       <section className={styles.quickPanel}>
         <div>
-          <p className={styles.eyebrow}>Acoes rapidas</p>
-          <h2>Comece uma nova tarefa</h2>
+          <p className={styles.eyebrow}>{t("dashboard.quickActions")}</p>
+          <h2>{t("dashboard.startTask")}</h2>
         </div>
         <div className={styles.quickActions}>
-          <Link href="/#converter">Nova conversao</Link>
-          <Link href="/image/remove-background">Remover fundo</Link>
-          <Link href="/image/optimize">Otimizar imagem</Link>
-          <Link href="/image/upscale">Upscaling</Link>
+          <Link href="/#converter">{t("dashboard.newConversion")}</Link>
+          <Link href="/image/remove-background">{t("common.removeBackground")}</Link>
+          <Link href="/image/optimize">{t("image.optimize.title")}</Link>
+          <Link href="/image/upscale">{t("common.upscale")}</Link>
         </div>
       </section>
 
       <section className={styles.contentGrid}>
-        <ActivityList title="Ultimas atividades" files={dashboard.recent_jobs} />
-        <ActivityList title="Favoritos" files={dashboard.favorite_files} empty="Nenhum favorito ainda." />
+        <ActivityList title={t("dashboard.recentActivity")} files={dashboard.recent_jobs} language={language} t={t} />
+        <ActivityList title={t("dashboard.favorites")} files={dashboard.favorite_files} empty={t("dashboard.noFavorites")} language={language} t={t} />
       </section>
     </main>
   );
@@ -108,12 +114,24 @@ function Stat({ label, value, detail }: { label: string; value: string; detail: 
   );
 }
 
-function ActivityList({ title, files, empty = "Nenhum arquivo encontrado." }: { title: string; files: WorkspaceFile[]; empty?: string }) {
+function ActivityList({
+  title,
+  files,
+  empty,
+  language,
+  t,
+}: {
+  title: string;
+  files: WorkspaceFile[];
+  empty?: string;
+  language: string;
+  t: (key: string) => string;
+}) {
   return (
     <section className={styles.listPanel}>
       <div className={styles.listHeader}>
         <h2>{title}</h2>
-        <Link href="/workspace">Ver todos</Link>
+        <Link href="/workspace">{t("common.viewAll")}</Link>
       </div>
       {files.length ? (
         <div className={styles.activityList}>
@@ -121,14 +139,14 @@ function ActivityList({ title, files, empty = "Nenhum arquivo encontrado." }: { 
             <article key={file.id}>
               <div>
                 <strong>{file.original_filename}</strong>
-                <span>{file.operation_type || file.target_format} · {formatDate(file.created_at)}</span>
+                <span>{file.operation_type || file.target_format} - {formatDate(file.created_at, language)}</span>
               </div>
-              <small className={styles[file.status]}>{statusLabel(file.status)}</small>
+              <small className={styles[file.status]}>{statusLabel(file.status, t)}</small>
             </article>
           ))}
         </div>
       ) : (
-        <p className={styles.message}>{empty}</p>
+        <p className={styles.message}>{empty ?? t("dashboard.noFiles")}</p>
       )}
     </section>
   );

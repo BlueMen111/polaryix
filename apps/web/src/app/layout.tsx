@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { AppProviders } from "@/components/AppProviders";
 import { CookieConsent } from "@/components/CookieConsent";
 import { Header } from "@/components/Header";
 import "./globals.css";
@@ -27,10 +28,31 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function () {
+                try {
+                  var theme = localStorage.getItem("polaryix:theme") || (document.cookie.match(/(?:^|; )polaryix_theme=([^;]+)/) || [])[1] || "system";
+                  var dark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+                  document.documentElement.dataset.theme = dark ? "dark" : "light";
+                  document.documentElement.classList.toggle("dark", dark);
+                  var language = localStorage.getItem("polaryix:language") || (document.cookie.match(/(?:^|; )polaryix_language=([^;]+)/) || [])[1];
+                  if (!language) language = (navigator.language || "").toLowerCase().indexOf("pt") === 0 ? "pt-BR" : "en-US";
+                  document.documentElement.lang = language;
+                } catch (error) {}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className={inter.className}>
-        <Header />
-        {children}
-        <CookieConsent />
+        <AppProviders>
+          <Header />
+          {children}
+          <CookieConsent />
+        </AppProviders>
       </body>
     </html>
   );

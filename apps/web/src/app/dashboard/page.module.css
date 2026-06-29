@@ -3,7 +3,7 @@
   min-height: 100vh;
   margin: 0 auto;
   padding: 3rem 0 4rem;
-  color: #061334;
+  color: var(--heading);
 }
 
 .panel,
@@ -12,8 +12,8 @@
 .listPanel,
 .statCard {
   border: 1px solid rgba(8, 116, 255, 0.14);
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 24px 70px rgba(8, 48, 110, 0.1);
+  background: var(--surface);
+  box-shadow: 0 24px 70px var(--shadow);
   backdrop-filter: blur(22px);
 }
 
@@ -44,7 +44,7 @@
 .quickPanel h2,
 .listHeader h2 {
   margin: 0;
-  color: #061334;
+  color: var(--heading);
 }
 
 .heroPanel h1 {
@@ -56,7 +56,7 @@
 .message,
 .statCard small,
 .activityList span {
-  color: #60728e;
+  color: var(--muted);
   line-height: 1.55;
 }
 
@@ -124,7 +124,7 @@
 }
 
 .statCard span {
-  color: #60728e;
+  color: var(--muted);
   font-size: 0.78rem;
   font-weight: 900;
 }
@@ -132,7 +132,7 @@
 .statCard strong {
   display: block;
   margin: 0.55rem 0 0.25rem;
-  color: #061334;
+  color: var(--heading);
   font-size: clamp(1.45rem, 3vw, 2rem);
 }
 
@@ -180,7 +180,7 @@
   gap: 0.8rem;
   border: 1px solid rgba(8, 116, 255, 0.1);
   border-radius: 16px;
-  background: rgba(247, 251, 255, 0.72);
+  background: var(--field);
   padding: 0.8rem;
 }
 
@@ -190,7 +190,7 @@
 }
 
 .activityList strong {
-  color: #061334;
+  color: var(--heading);
 }
 
 .activityList small {

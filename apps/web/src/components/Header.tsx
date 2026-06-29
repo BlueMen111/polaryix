@@ -2,26 +2,31 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useLanguage } from "@/i18n/LanguageProvider";
+import { languages, type Language } from "@/i18n/translations";
 import type { AuthUser } from "@/lib/api";
 import { logout } from "@/lib/api";
+import { useTheme, type ThemePreference } from "@/theme/ThemeProvider";
 import styles from "./Header.module.css";
 
 const conversionGroups = [
-  { title: "Imagens", items: ["PNG para DDS", "JPG para PNG", "WEBP para PNG", "TIFF para JPG"] },
-  { title: "Videos", items: ["MP4 para WEBM", "MOV para MP4", "AVI para MP4", "MKV para MP4"] },
-  { title: "Audios", items: ["MP3 para WAV", "WAV para MP3", "AAC para MP3", "OGG para MP3"] },
-  { title: "Documentos", items: ["PDF para DOCX", "DOCX para PDF", "XLSX para CSV", "PPTX para PDF"] },
-  { title: "Arquivos", items: ["ZIP", "RAR", "7Z", "TAR"] },
-  { title: "Outros", items: ["SVG", "ICO", "JSON", "XML"] },
+  { titleKey: "nav.images", items: ["PNG para DDS", "JPG para PNG", "WEBP para PNG", "TIFF para JPG"] },
+  { titleKey: "nav.videos", items: ["MP4 para WEBM", "MOV para MP4", "AVI para MP4", "MKV para MP4"] },
+  { titleKey: "nav.audios", items: ["MP3 para WAV", "WAV para MP3", "AAC para MP3", "OGG para MP3"] },
+  { titleKey: "nav.documents", items: ["PDF para DOCX", "DOCX para PDF", "XLSX para CSV", "PPTX para PDF"] },
+  { titleKey: "nav.archives", items: ["ZIP", "RAR", "7Z", "TAR"] },
+  { titleKey: "nav.others", items: ["SVG", "ICO", "JSON", "XML"] },
 ];
 
 const imageTools = [
-  { href: "/image/remove-background", title: "Remover Fundo", description: "PNG transparente" },
-  { href: "/image/optimize", title: "Otimizar Imagem", description: "Menor peso" },
-  { href: "/image/upscale", title: "Upscaling de Imagem", description: "Mais resolução" },
+  { href: "/image/remove-background", titleKey: "image.removeBackground.title", descriptionKey: "nav.transparentPng" },
+  { href: "/image/optimize", titleKey: "image.optimize.title", descriptionKey: "nav.smallerFile" },
+  { href: "/image/upscale", titleKey: "image.upscale.title", descriptionKey: "nav.moreResolution" },
 ];
 
 export function Header() {
+  const { language, setLanguage, t } = useLanguage();
+  const { theme, appliedTheme, setTheme } = useTheme();
   const [isConversionsOpen, setIsConversionsOpen] = useState(false);
   const [isImageToolsOpen, setIsImageToolsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -69,7 +74,7 @@ export function Header() {
           type="button"
           className={`${styles.menuButton} ${isMobileMenuOpen ? styles.menuButtonOpen : ""}`}
           onClick={() => setIsMobileMenuOpen((current) => !current)}
-          aria-label={isMobileMenuOpen ? "Fechar menu" : "Abrir menu"}
+          aria-label={isMobileMenuOpen ? t("nav.closeMenu") : t("nav.openMenu")}
           aria-expanded={isMobileMenuOpen}
           aria-controls="primary-navigation"
         >
@@ -78,7 +83,7 @@ export function Header() {
           <span />
         </button>
 
-        <nav id="primary-navigation" className={`${styles.nav} ${isMobileMenuOpen ? styles.navOpen : ""}`} aria-label="Navegacao principal">
+        <nav id="primary-navigation" className={`${styles.nav} ${isMobileMenuOpen ? styles.navOpen : ""}`} aria-label={t("nav.mainNavigation")}>
           <div
             className={`${styles.navItem} ${isConversionsOpen ? styles.open : ""}`}
             onMouseEnter={() => setIsConversionsOpen(true)}
@@ -90,13 +95,13 @@ export function Header() {
               onClick={() => setIsConversionsOpen((current) => !current)}
               aria-expanded={isConversionsOpen}
             >
-              Conversoes
+              {t("nav.conversions")}
             </button>
 
             <div className={styles.conversionsDropdown}>
               {conversionGroups.map((group) => (
-                <section key={group.title}>
-                  <h3>{group.title}</h3>
+                <section key={group.titleKey}>
+                  <h3>{t(group.titleKey)}</h3>
                   <div>
                     {group.items.map((item) => (
                       <a href="/#converter" key={item} onClick={closeMenus}>
@@ -112,16 +117,17 @@ export function Header() {
           {user ? (
             <>
               <Link href="/files" className={styles.navLink} onClick={closeMenus}>
-                Meus arquivos
+                {t("nav.files")}
               </Link>
               <Link href="/dashboard" className={styles.navLink} onClick={closeMenus}>
-                Dashboard
+                {t("nav.dashboard")}
               </Link>
               <Link href="/workspace" className={styles.navLink} onClick={closeMenus}>
-                Workspace
+                {t("nav.workspace")}
               </Link>
             </>
           ) : null}
+
           <div
             className={`${styles.navItem} ${isImageToolsOpen ? styles.open : ""}`}
             onMouseEnter={() => setIsImageToolsOpen(true)}
@@ -133,30 +139,52 @@ export function Header() {
               onClick={() => setIsImageToolsOpen((current) => !current)}
               aria-expanded={isImageToolsOpen}
             >
-              Edição de Imagem
+              {t("nav.imageEditing")}
             </button>
             <div className={styles.imageDropdown}>
               {imageTools.map((tool) => (
                 <Link href={tool.href} key={tool.href} onClick={closeMenus}>
                   <span aria-hidden="true">▣</span>
-                  <strong>{tool.title}</strong>
-                  <small>{tool.description}</small>
+                  <strong>{t(tool.titleKey)}</strong>
+                  <small>{t(tool.descriptionKey)}</small>
                 </Link>
               ))}
             </div>
           </div>
+
+          <div className={styles.compactControls}>
+            <label>
+              <span>{appliedTheme === "dark" ? "☾" : "☀"} {t("nav.theme")}</span>
+              <select value={theme} onChange={(event) => setTheme(event.target.value as ThemePreference)} aria-label={t("nav.theme")}>
+                <option value="light">{t("nav.light")}</option>
+                <option value="dark">{t("nav.dark")}</option>
+                <option value="system">{t("nav.system")}</option>
+              </select>
+            </label>
+            <label>
+              <span>{t("nav.language")}</span>
+              <select value={language} onChange={(event) => setLanguage(event.target.value as Language)} aria-label={t("nav.language")}>
+                {Object.entries(languages).map(([key, value]) => (
+                  <option key={key} value={key}>
+                    {value.shortLabel}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
           {user ? (
             <button type="button" className={styles.loginButton} onClick={handleLogout}>
               {user.avatar_url ? <img src={user.avatar_url} alt="" className={styles.avatar} /> : null}
-              {user.plan === "free" ? "Sair" : `${user.plan} - Sair`}
+              {user.plan === "free" ? t("nav.logout") : `${user.plan} - ${t("nav.logout")}`}
             </button>
           ) : (
             <Link href="/login" className={styles.loginButton} onClick={closeMenus}>
-              Login
+              {t("nav.login")}
             </Link>
           )}
           <Link href="/premium" className={styles.signupButton} onClick={closeMenus}>
-            Premium
+            {t("nav.premium")}
           </Link>
         </nav>
       </div>

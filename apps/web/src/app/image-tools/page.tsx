@@ -1,34 +1,39 @@
+"use client";
+
 import Link from "next/link";
+import { useLanguage } from "@/i18n/LanguageProvider";
 import styles from "./page.module.css";
 
 const tools = [
   {
     href: "/image/remove-background",
-    title: "Remover Fundo",
-    description: "Remova o fundo automaticamente e baixe um PNG transparente.",
+    titleKey: "image.removeBackground.title",
+    descriptionKey: "image.removeBackground.description",
     cost: "1 token",
   },
   {
     href: "/image/optimize",
-    title: "Otimizar Imagem",
-    description: "Reduza o peso de PNG, JPG e WEBP mantendo as dimensões.",
+    titleKey: "image.optimize.title",
+    descriptionKey: "image.optimize.description",
     cost: "2 tokens",
   },
   {
     href: "/image/upscale",
-    title: "Upscaling de Imagem",
-    description: "Aumente a resolução com mais nitidez. Premium libera controles avançados.",
+    titleKey: "image.upscale.title",
+    descriptionKey: "image.upscale.description",
     cost: "5 ou 10 tokens",
   },
 ];
 
 export default function ImageToolsPage() {
+  const { t } = useLanguage();
+
   return (
     <main className={styles.page}>
       <section className={styles.header}>
-        <p>Edição de Imagem</p>
-        <h1>Escolha uma ferramenta para processar sua imagem</h1>
-        <span>Processamento em fila, prioridade Premium e downloads seguros pelo Polaryix.</span>
+        <p>{t("nav.imageEditing")}</p>
+        <h1>{t("imageTools.title")}</h1>
+        <span>{t("imageTools.subtitle")}</span>
       </section>
 
       <section className={styles.grid}>
@@ -36,10 +41,10 @@ export default function ImageToolsPage() {
           <Link href={tool.href} className={styles.card} key={tool.href}>
             <div className={styles.cardHeader}>
               <span>{tool.cost}</span>
-              <h2>{tool.title}</h2>
-              <p>{tool.description}</p>
+              <h2>{t(tool.titleKey)}</h2>
+              <p>{t(tool.descriptionKey)}</p>
             </div>
-            <strong>Abrir ferramenta</strong>
+            <strong>{t("imageTools.openTool")}</strong>
           </Link>
         ))}
       </section>

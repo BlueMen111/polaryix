@@ -1,13 +1,44 @@
 :root {
+  color-scheme: light;
+  --bg: #f7fbff;
+  --surface: rgba(255, 255, 255, 0.88);
+  --surface-strong: #ffffff;
+  --card: rgba(255, 255, 255, 0.84);
+  --navbar: rgba(247, 251, 255, 0.86);
   --background: #f7fbff;
   --panel: #ffffff;
   --panel-light: #eaf4ff;
+  --heading: #061334;
   --text: #373737;
   --muted: #60728e;
   --primary: #0874ff;
   --border: rgba(8, 116, 255, 0.12);
+  --shadow: rgba(8, 48, 110, 0.1);
   --danger: #fb7185;
   --success: #34d399;
+  --page-gradient: linear-gradient(180deg, #f7fbff 0%, #eaf4ff 52%, #dceeff 100%);
+  --field: rgba(247, 251, 255, 0.9);
+  --soft-blue: rgba(8, 116, 255, 0.08);
+}
+
+html.dark {
+  color-scheme: dark;
+  --bg: #07111f;
+  --surface: rgba(10, 22, 38, 0.9);
+  --surface-strong: #101c2f;
+  --card: rgba(10, 22, 38, 0.86);
+  --navbar: rgba(7, 17, 31, 0.88);
+  --background: #07111f;
+  --panel: #101c2f;
+  --panel-light: #132743;
+  --heading: #f3f8ff;
+  --text: #e7eefb;
+  --muted: #9eb1cc;
+  --border: rgba(116, 179, 255, 0.18);
+  --shadow: rgba(0, 0, 0, 0.34);
+  --page-gradient: linear-gradient(180deg, #07111f 0%, #0b1b30 54%, #102846 100%);
+  --field: rgba(11, 27, 48, 0.92);
+  --soft-blue: rgba(49, 201, 255, 0.1);
 }
 
 * {
@@ -22,9 +53,10 @@ body {
     radial-gradient(circle at 18% 8%, rgba(8, 116, 255, 0.13), transparent 28rem),
     radial-gradient(circle at 82% 18%, rgba(49, 201, 255, 0.15), transparent 30rem),
     radial-gradient(circle at 52% 62%, rgba(8, 116, 255, 0.07), transparent 34rem),
-    linear-gradient(180deg, #f7fbff 0%, #eaf4ff 52%, #dceeff 100%);
+    var(--page-gradient);
   color: var(--text);
   font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 a {
@@ -39,11 +71,11 @@ a {
 }
 
 .card {
-  background: rgba(255, 255, 255, 0.82);
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: 18px;
   padding: 24px;
-  box-shadow: 0 24px 70px rgba(8, 48, 110, 0.1);
+  box-shadow: 0 24px 70px var(--shadow);
   backdrop-filter: blur(20px);
 }
 
@@ -71,7 +103,7 @@ a {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 12px;
-  background: rgba(247, 251, 255, 0.9);
+  background: var(--field);
   color: var(--text);
 }
 
@@ -89,7 +121,7 @@ a {
 }
 
 .kpi {
-  background: rgba(247, 251, 255, 0.86);
+  background: var(--field);
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 18px;
