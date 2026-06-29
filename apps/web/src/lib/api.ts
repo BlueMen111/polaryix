@@ -117,6 +117,14 @@ export type ConvertedFile = {
   deleted_at?: string | null;
 };
 
+export type UserComment = {
+  id: string;
+  message: string;
+  user_name: string;
+  avatar_url?: string | null;
+  created_at: string;
+};
+
 async function parseJsonError(response: Response, fallback: string): Promise<string> {
   try {
     const errorData = await response.json();
@@ -505,6 +513,35 @@ export async function downloadMyFile(file: ConvertedFile): Promise<string> {
   });
 
   return downloadBlobResponse(response, `${file.original_filename || "polaryix"}.${file.target_format?.toLowerCase() || "bin"}`);
+}
+
+export async function listComments(): Promise<{ comments: UserComment[] }> {
+  const response = await fetch(apiUrl("/comments"), {
+    headers: apiHeaders(),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Nao foi possivel carregar os comentarios."));
+  }
+
+  return parseJsonResponse<{ comments: UserComment[] }>(response, "Nao foi possivel carregar os comentarios.");
+}
+
+export async function createComment(message: string): Promise<{ comment: UserComment }> {
+  const response = await fetch(apiUrl("/comments"), {
+    method: "POST",
+    headers: authHeaders({
+      "Content-Type": "application/json",
+    }),
+    body: JSON.stringify({ message }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Faca login para comentar."));
+  }
+
+  return parseJsonResponse<{ comment: UserComment }>(response, "Nao foi possivel enviar seu comentario.");
 }
 
 export async function uploadDataset(file: File): Promise<{ dataset: DatasetAnalysis }> {

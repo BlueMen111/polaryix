@@ -243,8 +243,7 @@
 }
 
 .testimonialHeader {
-  display: grid;
-  justify-content: initial;
+  align-items: end;
 }
 
 .sectionHeader p,
@@ -837,6 +836,78 @@
   font-size: clamp(1.5rem, 3vw, 2.35rem);
 }
 
+.commentForm {
+  width: min(440px, 100%);
+  display: grid;
+  gap: 0.65rem;
+}
+
+.commentForm textarea {
+  width: 100%;
+  min-height: 92px;
+  resize: vertical;
+  border: 1px solid rgba(8, 116, 255, 0.14);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.86);
+  color: #061334;
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  outline: none;
+  padding: 0.8rem 0.9rem;
+}
+
+.commentForm textarea:focus {
+  border-color: rgba(8, 116, 255, 0.46);
+  box-shadow: 0 0 0 4px rgba(8, 116, 255, 0.08);
+}
+
+.commentForm textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.commentForm div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.commentForm span {
+  color: #60728e;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.commentForm button,
+.commentForm a {
+  min-height: 40px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0874ff, #1265ed 56%, #31c9ff);
+  box-shadow: 0 14px 26px rgba(8, 116, 255, 0.18);
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 950;
+  line-height: 1;
+  padding: 0 1rem;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.commentForm button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
 .marquee {
   width: 100%;
   overflow: hidden;
@@ -982,6 +1053,16 @@
   .downloadModes,
   .downloadCards {
     grid-template-columns: 1fr;
+  }
+
+  .testimonialHeader,
+  .commentForm div {
+    grid-template-columns: 1fr;
+  }
+
+  .testimonialHeader {
+    display: grid;
+    align-items: stretch;
   }
 
   .previewCard {

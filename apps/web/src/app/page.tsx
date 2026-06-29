@@ -1,17 +1,21 @@
 ﻿"use client";
 
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
+  AuthUser,
   LinkPreview,
   UsageInfo,
+  UserComment,
   convertFile,
   convertFiles,
+  createComment,
   createLinkDownloadJob,
   downloadLinkJobFile,
   getLinkDownloadJob,
   getLinkPreview,
   getCurrentUser,
   getUsage,
+  listComments,
   persistAuthSession,
 } from "@/lib/api";
 import { detectFormatFromFileName, validateConversion, validateFileForConversion } from "@/lib/conversionCompatibility";
@@ -29,13 +33,43 @@ const formatGroups = [
 const allFormats = formatGroups.flatMap((group) => group.formats);
 const formatOptions = allFormats.map((format) => ({ value: format, label: format }));
 
-const comments = [
-  "Converti meus arquivos em segundos. Muito mais prático.",
-  "Interface limpa, rápida e fácil de usar.",
-  "O Polaryix economizou muito tempo no meu fluxo de trabalho.",
-  "Finalmente um conversor simples e bonito.",
-  "O fluxo PNG para DDS ficou direto e sem distrações.",
-  "Uso para testar imagens de jogos e tudo ficou mais ágil.",
+const fallbackComments: UserComment[] = [
+  {
+    id: "fallback-1",
+    message: "Converti meus arquivos em segundos. Muito mais pratico.",
+    user_name: "Usuario Polaryix",
+    created_at: "2026-01-01T00:00:00Z",
+  },
+  {
+    id: "fallback-2",
+    message: "Interface limpa, rapida e facil de usar.",
+    user_name: "Usuario Polaryix",
+    created_at: "2026-01-01T00:00:00Z",
+  },
+  {
+    id: "fallback-3",
+    message: "O Polaryix economizou muito tempo no meu fluxo de trabalho.",
+    user_name: "Usuario Polaryix",
+    created_at: "2026-01-01T00:00:00Z",
+  },
+  {
+    id: "fallback-4",
+    message: "Finalmente um conversor simples e bonito.",
+    user_name: "Usuario Polaryix",
+    created_at: "2026-01-01T00:00:00Z",
+  },
+  {
+    id: "fallback-5",
+    message: "O fluxo PNG para DDS ficou direto e sem distracoes.",
+    user_name: "Usuario Polaryix",
+    created_at: "2026-01-01T00:00:00Z",
+  },
+  {
+    id: "fallback-6",
+    message: "Uso para testar imagens de jogos e tudo ficou mais agil.",
+    user_name: "Usuario Polaryix",
+    created_at: "2026-01-01T00:00:00Z",
+  },
 ];
 
 const downloadCards = [
@@ -147,6 +181,11 @@ export default function HomePage() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
   const [premiumPlan, setPremiumPlan] = useState("basic");
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [comments, setComments] = useState<UserComment[]>(fallbackComments);
+  const [commentMessage, setCommentMessage] = useState("");
+  const [commentStatus, setCommentStatus] = useState("");
+  const [isPostingComment, setIsPostingComment] = useState(false);
   const [usage, setUsage] = useState<UsageInfo | null>(null);
   const [usageError, setUsageError] = useState("");
   const [heroFormatIndex, setHeroFormatIndex] = useState(0);
@@ -168,11 +207,22 @@ export default function HomePage() {
       getCurrentUser()
         .then(({ user }) => {
           persistAuthSession({ token, user });
+          setCurrentUser(user);
           setIsPremium(user.is_premium);
           setPremiumPlan(user.plan);
         })
-        .catch(() => undefined);
+        .catch(() => setCurrentUser(null));
     }
+  }, []);
+
+  useEffect(() => {
+    listComments()
+      .then(({ comments }) => {
+        if (comments.length > 0) {
+          setComments(comments);
+        }
+      })
+      .catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -435,6 +485,35 @@ export default function HomePage() {
       await refreshUsage();
     } finally {
       setIsDownloading(false);
+    }
+  }
+
+  async function handleCommentSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!currentUser) {
+      setCommentStatus("Entre com Google ou com sua conta Polaryix para comentar.");
+      return;
+    }
+
+    const message = commentMessage.trim();
+    if (message.length < 3) {
+      setCommentStatus("Escreva um comentario um pouco maior.");
+      return;
+    }
+
+    setIsPostingComment(true);
+    setCommentStatus("Enviando comentario...");
+
+    try {
+      const { comment } = await createComment(message);
+      setComments((current) => [comment, ...current.filter((item) => !item.id.startsWith("fallback-"))]);
+      setCommentMessage("");
+      setCommentStatus("Comentario publicado. Obrigado por contar sua experiencia.");
+    } catch (error) {
+      setCommentStatus(error instanceof Error ? error.message : "Nao foi possivel enviar seu comentario.");
+    } finally {
+      setIsPostingComment(false);
     }
   }
 
@@ -705,15 +784,36 @@ export default function HomePage() {
 
         <section className={styles.testimonialsSection} aria-label="Comentários de usuários">
           <div className={styles.testimonialHeader}>
-            <p>Comentários</p>
-            <h2>Quem converte com o Polaryix volta pela praticidade</h2>
+            <div>
+              <p>Comentarios</p>
+              <h2>Quem converte com o Polaryix volta pela praticidade</h2>
+            </div>
+            <form className={styles.commentForm} onSubmit={handleCommentSubmit}>
+              <textarea
+                value={commentMessage}
+                onChange={(event) => setCommentMessage(event.target.value)}
+                placeholder={currentUser ? "Conte como foi usar o Polaryix" : "Entre para deixar um comentario"}
+                maxLength={500}
+                disabled={!currentUser || isPostingComment}
+              />
+              <div>
+                <span>{commentStatus || (currentUser ? `Comentando como ${currentUser.name}` : "Login Google ou conta Polaryix necessario")}</span>
+                {currentUser ? (
+                  <button type="submit" disabled={isPostingComment}>
+                    {isPostingComment ? "Enviando..." : "Enviar comentario"}
+                  </button>
+                ) : (
+                  <a href="/login">Entrar para comentar</a>
+                )}
+              </div>
+            </form>
           </div>
           <div className={styles.marquee}>
             <div className={styles.marqueeTrack}>
               {[...comments, ...comments].map((comment, index) => (
-                <article className={styles.commentCard} key={`${comment}-${index}`}>
-                  <p>“{comment}”</p>
-                  <span>Usuário Polaryix</span>
+                <article className={styles.commentCard} key={`${comment.id}-${index}`}>
+                  <p>“{comment.message}”</p>
+                  <span>{comment.user_name}</span>
                 </article>
               ))}
             </div>
