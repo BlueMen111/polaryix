@@ -98,8 +98,8 @@ async def _create_image_tool_job(
         "edge_smooth": 0.65,
         "remove_small_artifacts": True,
         "preserve_details": True,
-        "model": "birefnet-general",
-        "fallback_model": "isnet-general-use",
+        "model": "u2net",
+        "fallback_model": "u2net",
         "use_alpha_matting": False,
     }
     try:

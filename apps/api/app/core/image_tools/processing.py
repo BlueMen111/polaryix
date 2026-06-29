@@ -36,10 +36,12 @@ REMOVE_BACKGROUND_DEFAULTS = {
     "edge_smooth": 0.65,
     "remove_small_artifacts": True,
     "preserve_details": True,
-    "model": "birefnet-general",
-    "fallback_model": "isnet-general-use",
+    "model": "u2net",
+    "fallback_model": "u2net",
     "use_alpha_matting": False,
 }
+
+LIGHTWEIGHT_REMBG_MODELS = {"u2net"}
 
 
 def process_image_tool(job: dict) -> dict:
@@ -143,7 +145,7 @@ def remove_background(input_path: Path, image: Image.Image, options: dict | None
         try:
             result = _run_rembg_remove(rembg_remove, rgba, session, bool(settings_options.get("use_alpha_matting", False)))
         except Exception as exc:
-            fallback_model = str(settings_options.get("fallback_model") or "isnet-general-use")
+            fallback_model = str(settings_options.get("fallback_model") or "u2net")
             logger.warning("Remove background model %s failed; falling back to %s: %s", model_name, fallback_model, exc)
             session = _get_rembg_session(fallback_model)
             result = _run_rembg_remove(rembg_remove, rgba, session, False)
@@ -170,7 +172,7 @@ def _get_rembg_session(model_name: str):
     except Exception as exc:
         raise RuntimeError("A remocao de fundo ainda nao esta disponivel no servidor. A dependencia rembg[cpu] precisa ser instalada.") from exc
 
-    normalized = model_name if model_name in {"u2net", "isnet-general-use", "birefnet-general", "bria-rmbg"} else "birefnet-general"
+    normalized = model_name if model_name in LIGHTWEIGHT_REMBG_MODELS else "u2net"
     if normalized not in _rembg_sessions:
         _rembg_sessions[normalized] = new_session(normalized)
     return _rembg_sessions[normalized]
