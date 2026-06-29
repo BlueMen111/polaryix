@@ -94,10 +94,12 @@ async def _create_image_tool_job(
         "contrast": contrast,
         "detail": detail,
         "intensity": intensity,
-        "alpha_threshold": 26,
-        "edge_smooth": 1.25,
+        "alpha_threshold": 12,
+        "edge_smooth": 0.85,
         "remove_small_artifacts": True,
         "preserve_details": True,
+        "model": "u2net",
+        "combine_conservative_mask": True,
     }
     try:
         job = create_job(

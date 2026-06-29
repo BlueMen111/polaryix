@@ -6,13 +6,13 @@ from collections import deque
 from pathlib import Path
 from uuid import uuid4
 
-from PIL import Image, ImageEnhance, ImageFilter, ImageOps, ImageDraw, ImageFont, UnidentifiedImageError
+from PIL import Image, ImageChops, ImageEnhance, ImageFilter, ImageOps, ImageDraw, ImageFont, UnidentifiedImageError
 
 from app.core.config.settings import settings
 
 
 logger = logging.getLogger("polaryix.image_tools")
-_rembg_session = None
+_rembg_sessions: dict[str, object] = {}
 _rembg_lock = threading.Lock()
 
 IMAGE_TOOL_COSTS = {
@@ -32,10 +32,12 @@ SUPPORTED_IMAGE_FORMATS = {
 WATERMARK_OPERATIONS = {"upscale_image", "remaster_image"}
 
 REMOVE_BACKGROUND_DEFAULTS = {
-    "alpha_threshold": 26,
-    "edge_smooth": 1.25,
+    "alpha_threshold": 12,
+    "edge_smooth": 0.85,
     "remove_small_artifacts": True,
     "preserve_details": True,
+    "model": "u2net",
+    "combine_conservative_mask": True,
 }
 
 
@@ -130,21 +132,30 @@ def process_image_tool(job: dict) -> dict:
 
 
 def remove_background(input_path: Path, image: Image.Image, options: dict | None = None) -> Image.Image:
-    global _rembg_session
     rembg_remove = _get_rembg_remove()
 
     rgba = ImageOps.exif_transpose(image).convert("RGBA")
     settings_options = {**REMOVE_BACKGROUND_DEFAULTS, **(options or {})}
+    model_name = str(settings_options.get("model") or "u2net")
     with _rembg_lock:
+        session = _get_rembg_session(model_name)
         result = rembg_remove(
             rgba,
-            session=_rembg_session,
+            session=session,
             alpha_matting=True,
             alpha_matting_foreground_threshold=245,
             alpha_matting_background_threshold=8,
-            alpha_matting_erode_size=8,
+            alpha_matting_erode_size=4,
             post_process_mask=True,
         )
+        if bool(settings_options.get("combine_conservative_mask", True)):
+            conservative = rembg_remove(
+                rgba,
+                session=session,
+                alpha_matting=False,
+                post_process_mask=False,
+            )
+            result = _combine_alpha_masks(result.convert("RGBA"), conservative.convert("RGBA"))
     return _post_process_background_result(rgba, result.convert("RGBA"), settings_options)
 
 
@@ -153,17 +164,25 @@ def warmup_remove_background_model() -> None:
 
 
 def _get_rembg_remove():
-    global _rembg_session
     try:
         import onnxruntime  # noqa: F401
         from rembg import new_session, remove as rembg_remove
     except Exception as exc:
         raise RuntimeError("A remocao de fundo ainda nao esta disponivel no servidor. A dependencia rembg[cpu] precisa ser instalada.") from exc
 
-    with _rembg_lock:
-        if _rembg_session is None:
-            _rembg_session = new_session("u2net")
     return rembg_remove
+
+
+def _get_rembg_session(model_name: str):
+    try:
+        from rembg import new_session
+    except Exception as exc:
+        raise RuntimeError("A remocao de fundo ainda nao esta disponivel no servidor. A dependencia rembg[cpu] precisa ser instalada.") from exc
+
+    normalized = model_name if model_name in {"u2net", "isnet-general-use"} else "u2net"
+    if normalized not in _rembg_sessions:
+        _rembg_sessions[normalized] = new_session(normalized)
+    return _rembg_sessions[normalized]
 
 
 def optimize_image(image: Image.Image) -> Image.Image:
@@ -289,6 +308,14 @@ def _post_process_background_result(original: Image.Image, result: Image.Image, 
     return cleaned
 
 
+def _combine_alpha_masks(primary: Image.Image, conservative: Image.Image) -> Image.Image:
+    primary_rgba = primary.convert("RGBA")
+    conservative_alpha = conservative.convert("RGBA").getchannel("A")
+    combined_alpha = ImageChops.lighter(primary_rgba.getchannel("A"), conservative_alpha)
+    primary_rgba.putalpha(combined_alpha)
+    return primary_rgba
+
+
 def _remove_small_alpha_components(alpha: Image.Image, threshold: int) -> Image.Image:
     try:
         import numpy as np
@@ -300,7 +327,7 @@ def _remove_small_alpha_components(alpha: Image.Image, threshold: int) -> Image.
     height, width = foreground.shape
     visited = np.zeros_like(foreground, dtype=bool)
     keep = np.zeros_like(foreground, dtype=bool)
-    min_area = max(80, int(width * height * 0.0015))
+    min_area = max(24, int(width * height * 0.00035))
 
     for y in range(height):
         for x in range(width):
