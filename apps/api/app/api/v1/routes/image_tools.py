@@ -100,6 +100,9 @@ async def _create_image_tool_job(
         "preserve_details": True,
         "model": "u2net",
         "combine_conservative_mask": True,
+        "preserve_object_color": True,
+        "object_color_distance": 28,
+        "object_mask_expand": 33,
     }
     try:
         job = create_job(
