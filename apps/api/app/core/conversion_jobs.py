@@ -22,7 +22,7 @@ JobProcessor = Callable[[dict], dict]
 _lock = threading.RLock()
 _workers: list[threading.Thread] = []
 _started = False
-_processor: JobProcessor | None = None
+_processors: dict[str, JobProcessor] = {}
 
 
 def _now() -> str:
@@ -53,8 +53,11 @@ def write_jobs(jobs: list[dict]) -> None:
 
 
 def configure_conversion_job_processor(processor: JobProcessor) -> None:
-    global _processor
-    _processor = processor
+    configure_job_processor("conversion", processor)
+
+
+def configure_job_processor(job_type: str, processor: JobProcessor) -> None:
+    _processors[job_type] = processor
 
 
 def start_persistent_conversion_workers() -> None:
@@ -78,6 +81,8 @@ def create_job(**values: object) -> dict:
         "id": str(values.get("id") or uuid4()),
         "user_id": str(values.get("user_id")),
         "original_filename": values.get("original_filename") or "arquivo",
+        "job_type": values.get("job_type") or "conversion",
+        "operation": values.get("operation") or values.get("job_type") or "conversion",
         "input_path": values.get("input_path"),
         "output_path": values.get("output_path"),
         "input_format": values.get("input_format") or "",
@@ -150,6 +155,8 @@ def public_job(job: dict) -> dict:
         "id": job.get("id"),
         "user_id": job.get("user_id"),
         "original_filename": job.get("original_filename"),
+        "job_type": job.get("job_type"),
+        "operation": job.get("operation"),
         "input_format": job.get("input_format"),
         "output_format": job.get("output_format"),
         "status": job.get("status"),
@@ -255,12 +262,13 @@ def _worker_loop() -> None:
             time.sleep(0.6)
             continue
 
-        if _processor is None:
-            _fail_job(job, "Worker de conversao nao configurado.")
+        processor = _processors.get(str(job.get("job_type") or "conversion"))
+        if processor is None:
+            _fail_job(job, f"Worker nao configurado para {job.get('job_type')}.")
             continue
 
         try:
-            result = _processor(job)
+            result = processor(job)
             _complete_job(str(job["id"]), result)
         except Exception as exc:  # pragma: no cover
             _fail_job(job, exc)

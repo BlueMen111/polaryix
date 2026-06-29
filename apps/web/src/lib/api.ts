@@ -144,6 +144,23 @@ export type ConversionJob = {
   is_priority?: boolean;
 };
 
+export type ImageToolOperation = "remove_background" | "optimize_image" | "remaster_image";
+
+export type ImageToolJob = {
+  id: string;
+  operation: ImageToolOperation;
+  status: "queued" | "processing" | "completed" | "failed" | "cancelled";
+  queue_position?: number | null;
+  created_at: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+  error_message?: string | null;
+  download_url?: string | null;
+  credits_cost?: number;
+  is_priority?: boolean;
+  original_filename?: string;
+};
+
 async function parseJsonError(response: Response, fallback: string): Promise<string> {
   try {
     const errorData = await response.json();
@@ -589,6 +606,88 @@ export async function downloadConversionJob(job: ConversionJob): Promise<string>
   });
 
   return downloadBlobResponse(response, `${job.original_filename || "polaryix"}.${job.output_format?.toLowerCase() || "bin"}`);
+}
+
+function imageToolPath(operation: ImageToolOperation) {
+  if (operation === "remove_background") {
+    return "/image-tools/remove-background";
+  }
+  if (operation === "optimize_image") {
+    return "/image-tools/optimize";
+  }
+  return "/image-tools/remaster";
+}
+
+function normalizeImageToolJob(payload: { job?: Partial<ImageToolJob> & { id?: string }; job_id?: string; operation?: ImageToolOperation; status?: ImageToolJob["status"]; queue_position?: number | null; download_url?: string | null; error_message?: string | null; created_at?: string; started_at?: string | null; finished_at?: string | null }): ImageToolJob {
+  const job = payload.job ?? {};
+  return {
+    id: String(job.id ?? payload.job_id ?? ""),
+    operation: (job.operation ?? payload.operation ?? "optimize_image") as ImageToolOperation,
+    status: (job.status ?? payload.status ?? "queued") as ImageToolJob["status"],
+    queue_position: job.queue_position ?? payload.queue_position ?? null,
+    created_at: String(job.created_at ?? payload.created_at ?? ""),
+    started_at: job.started_at ?? payload.started_at ?? null,
+    finished_at: job.finished_at ?? payload.finished_at ?? null,
+    error_message: job.error_message ?? payload.error_message ?? null,
+    download_url: payload.download_url ?? job.download_url ?? null,
+    credits_cost: job.credits_cost,
+    is_priority: job.is_priority,
+    original_filename: job.original_filename,
+  };
+}
+
+export async function createImageToolJob(payload: { operation: ImageToolOperation; file: File }): Promise<ImageToolJob> {
+  const formData = new FormData();
+  formData.append("file", payload.file);
+
+  const response = await fetch(apiUrl(imageToolPath(payload.operation)), {
+    method: "POST",
+    headers: authHeaders(),
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Nao foi possivel criar o processamento."));
+  }
+
+  const data = await parseJsonResponse<{ job?: ImageToolJob; job_id?: string; operation?: ImageToolOperation; status?: ImageToolJob["status"]; queue_position?: number | null }>(response, "Nao foi possivel criar o processamento.");
+  return normalizeImageToolJob(data);
+}
+
+export async function getImageToolJob(jobId: string): Promise<ImageToolJob> {
+  const response = await fetch(apiUrl(`/image-tools/jobs/${jobId}`), {
+    headers: authHeaders(),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Nao foi possivel consultar o processamento."));
+  }
+
+  const data = await parseJsonResponse<{ job?: ImageToolJob; job_id?: string; operation?: ImageToolOperation; status?: ImageToolJob["status"]; queue_position?: number | null; download_url?: string | null }>(response, "Nao foi possivel consultar o processamento.");
+  return normalizeImageToolJob(data);
+}
+
+export async function cancelImageToolJob(jobId: string): Promise<ImageToolJob> {
+  const response = await fetch(apiUrl(`/image-tools/jobs/${jobId}`), {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Nao foi possivel cancelar o processamento."));
+  }
+
+  const data = await parseJsonResponse<{ job: ImageToolJob }>(response, "Nao foi possivel cancelar o processamento.");
+  return normalizeImageToolJob(data);
+}
+
+export async function downloadImageToolJob(job: ImageToolJob): Promise<string> {
+  const response = await fetch(apiUrl(`/image-tools/jobs/${job.id}/download`), {
+    headers: authHeaders(),
+  });
+
+  return downloadBlobResponse(response, job.original_filename ?? "polaryix-image");
 }
 
 export async function listComments(): Promise<{ comments: UserComment[] }> {

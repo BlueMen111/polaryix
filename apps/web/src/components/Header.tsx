@@ -104,6 +104,9 @@ export function Header() {
           <Link href="/files" className={styles.navLink} onClick={closeMenus}>
             Meus arquivos
           </Link>
+          <Link href="/image-tools" className={styles.navLink} onClick={closeMenus}>
+            Ferramentas
+          </Link>
           {user ? (
             <button type="button" className={styles.loginButton} onClick={handleLogout}>
               {user.avatar_url ? <img src={user.avatar_url} alt="" className={styles.avatar} /> : null}
