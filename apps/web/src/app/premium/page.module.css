@@ -162,7 +162,7 @@
 }
 
 .planGrid li::before {
-  content: "✓";
+  content: "\2713";
   color: #0874ff;
   font-weight: 950;
   margin-right: 0.7rem;

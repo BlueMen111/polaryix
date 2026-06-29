@@ -16,6 +16,26 @@ type PlanOption = {
   features: string[];
 };
 
+const basicFeatures = [
+  "300 MB tamanho máximo de ficheiro",
+  "1000 créditos de conversão por mês",
+  "30 conversões simultâneas",
+  "Fila prioritária Premium",
+  "Workspace com 100 MB e arquivos por até 24h",
+  "Resultado sem marca d'água nas ferramentas Premium",
+  "Dashboard, favoritos e ações rápidas no Workspace",
+];
+
+const proFeatures = [
+  "1 GB tamanho máximo de ficheiro",
+  "3000 créditos de conversão por mês",
+  "60 conversões simultâneas",
+  "Prioridade Premium para alto volume",
+  "Workspace com 100 MB e arquivos por até 24h",
+  "Upscaling 2x/4x com controles avançados e sem marca d'água",
+  "Dashboard, favoritos e ações rápidas no Workspace",
+];
+
 const plans = {
   annual: [
     {
@@ -25,7 +45,7 @@ const plans = {
       name: "Basic Anual",
       price: 4.99,
       badge: "Economize mais",
-      features: ["300 MB tamanho máximo de ficheiro", "1000 créditos de conversão por mês", "30 conversões simultâneas", "Alta prioridade"],
+      features: basicFeatures,
     },
     {
       id: "pro-annual",
@@ -34,7 +54,7 @@ const plans = {
       name: "Pro Premium Anual",
       price: 12.99,
       badge: "Mais popular",
-      features: ["1 GB tamanho máximo de ficheiro", "3000 créditos de conversão por mês", "60 conversões simultâneas", "Prioridade premium"],
+      features: proFeatures,
     },
   ],
   monthly: [
@@ -45,7 +65,7 @@ const plans = {
       name: "Basic Mensal",
       price: 9.99,
       badge: "Flexível",
-      features: ["300 MB tamanho máximo de ficheiro", "1000 créditos de conversão por mês", "30 conversões simultâneas", "Alta prioridade"],
+      features: basicFeatures,
     },
     {
       id: "pro-monthly",
@@ -54,7 +74,7 @@ const plans = {
       name: "Pro Premium Mensal",
       price: 18.99,
       badge: "Máximo poder",
-      features: ["1 GB tamanho máximo de ficheiro", "3000 créditos de conversão por mês", "60 conversões simultâneas", "Prioridade premium"],
+      features: proFeatures,
     },
   ],
 } satisfies Record<Billing, PlanOption[]>;
@@ -91,7 +111,7 @@ export default function PremiumPage() {
       <section className={styles.hero}>
         <p>Polaryix Pass</p>
         <h1>Escolha o plano certo</h1>
-        <span>Créditos mensais, prioridade alta e conversões simultâneas para acelerar seu fluxo.</span>
+        <span>Créditos mensais, fila prioritária, Workspace ampliado e ferramentas de imagem sem marca d'água para acelerar seu fluxo.</span>
       </section>
 
       <section className={styles.billingSwitch} aria-label="Selecionar cobrança">
@@ -134,7 +154,10 @@ export default function PremiumPage() {
 
       <section className={styles.freeNote}>
         <strong>Plano gratuito</strong>
-        <p>Visitantes e usuários free têm 30 créditos por dia. Cada conversão de imagem, documento, áudio ou download por link consome 1 crédito do mesmo saldo.</p>
+        <p>
+          Visitantes e usuários free têm 30 créditos por dia, 25 MB no Workspace por até 2h e fila padrão.
+          Upscaling Free pode incluir marca d'água PolarYix; Remover Fundo e Otimizar Imagem não aplicam marca d'água.
+        </p>
       </section>
     </main>
   );
