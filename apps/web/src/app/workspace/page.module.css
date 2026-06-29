@@ -69,7 +69,7 @@
 
 .toolbar {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) auto auto;
+  grid-template-columns: minmax(180px, 1fr) repeat(3, auto) auto;
   gap: 0.65rem;
   margin-top: 1rem;
   border-radius: 20px;
@@ -77,8 +77,10 @@
 }
 
 .toolbar input,
+.reuseBox input,
 .toolbar button,
 .actions button,
+.reuseBox button,
 .fileTop button {
   min-height: 42px;
   border: 1px solid rgba(8, 116, 255, 0.14);
@@ -89,7 +91,8 @@
   font-weight: 900;
 }
 
-.toolbar input {
+.toolbar input,
+.reuseBox input {
   color: #061334;
   padding: 0 0.85rem;
 }
@@ -99,6 +102,10 @@
   border: 0;
   background: linear-gradient(135deg, #0874ff, #31c9ff);
   color: #ffffff;
+}
+
+.hiddenInput {
+  display: none;
 }
 
 .toolbar div {
@@ -165,6 +172,29 @@
 .actions button {
   flex: 1;
   cursor: pointer;
+}
+
+.reuseBox {
+  display: grid;
+  gap: 0.5rem;
+  border-top: 1px solid rgba(8, 116, 255, 0.1);
+  padding-top: 0.75rem;
+}
+
+.reuseBox div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+}
+
+.reuseBox div:last-child {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.reuseBox button {
+  cursor: pointer;
+  min-width: 0;
+  padding: 0 0.55rem;
 }
 
 .actions button:disabled {

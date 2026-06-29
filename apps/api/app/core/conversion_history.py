@@ -184,6 +184,8 @@ def list_workspace_records(user_id: str, limit: int = 100, favorite: bool | None
         if record.get("user_id") != user_id:
             continue
         public = public_record(record)
+        if status_filter is None and public.get("status") == "deleted":
+            continue
         if favorite is not None and bool(public.get("is_favorite")) is not favorite:
             continue
         if normalized_search and normalized_search not in str(public.get("original_filename") or "").lower():

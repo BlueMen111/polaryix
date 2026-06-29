@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
+  convertWorkspaceFile,
   deleteWorkspaceFile,
   downloadWorkspaceFile,
   favoriteWorkspaceFile,
   listWorkspaceFiles,
+  processWorkspaceImage,
+  uploadWorkspaceFiles,
   type StorageSummary,
   type WorkspaceFile,
 } from "@/lib/api";
@@ -48,6 +51,9 @@ export default function WorkspacePage() {
   const [filter, setFilter] = useState<(typeof filters)[number]["id"]>("all");
   const [status, setStatus] = useState("Carregando Workspace...");
   const [busyId, setBusyId] = useState("");
+  const [targetFormats, setTargetFormats] = useState<Record<string, string>>({});
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const folderInputRef = useRef<HTMLInputElement | null>(null);
 
   const storageText = useMemo(() => {
     if (!storage) return "Carregando armazenamento...";
@@ -90,6 +96,7 @@ export default function WorkspacePage() {
     try {
       const result = await deleteWorkspaceFile(file.id);
       setStorage(result.storage);
+      setFiles((current) => current.filter((item) => item.id !== file.id));
       await refresh();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Nao foi possivel excluir o arquivo.");
@@ -109,6 +116,56 @@ export default function WorkspacePage() {
     }
   }
 
+  async function handleUpload(event: ChangeEvent<HTMLInputElement>) {
+    const selected = Array.from(event.target.files ?? []);
+    event.target.value = "";
+    if (!selected.length) return;
+    setStatus("Enviando arquivos para o Workspace...");
+    try {
+      const result = await uploadWorkspaceFiles(selected);
+      setStorage(result.storage);
+      await refresh();
+      setStatus(`${selected.length} arquivo(s) enviados para o Workspace.`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Nao foi possivel enviar os arquivos.");
+    }
+  }
+
+  async function handleConvert(file: WorkspaceFile) {
+    const target = (targetFormats[file.id] || "").trim();
+    if (!target) {
+      setStatus("Informe o formato de destino. Exemplo: png, jpg, pdf, mp4.");
+      return;
+    }
+    setBusyId(file.id);
+    try {
+      await convertWorkspaceFile(file.id, target);
+      await refresh();
+      setStatus(`Conversao para ${target.toUpperCase()} enviada para a fila.`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Nao foi possivel criar a conversao.");
+    } finally {
+      setBusyId("");
+    }
+  }
+
+  async function handleImageTool(file: WorkspaceFile, operation: "remove_background" | "optimize_image" | "upscale_image") {
+    setBusyId(file.id);
+    try {
+      await processWorkspaceImage(file.id, operation, 2);
+      await refresh();
+      setStatus("Processamento de imagem enviado para a fila.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Nao foi possivel processar a imagem.");
+    } finally {
+      setBusyId("");
+    }
+  }
+
+  function isImage(file: WorkspaceFile) {
+    return ["png", "jpg", "jpeg", "webp"].includes(String(file.extension || file.target_format || "").toLowerCase());
+  }
+
   return (
     <main className={styles.page}>
       <section className={styles.headerPanel}>
@@ -126,6 +183,8 @@ export default function WorkspacePage() {
       </section>
 
       <section className={styles.toolbar}>
+        <input ref={fileInputRef} className={styles.hiddenInput} type="file" multiple onChange={handleUpload} />
+        <input ref={folderInputRef} className={styles.hiddenInput} type="file" multiple onChange={handleUpload} {...{ webkitdirectory: "", directory: "" }} />
         <input
           value={query}
           placeholder="Buscar por nome"
@@ -135,6 +194,8 @@ export default function WorkspacePage() {
           }}
         />
         <button type="button" onClick={() => refresh()}>Buscar</button>
+        <button type="button" onClick={() => fileInputRef.current?.click()}>Enviar arquivos</button>
+        <button type="button" onClick={() => folderInputRef.current?.click()}>Enviar pasta</button>
         <div>
           {filters.map((item) => (
             <button key={item.id} type="button" className={filter === item.id ? styles.activeFilter : undefined} onClick={() => setFilter(item.id)}>
@@ -168,6 +229,25 @@ export default function WorkspacePage() {
                   <button type="button" onClick={() => handleDownload(file)} disabled={!canDownload || busyId === file.id}>Baixar</button>
                   <button type="button" onClick={() => handleDelete(file)} disabled={busyId === file.id}>Excluir</button>
                 </div>
+                {file.status === "completed" ? (
+                  <div className={styles.reuseBox}>
+                    <div>
+                      <input
+                        value={targetFormats[file.id] ?? ""}
+                        placeholder="Converter para..."
+                        onChange={(event) => setTargetFormats((current) => ({ ...current, [file.id]: event.target.value }))}
+                      />
+                      <button type="button" onClick={() => handleConvert(file)} disabled={busyId === file.id}>Converter</button>
+                    </div>
+                    {isImage(file) ? (
+                      <div>
+                        <button type="button" onClick={() => handleImageTool(file, "optimize_image")} disabled={busyId === file.id}>Otimizar</button>
+                        <button type="button" onClick={() => handleImageTool(file, "remove_background")} disabled={busyId === file.id}>Remover fundo</button>
+                        <button type="button" onClick={() => handleImageTool(file, "upscale_image")} disabled={busyId === file.id}>Upscaling</button>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
               </article>
             );
           })}

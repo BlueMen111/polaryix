@@ -632,6 +632,55 @@ export async function listWorkspaceFiles(payload: { q?: string; filter?: "all" |
   return parseJsonResponse<{ files: WorkspaceFile[]; storage: StorageSummary }>(response, "Nao foi possivel carregar o Workspace.");
 }
 
+export async function uploadWorkspaceFiles(files: File[]): Promise<{ files: WorkspaceFile[]; storage: StorageSummary }> {
+  const formData = new FormData();
+  files.forEach((file) => formData.append("files", file));
+  const response = await fetch(apiUrl("/workspace/upload"), {
+    method: "POST",
+    headers: authHeaders(),
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Nao foi possivel enviar os arquivos."));
+  }
+
+  return parseJsonResponse<{ files: WorkspaceFile[]; storage: StorageSummary }>(response, "Nao foi possivel enviar os arquivos.");
+}
+
+export async function convertWorkspaceFile(fileId: string, targetFormat: string): Promise<{ job: ConversionJob }> {
+  const formData = new FormData();
+  formData.append("target_format", targetFormat);
+  const response = await fetch(apiUrl(`/workspace/${fileId}/convert`), {
+    method: "POST",
+    headers: authHeaders(),
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Nao foi possivel criar a conversao."));
+  }
+
+  return parseJsonResponse<{ job: ConversionJob }>(response, "Nao foi possivel criar a conversao.");
+}
+
+export async function processWorkspaceImage(fileId: string, operation: Exclude<ImageToolOperation, "remaster_image">, scale: 2 | 4 = 2): Promise<{ job: ImageToolJob }> {
+  const formData = new FormData();
+  formData.append("operation", operation);
+  formData.append("scale", String(scale));
+  const response = await fetch(apiUrl(`/workspace/${fileId}/image-tool`), {
+    method: "POST",
+    headers: authHeaders(),
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Nao foi possivel processar a imagem."));
+  }
+
+  return parseJsonResponse<{ job: ImageToolJob }>(response, "Nao foi possivel processar a imagem.");
+}
+
 export async function favoriteWorkspaceFile(fileId: string, favorite: boolean): Promise<{ file: WorkspaceFile }> {
   const response = await fetch(apiUrl(`/workspace/${fileId}/favorite`), {
     method: favorite ? "POST" : "DELETE",
