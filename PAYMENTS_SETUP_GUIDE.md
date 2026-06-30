@@ -21,9 +21,17 @@ PAYPAL_WEBHOOK_ID=
 PAYPAL_ENV=sandbox
 
 FRONTEND_URL=http://localhost:3000
+BACKEND_PUBLIC_URL=http://localhost:8000
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USERNAME=
+SMTP_PASSWORD=
+SMTP_FROM_EMAIL=
+SMTP_USE_TLS=true
 ```
 
 Use `sandbox` while testing. Change to `production` only after webhook tests pass.
+`FRONTEND_URL` must point to the public web app. `BACKEND_PUBLIC_URL` must point to the public API domain that receives webhooks.
 
 ## Payment Products
 
@@ -38,7 +46,7 @@ The frontend may display prices for UX, but the backend catalog is the source of
 
 ## Sandbox Without Provider Credentials
 
-If Mercado Pago or PayPal credentials are empty in development, PolarYix creates a simulated sandbox payment. The pending page shows an `Aprovar sandbox` button.
+If Mercado Pago or PayPal credentials are empty in development, PolarYix creates a simulated sandbox payment for backend/UI testing.
 
 This mode is strictly for local development and QA. It must be blocked in production.
 
@@ -50,6 +58,17 @@ Backend enforcement:
 - Simulated checkout records are not created in production.
 
 Use this mode only to test UI, status polling and backend benefit release before adding real sandbox credentials.
+
+## Checkout Expiration
+
+Pending checkouts expire after 5 minutes without provider confirmation.
+
+- The backend creates `expires_at` for every payment record.
+- The payment status endpoint changes old pending records to `expired`.
+- Expired payments must not release Premium, credits or donation benefits.
+- The pending checkout page shows the expiration notice and countdown.
+- Leaving and returning to a checkout should not reuse local payment state; the user must create a new checkout after expiration.
+- For Mercado Pago PIX, PolarYix also sends the expiration timestamp to the provider when available.
 
 ## Mercado Pago Sandbox
 
@@ -74,6 +93,7 @@ Frontend behavior:
 
 - Shows QR Code when `qr_code_base64` is returned.
 - Shows copy-and-paste code when `qr_code` is returned.
+- Shows the 5-minute expiration notice while the payment is pending.
 - Polls `/api/v1/payments/{payment_id}/status`.
 - Does not release Premium or credits before provider confirmation.
 
@@ -125,16 +145,32 @@ Validation:
 - The frontend never defines the final product price.
 - The frontend never activates Premium.
 - The frontend never adds credits directly.
+- The frontend must not expose sandbox approval controls in production.
+- The frontend must not keep old checkout sessions as reusable local state.
 - The frontend may show `pending`, `approved` or `cancelled` status only after reading backend status.
 - The frontend must never store card number, CVV, expiration date or cardholder payment data in cookies, localStorage or logs.
+
+## Payment Emails
+
+PolarYix sends formal payment emails when SMTP is configured.
+
+- `pending`: payment request received and waiting for provider confirmation.
+- `approved`: payment confirmed and package applied.
+- `expired`: checkout expired without confirmation.
+
+The message includes the package purchased, amount, provider and internal checkout identifier. It must never include card number, CVV, expiration date or sensitive provider payload.
+
+If SMTP variables are empty in development, PolarYix writes a safe local outbox at `storage/notifications/payment_emails.json` so the flow can be tested without sending real emails.
 
 ## Production Required Checks
 
 - HTTPS/SSL active on frontend and backend.
 - Public webhook URL reachable by Mercado Pago and PayPal.
+- `BACKEND_PUBLIC_URL` points to the public API domain.
 - Real Mercado Pago credentials configured.
 - Real PayPal credentials configured.
 - `FRONTEND_URL` points to the final production domain.
+- SMTP credentials configured if payment emails must be sent in production.
 - CORS allows only trusted production domains.
 - Logs do not contain sensitive payment data.
 - Real low-value payment tested on Mercado Pago.
@@ -142,6 +178,8 @@ Validation:
 - PIX QR Code tested with Mercado Pago.
 - Premium/credits are released only after backend status `approved`.
 - Sandbox simulation is disabled with `ENVIRONMENT=production`.
+- Checkout expiration tested after 5 minutes.
+- Payment emails tested for pending and approved flows.
 
 ## Switching To Production
 
@@ -202,9 +240,12 @@ npm run dev
 - [ ] PayPal sandbox tested.
 - [ ] PIX QR Code tested.
 - [ ] Webhook public URL tested.
+- [ ] `BACKEND_PUBLIC_URL` points to the production API.
 - [ ] Sandbox simulation disabled in production.
+- [ ] Payment expiration after 5 minutes tested.
 - [ ] Final production domain configured.
 - [ ] `FRONTEND_URL` is correct.
+- [ ] SMTP configured and payment emails tested.
 - [ ] CORS is restricted to trusted domains.
 - [ ] SSL/HTTPS active.
 - [ ] Real Mercado Pago credentials configured.

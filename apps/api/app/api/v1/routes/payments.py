@@ -19,12 +19,14 @@ from app.core.payments_store import (
     PREMIUM_PRODUCTS,
     approve_payment,
     create_payment_record,
+    expire_pending_payment,
     find_payment,
     find_payment_by_external,
     public_payment,
     record_payment_event,
     update_payment,
 )
+from app.core.payment_notifications import send_payment_notification
 
 
 router = APIRouter(tags=["Payments"])
@@ -43,6 +45,11 @@ class PaymentCreatePayload(BaseModel):
 
 def _frontend_url(path: str) -> str:
     return f"{str(settings.frontend_url).rstrip('/')}{path}"
+
+
+def _backend_url(path: str) -> str:
+    base_url = settings.backend_public_url or settings.frontend_url
+    return f"{str(base_url).rstrip('/')}{path}"
 
 
 def _current_user_id(request: Request) -> str | None:
@@ -154,14 +161,17 @@ async def create_payment(request: Request, payload: PaymentCreatePayload) -> dic
     else:
         payment = _create_paypal_order(payment)
 
+    send_payment_notification(payment, "pending")
     return {"payment": payment}
 
 
 @router.post("/payments/paypal/{payment_id}/capture")
 async def capture_paypal_payment(request: Request, payment_id: str) -> dict:
-    payment = find_payment(payment_id)
+    payment = expire_pending_payment(payment_id)
     if not payment or payment.get("provider") != "paypal":
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pagamento nao encontrado.")
+    if payment.get("status") == "expired":
+        return {"payment": public_payment(payment)}
     user_id = _current_user_id(request)
     if payment.get("user_id") and payment.get("user_id") != user_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pagamento nao encontrado.")
@@ -183,7 +193,7 @@ async def capture_paypal_payment(request: Request, payment_id: str) -> dict:
 
 @router.get("/payments/{payment_id}/status")
 async def payment_status(request: Request, payment_id: str) -> dict:
-    payment = find_payment(payment_id)
+    payment = expire_pending_payment(payment_id)
     if not payment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pagamento nao encontrado.")
     user_id = _current_user_id(request)
@@ -196,9 +206,11 @@ async def payment_status(request: Request, payment_id: str) -> dict:
 async def sandbox_approve_payment(payment_id: str) -> dict:
     if _is_production():
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Simulacao indisponivel em producao.")
-    payment = find_payment(payment_id)
+    payment = expire_pending_payment(payment_id)
     if not payment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pagamento nao encontrado.")
+    if payment.get("status") == "expired":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Pagamento expirado. Gere um novo checkout.")
     if payment.get("metadata", {}).get("sandbox_simulated") is not True:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Pagamento real deve ser confirmado pelo provedor.")
     return {"payment": approve_payment(payment_id, external_payment_id=f"sandbox-{payment_id}")}
@@ -281,6 +293,7 @@ def _create_mercadopago_checkout(payment: dict, user: dict | None) -> dict:
             "payment_method_id": "pix",
             "payer": {"email": user["email"]},
             "external_reference": payment["id"],
+            "date_of_expiration": payment.get("expires_at"),
             "metadata": {"polaryix_payment_id": payment["id"]},
         }
         data = _json_request(
@@ -311,12 +324,14 @@ def _create_mercadopago_checkout(payment: dict, user: dict | None) -> dict:
             }
         ],
         "external_reference": payment["id"],
+        "expires": True,
+        "expiration_date_to": payment.get("expires_at"),
         "back_urls": {
             "success": _frontend_url(f"/payment/success?payment_id={payment['id']}"),
             "pending": _frontend_url(f"/payment/pending?payment_id={payment['id']}"),
             "failure": _frontend_url(f"/payment/cancelled?payment_id={payment['id']}"),
         },
-        "notification_url": _frontend_url("/api/v1/webhooks/mercadopago"),
+        "notification_url": _backend_url("/api/v1/webhooks/mercadopago"),
         "metadata": {"polaryix_payment_id": payment["id"]},
     }
     data = _json_request("https://api.mercadopago.com/checkout/preferences", "POST", body, {"Authorization": f"Bearer {settings.mercadopago_access_token}"})

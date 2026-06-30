@@ -22,5 +22,29 @@
       "sandbox_simulated": true
     },
     "benefit_applied": true
+  },
+  {
+    "id": "1ec258e2-b5ce-4800-8511-0d29d5a153e5",
+    "user_id": "b7d2e63f-960a-4e93-b578-5da47e85a1c0",
+    "provider": "paypal",
+    "type": "premium",
+    "amount": 59.88,
+    "currency": "BRL",
+    "status": "pending",
+    "external_payment_id": null,
+    "checkout_url": "https://polaryix.vercel.app/payment/pending?payment_id=1ec258e2-b5ce-4800-8511-0d29d5a153e5&sandbox=1",
+    "qr_code": "POLARYIX-SANDBOX-1ec258e2-b5ce-4800-8511-0d29d5a153e5",
+    "qr_code_base64": null,
+    "created_at": "2026-06-30T13:21:13.083133+00:00",
+    "updated_at": "2026-06-30T13:21:13.089455+00:00",
+    "paid_at": null,
+    "metadata": {
+      "plan": "basic",
+      "billing": "annual",
+      "credits": 1000,
+      "method": "checkout",
+      "sandbox_simulated": true
+    },
+    "benefit_applied": false
   }
 ]

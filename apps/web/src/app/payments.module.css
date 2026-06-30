@@ -200,10 +200,17 @@
   background: rgba(8, 116, 255, 0.06);
 }
 
+.qrCodePanel {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  margin: 0.9rem 0;
+}
+
 .qrBox img {
   display: block;
   width: min(220px, 100%);
-  margin: 0 auto 1rem;
+  margin: 0 auto;
   border-radius: 10px;
 }
 
@@ -211,6 +218,13 @@
   word-break: break-all;
   color: var(--muted);
   font-size: 0.86rem;
+}
+
+.expiryNotice {
+  max-width: 620px;
+  margin: 0.65rem auto 0;
+  color: #0b5fc4 !important;
+  font-weight: 850;
 }
 
 .statusPanel {

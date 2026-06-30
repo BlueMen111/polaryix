@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     basic_monthly_credits: int = 1000
     pro_monthly_credits: int = 3000
     frontend_url: str = "http://localhost:3000"
+    backend_public_url: str | None = None
     google_client_id: str | None = None
     google_client_secret: str | None = None
     google_redirect_uri: str | None = None
@@ -31,6 +32,12 @@ class Settings(BaseSettings):
     paypal_client_secret: str | None = None
     paypal_webhook_id: str | None = None
     paypal_env: str = "sandbox"
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_from_email: str | None = None
+    smtp_use_tls: bool = True
     conversion_workers: int = 2
     max_concurrent_conversions: int = 2
     file_retention_hours: int = 12

@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { capturePayPalPayment, getPaymentStatus, sandboxApprovePayment, type PaymentRecord } from "@/lib/api";
+import { capturePayPalPayment, getPaymentStatus, type PaymentRecord } from "@/lib/api";
 import styles from "../payments.module.css";
 
 export default function PaymentStatusClient({ mode }: { mode: "success" | "pending" | "cancelled" }) {
@@ -11,6 +10,7 @@ export default function PaymentStatusClient({ mode }: { mode: "success" | "pendi
   const paymentId = searchParams.get("payment_id") || "";
   const [payment, setPayment] = useState<PaymentRecord | null>(null);
   const [message, setMessage] = useState("Consultando pagamento...");
+  const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
     let active = true;
@@ -39,23 +39,17 @@ export default function PaymentStatusClient({ mode }: { mode: "success" | "pendi
     return () => {
       active = false;
       window.clearInterval(interval);
+      window.localStorage.removeItem("polaryix:last-payment-id");
     };
   }, [paymentId, mode]);
 
-  async function approveSandbox() {
-    if (!paymentId) return;
-    setMessage("Simulando aprovacao sandbox...");
-    try {
-      const data = await sandboxApprovePayment(paymentId);
-      setPayment(data.payment);
-      setMessage(statusMessage(data.payment.status));
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Nao foi possivel aprovar no sandbox.");
-    }
-  }
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   const title = mode === "success" ? "Pagamento recebido" : mode === "cancelled" ? "Pagamento cancelado" : "Aguardando pagamento";
-  const sandbox = payment?.metadata?.sandbox_simulated === true;
+  const countdown = payment?.expires_at ? expiryCountdown(payment.expires_at, now) : null;
 
   return (
     <main className={styles.page}>
@@ -68,22 +62,30 @@ export default function PaymentStatusClient({ mode }: { mode: "success" | "pendi
           <div className={styles.qrBox}>
             <strong>Status: {payment.status}</strong>
             <p>Valor: {payment.currency} {Number(payment.amount).toFixed(2)}</p>
-            {payment.qr_code_base64 ? <img alt="QR Code PIX" src={`data:image/png;base64,${payment.qr_code_base64}`} /> : null}
+            {payment.status === "pending" ? (
+              <p className={styles.expiryNotice}>
+                Este checkout expira em 5 minutos sem confirmacao de pagamento{countdown ? ` (${countdown})` : ""}.
+              </p>
+            ) : null}
+            {payment.qr_code_base64 ? (
+              <div className={styles.qrCodePanel}>
+                <strong>QR Code PIX</strong>
+                <img alt="QR Code PIX" src={`data:image/png;base64,${payment.qr_code_base64}`} />
+              </div>
+            ) : null}
             {payment.qr_code ? (
               <>
+                <strong>Codigo PIX copia e cola</strong>
                 <p className={styles.qrCode}>{payment.qr_code}</p>
                 <button className={styles.copyButton} type="button" onClick={() => navigator.clipboard.writeText(payment.qr_code || "")}>Copiar codigo PIX</button>
                 <p>Apos o pagamento, a confirmacao pode levar alguns segundos.</p>
               </>
             ) : null}
+            {!payment.qr_code && !payment.qr_code_base64 && payment.status === "pending" ? (
+              <p>Finalize o pagamento na janela segura do provedor. Se o checkout expirar, gere uma nova tentativa.</p>
+            ) : null}
           </div>
         ) : null}
-
-        <div className={styles.statusActions}>
-          {sandbox && payment?.status === "pending" ? <button className={styles.button} type="button" onClick={approveSandbox}>Aprovar sandbox</button> : null}
-          <Link className={styles.ghostButton} href="/dashboard">Dashboard</Link>
-          <Link className={styles.ghostButton} href="/premium">Premium</Link>
-        </div>
       </section>
       <section className={styles.security}>
         <strong>Compra protegida</strong>
@@ -102,4 +104,11 @@ function statusMessage(status: PaymentRecord["status"]) {
   if (status === "expired") return "Pagamento expirado.";
   if (status === "refunded") return "Pagamento reembolsado.";
   return "Pagamento falhou ou precisa de nova tentativa.";
+}
+
+function expiryCountdown(expiresAt: string, now: number) {
+  const remaining = Math.max(0, new Date(expiresAt).getTime() - now);
+  const minutes = Math.floor(remaining / 60000);
+  const seconds = Math.floor((remaining % 60000) / 1000);
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }

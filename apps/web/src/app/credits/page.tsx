@@ -23,7 +23,6 @@ export default function CreditsPage() {
     setMessage("Preparando pagamento seguro...");
     try {
       const { payment } = await createPayment({ provider, type: "credits", creditsPackage: packageId, method });
-      window.localStorage.setItem("polaryix:last-payment-id", payment.id);
       window.location.href = payment.checkout_url || `/payment/pending?payment_id=${payment.id}`;
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Nao foi possivel iniciar o pagamento.");

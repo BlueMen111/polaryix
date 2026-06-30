@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
 
 from app.core.auth_store import apply_plan_to_user, find_user_by_id, read_users, write_users
 from app.core.config.settings import settings
+from app.core.payment_notifications import send_payment_notification
 
 
 logger = logging.getLogger("polaryix.payments")
@@ -15,6 +16,7 @@ logger = logging.getLogger("polaryix.payments")
 PAYMENT_STATUSES = {"pending", "approved", "rejected", "cancelled", "expired", "refunded", "failed"}
 PAYMENT_TYPES = {"donation", "credits", "premium"}
 PAYMENT_PROVIDERS = {"mercadopago", "paypal"}
+PAYMENT_EXPIRATION_MINUTES = 5
 
 PREMIUM_PRODUCTS = {
     ("basic", "monthly"): {"amount": 9.99, "currency": "BRL", "credits": 1000},
@@ -40,6 +42,22 @@ def payment_events_path() -> Path:
 
 def _now() -> str:
     return datetime.now(UTC).isoformat()
+
+
+def _expires_at() -> str:
+    return (datetime.now(UTC) + timedelta(minutes=PAYMENT_EXPIRATION_MINUTES)).isoformat()
+
+
+def _parse_datetime(value: object) -> datetime | None:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed
 
 
 def _read_json(path: Path, fallback):
@@ -113,6 +131,7 @@ def create_payment_record(
         "qr_code_base64": None,
         "created_at": _now(),
         "updated_at": _now(),
+        "expires_at": _expires_at(),
         "paid_at": None,
         "metadata": sanitize_metadata(metadata),
         "benefit_applied": False,
@@ -137,6 +156,7 @@ def update_payment(payment_id: str, **updates: object) -> dict:
                     "checkout_url",
                     "qr_code",
                     "qr_code_base64",
+                    "expires_at",
                     "paid_at",
                     "benefit_applied",
                 }:
@@ -165,6 +185,20 @@ def find_payment_by_external(provider: str, external_payment_id: str) -> dict | 
     )
 
 
+def expire_pending_payment(payment_id: str) -> dict | None:
+    payment = find_payment(payment_id)
+    if not payment or payment.get("status") != "pending":
+        return payment
+
+    expires_at = _parse_datetime(payment.get("expires_at"))
+    if not expires_at or expires_at > datetime.now(UTC):
+        return payment
+
+    expired = update_payment(payment_id, status="expired")
+    send_payment_notification(expired, "expired")
+    return find_payment(payment_id)
+
+
 def record_payment_event(provider: str, event_id: str, event_type: str, payload: dict, signature_valid: bool) -> tuple[dict, bool]:
     events = read_payment_events()
     existing = next((event for event in events if event.get("provider") == provider and event.get("event_id") == event_id), None)
@@ -185,9 +219,11 @@ def record_payment_event(provider: str, event_id: str, event_type: str, payload:
 
 
 def approve_payment(payment_id: str, external_payment_id: str | None = None) -> dict:
-    payment = find_payment(payment_id)
+    payment = expire_pending_payment(payment_id)
     if not payment:
         raise KeyError("Payment not found.")
+    if payment.get("status") == "expired":
+        return public_payment(payment)
     if payment.get("status") != "approved":
         update_payment(
             payment_id,
@@ -196,7 +232,9 @@ def approve_payment(payment_id: str, external_payment_id: str | None = None) -> 
             paid_at=_now(),
         )
     apply_payment_benefit(payment_id)
-    return public_payment(find_payment(payment_id) or payment)
+    approved = find_payment(payment_id) or payment
+    send_payment_notification(approved, "approved")
+    return public_payment(approved)
 
 
 def apply_payment_benefit(payment_id: str) -> None:
@@ -248,6 +286,7 @@ def public_payment(payment: dict) -> dict:
         "qr_code_base64": payment.get("qr_code_base64"),
         "created_at": payment.get("created_at"),
         "updated_at": payment.get("updated_at"),
+        "expires_at": payment.get("expires_at"),
         "paid_at": payment.get("paid_at"),
         "metadata": payment.get("metadata") or {},
     }

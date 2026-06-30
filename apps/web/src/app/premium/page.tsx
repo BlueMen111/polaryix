@@ -68,7 +68,6 @@ export default function PremiumPage() {
 
     try {
       const { payment } = await createPayment({ provider, type: "premium", plan: plan.plan, billing: plan.billing, method });
-      window.localStorage.setItem("polaryix:last-payment-id", payment.id);
       window.location.href = payment.checkout_url || `/payment/pending?payment_id=${payment.id}`;
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Nao foi possivel iniciar o pagamento.");

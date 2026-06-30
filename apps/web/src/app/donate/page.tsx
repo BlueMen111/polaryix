@@ -19,7 +19,6 @@ export default function DonatePage() {
 
     try {
       const { payment } = await createPayment({ provider, type: "donation", amount: safeAmount, currency: "BRL", method });
-      window.localStorage.setItem("polaryix:last-payment-id", payment.id);
       window.location.href = payment.checkout_url || `/payment/pending?payment_id=${payment.id}`;
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Nao foi possivel iniciar a doacao.");
