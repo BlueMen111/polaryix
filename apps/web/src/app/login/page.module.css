@@ -148,6 +148,39 @@
   color: rgba(96, 114, 142, 0.72);
 }
 
+.passwordField {
+  position: relative;
+  display: block;
+}
+
+.passwordField input {
+  padding-right: 7.2rem;
+}
+
+.passwordField button {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  min-height: 36px;
+  border: 1px solid rgba(8, 116, 255, 0.14);
+  border-radius: 10px;
+  background: rgba(8, 116, 255, 0.08);
+  color: #0874ff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 950;
+  padding: 0 0.65rem;
+  transform: translateY(-50%);
+}
+
+.passwordField button:hover,
+.passwordField button:focus-visible {
+  border-color: rgba(8, 116, 255, 0.38);
+  background: rgba(8, 116, 255, 0.12);
+  outline: none;
+}
+
 .formFooter {
   display: flex;
   align-items: center;

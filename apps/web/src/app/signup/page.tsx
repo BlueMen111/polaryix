@@ -23,6 +23,8 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [status, setStatus] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -81,18 +83,34 @@ export default function SignupPage() {
           </label>
 
           <label>
-            E-mail
-            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="seu@email.com" required />
+            {t("auth.email")}
+            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder={t("auth.emailPlaceholder")} required />
           </label>
 
           <label>
             {t("auth.password")}
-            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder={t("auth.passwordMinPlaceholder")} required minLength={8} />
+            <span className={styles.passwordField}>
+              <input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={t("auth.passwordMinPlaceholder")} required minLength={8} />
+              <button type="button" onClick={() => setShowPassword((current) => !current)} aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}>
+                {showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
+              </button>
+            </span>
           </label>
 
           <label>
             {t("auth.confirmPassword")}
-            <input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder={t("auth.confirmPasswordPlaceholder")} required />
+            <span className={styles.passwordField}>
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                placeholder={t("auth.confirmPasswordPlaceholder")}
+                required
+              />
+              <button type="button" onClick={() => setShowConfirmPassword((current) => !current)} aria-label={showConfirmPassword ? t("auth.hidePassword") : t("auth.showPassword")}>
+                {showConfirmPassword ? t("auth.hidePassword") : t("auth.showPassword")}
+              </button>
+            </span>
           </label>
 
           <label className={styles.terms}>
