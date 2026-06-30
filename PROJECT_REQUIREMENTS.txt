@@ -15,6 +15,7 @@ API
   - DEBUG=false
   - FRONTEND_URL=https://polaryix.vercel.app
   - ALLOWED_ORIGINS=https://polaryix.vercel.app
+  - LINK_DOWNLOAD_RETENTION_MINUTES=10
   - ADMIN_CLEANUP_TOKEN=<strong random token>
   - GOOGLE_CLIENT_ID=<google oauth client id>
   - GOOGLE_CLIENT_SECRET=<google oauth client secret>
@@ -30,6 +31,7 @@ Storage
 - Generated files are written under storage/ and apps/api/storage/.
 - Never commit generated storage, virtualenvs, node_modules, .next, logs or local auth JSON.
 - Configure regular cleanup for expired conversion/workspace files.
+- Link downloads are temporary and should be retained for 10 minutes after conversion.
 - Use a persistent production storage backend before going live if multiple API instances are used.
 
 Security expectations

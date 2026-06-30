@@ -22,7 +22,9 @@ logger = logging.getLogger("polaryix.cleanup")
 
 
 async def cleanup_loop() -> None:
-    interval_seconds = max(settings.cleanup_interval_hours, 1) * 60 * 60
+    default_interval_seconds = max(settings.cleanup_interval_hours, 1) * 60 * 60
+    link_interval_seconds = max(settings.link_download_retention_minutes, 1) * 60
+    interval_seconds = max(min(default_interval_seconds, link_interval_seconds), 60)
     while True:
         await asyncio.sleep(interval_seconds)
         try:

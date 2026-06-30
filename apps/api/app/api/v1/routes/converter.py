@@ -1216,6 +1216,7 @@ async def create_download_link_job(
             priority_level=int(account["limits"].priority_level),
             operation_type=f"download_{media_type}",
             extension=selected_download_format.lower(),
+            expires_at=(datetime.now(UTC) + timedelta(minutes=settings.link_download_retention_minutes)).isoformat(),
         )
         history_id = str(record["id"])
 

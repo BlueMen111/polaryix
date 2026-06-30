@@ -13,6 +13,7 @@ Generated: 2026-06-29
 - [ ] Protect or remove public dataset endpoints if they are not intentionally public.
 - [ ] Re-enable CSV injection mitigation or escape dangerous spreadsheet cells during export.
 - [ ] Add production cleanup for generated storage folders.
+- [ ] Keep link download retention short with `LINK_DOWNLOAD_RETENTION_MINUTES=10`.
 - [ ] Ensure storage files are served only through authenticated ownership-checked endpoints.
 - [ ] Configure Google OAuth with production callback URLs.
 - [ ] Remove temporary test credentials and local test OAuth keys before launch.

@@ -1,7 +1,7 @@
 ﻿PolarYix unused/cleanup candidates report
-Generated: 2026-06-29 22:27:18
+Generated: 2026-06-29 22:49:23
 
-Nenhum item foi removido. Esta lista e uma triagem para revisao manual.
+Nenhum item restante foi removido por este relatorio. Esta lista e uma triagem para revisao manual.
 
 - .venv-1
   Size: 851.48 MB; Files: 19054
@@ -16,25 +16,25 @@ Nenhum item foi removido. Esta lista e uma triagem para revisao manual.
   Size: 422.25 MB; Files: 19883
   Note: dependencias instaladas; regenerar com npm install
 - apps\web\.next
-  Size: 105.22 MB; Files: 281
+  Size: 0 MB; Files: 0
   Note: build cache do Next; regenerar com npm run build
 - storage\processed\link_downloads
-  Size: 5717.69 MB; Files: 14
+  Size: 0 MB; Files: 0
   Note: downloads gerados; candidatos a limpeza por retencao
 - storage\processed\conversions
-  Size: 321.78 MB; Files: 14
+  Size: 0 MB; Files: 0
   Note: conversoes geradas; candidatos a limpeza por retencao
 - apps\api\storage\quarantine
-  Size: 952.48 MB; Files: 86
+  Size: 0 MB; Files: 0
   Note: uploads de datasets em quarentena; validar retencao antes de limpar
 - apps\api\storage\processed
-  Size: 207.88 MB; Files: 138
+  Size: 0.66 MB; Files: 117
   Note: arquivos processados pela API; limpar apenas registros expirados
 - logs
   Size: 0.05 MB; Files: 5
   Note: logs locais; podem conter dados sensiveis
 - apps\api\app\__pycache__
-  Size: 0 MB; Files: 2
+  Size: 0 MB; Files: 1
   Note: cache Python
 - apps\api\polaryix_api.egg-info
   Size: 0 MB; Files: 5
@@ -47,4 +47,4 @@ Root test/sample files to review before production:
 - test_profiler.py (0.8 KB)
 - test_upload.py (0.9 KB)
 
-Recommended next action: run the app cleanup endpoint with ADMIN_CLEANUP_TOKEN configured, then review large generated media before deleting manually.
+Recommended next action: keep dependency folders locally if needed, but exclude them from git and production artifacts.

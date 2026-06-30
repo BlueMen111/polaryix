@@ -1,6 +1,0 @@
-﻿cliente_id,nome,email,cidade,vendas_totais,data_primeira_compra
-1,João Silva,joao@example.com,São Paulo,15000,2020-01-15
-2,Maria Santos,maria@example.com,Rio de Janeiro,22000,2019-06-22
-3,Pedro Oliveira,pedro@example.com,Belo Horizonte,18500,2021-03-10
-4,Ana Costa,ana@example.com,Curitiba,25000,2018-11-05
-5,Carlos Ferreira,carlos@example.com,Salvador,12000,2022-02-28

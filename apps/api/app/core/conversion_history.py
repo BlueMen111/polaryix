@@ -296,5 +296,43 @@ def cleanup_expired_files(now: datetime | None = None) -> dict:
         marked_records += 1
 
     write_history(records)
-    logger.info("Cleanup finished: %s files deleted, %s records marked.", deleted_files, marked_records)
-    return {"deleted_files": deleted_files, "marked_records": marked_records}
+    deleted_link_downloads = cleanup_temporary_link_downloads(current)
+    logger.info(
+        "Cleanup finished: %s files deleted, %s records marked, %s temporary link downloads deleted.",
+        deleted_files,
+        marked_records,
+        deleted_link_downloads,
+    )
+    return {
+        "deleted_files": deleted_files,
+        "marked_records": marked_records,
+        "deleted_link_downloads": deleted_link_downloads,
+    }
+
+
+def cleanup_temporary_link_downloads(now: datetime | None = None) -> int:
+    current = now or _now()
+    link_dir = settings.processed_path / "link_downloads"
+    if not link_dir.exists():
+        return 0
+
+    retention_seconds = max(int(settings.link_download_retention_minutes), 1) * 60
+    cutoff_timestamp = current.timestamp() - retention_seconds
+    deleted = 0
+
+    for path in link_dir.iterdir():
+        if not path.is_file():
+            continue
+        try:
+            resolved = path.resolve()
+            storage_root = settings.storage_path.resolve()
+            if storage_root not in resolved.parents and resolved != storage_root:
+                logger.warning("Skipped temporary link cleanup outside storage: %s", resolved)
+                continue
+            if path.stat().st_mtime <= cutoff_timestamp:
+                path.unlink()
+                deleted += 1
+        except OSError as exc:
+            logger.warning("Failed to delete temporary link download %s: %s", path, exc)
+
+    return deleted
