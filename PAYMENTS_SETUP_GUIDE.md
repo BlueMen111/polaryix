@@ -22,6 +22,7 @@ PAYPAL_ENV=sandbox
 
 FRONTEND_URL=http://localhost:3000
 BACKEND_PUBLIC_URL=http://localhost:8000
+PUBLIC_LOGO_URL=http://localhost:3000/assets/polaryix-logo.png
 SMTP_HOST=
 SMTP_PORT=587
 SMTP_USERNAME=
@@ -170,6 +171,8 @@ PolarYix also uses SMTP for account security emails:
 - Resend verification link from `/resend-verification`.
 - Password reset request from `/forgot-password`.
 - Password reset confirmation flow from `/reset-password?token=<token>`.
+- HTML email templates include the PolarYix logo when `PUBLIC_LOGO_URL` points to a public image.
+- Never send the customer's password by email. Emails may show the login email, but passwords must remain secret.
 
 Development fallback:
 
@@ -182,8 +185,66 @@ Production requirements:
 
 - Configure a real transactional email provider or Google Workspace SMTP.
 - Use `SMTP_FROM_EMAIL` from the final domain, for example `no-reply@polaryix.com`.
+- Set `PUBLIC_LOGO_URL=https://polaryix.com/assets/polaryix-logo.png` or another public logo URL.
 - Configure SPF, DKIM and DMARC on the domain before sending real customer emails.
 - Test verification, resend verification, forgot password and reset password before launch.
+
+## Google Login OAuth
+
+Google OAuth is separate from SMTP email sending. Keep using OAuth for "Entrar com Google".
+
+Google Cloud setup:
+
+1. Open Google Cloud Console.
+2. Create or select a project for PolarYix.
+3. Open APIs and Services > OAuth consent screen.
+4. Configure app name, support email and authorized domain.
+5. Open Credentials > Create credentials > OAuth client ID.
+6. Choose Web application.
+7. Add authorized JavaScript origins:
+   - Development: `http://localhost:3000`
+   - Production: `https://polaryix.com`
+8. Add authorized redirect URIs:
+   - Development: `http://localhost:3000/auth/google/callback` for frontend exchange mode, or `http://localhost:8000/api/v1/auth/oauth/google/callback` for backend callback mode.
+   - Production: `https://polaryix.com/auth/google/callback` for frontend exchange mode, or `https://api.polaryix.com/api/v1/auth/oauth/google/callback` for backend callback mode.
+9. Copy Client ID to `GOOGLE_CLIENT_ID`.
+10. Copy Client Secret to `GOOGLE_CLIENT_SECRET`.
+11. Set `GOOGLE_REDIRECT_URI` to the callback mode used by the deployed app.
+
+Current PolarYix frontend uses `/auth/google/callback` and exchanges the Google code with the backend. For that flow, set the production Google redirect URI to:
+
+```env
+GOOGLE_REDIRECT_URI=https://polaryix.com/auth/google/callback
+```
+
+If you decide to use only the backend callback endpoint instead, set:
+
+```env
+GOOGLE_REDIRECT_URI=https://api.polaryix.com/api/v1/auth/oauth/google/callback
+```
+
+## Google SMTP Option
+
+For account/payment emails, use SMTP. Google can be used, but a transactional provider is usually better for deliverability.
+
+Google Workspace SMTP example:
+
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=no-reply@polaryix.com
+SMTP_PASSWORD=your-google-app-password-or-smtp-password
+SMTP_FROM_EMAIL=no-reply@polaryix.com
+SMTP_USE_TLS=true
+```
+
+Google setup for SMTP:
+
+1. Use Google Workspace for the final domain if possible.
+2. Enable 2-Step Verification on the sending mailbox.
+3. Create an App Password for SMTP, or configure an approved SMTP relay in Google Workspace Admin.
+4. Put the app password or relay credential in `SMTP_PASSWORD`.
+5. Test verification email, password reset email and payment email before launch.
 
 ## Production Required Checks
 

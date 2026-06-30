@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     pro_monthly_credits: int = 3000
     frontend_url: str = "http://localhost:3000"
     backend_public_url: str | None = None
+    public_logo_url: str | None = None
     google_client_id: str | None = None
     google_client_secret: str | None = None
     google_redirect_uri: str | None = None

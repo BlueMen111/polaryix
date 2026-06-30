@@ -81,13 +81,26 @@ def send_verification_email(email: str, name: str, token: str) -> None:
     subject = "PolarYix - confirme seu e-mail"
     body = (
         f"Ola, {name}.\n\n"
-        "Recebemos seu cadastro no PolarYix. Para proteger sua conta, confirme seu e-mail pelo link abaixo:\n\n"
+        "Sua conta PolarYix foi criada com sucesso. Para proteger seu acesso, confirme seu e-mail pelo link abaixo:\n\n"
         f"{verify_url}\n\n"
+        "Guarde seu e-mail de login com seguranca. Por protecao, o PolarYix nunca envia sua senha por e-mail.\n\n"
         "Este link expira em 24 horas. Se voce nao criou esta conta, ignore esta mensagem.\n\n"
         "Atenciosamente,\n"
         "Equipe PolarYix"
     )
-    _send_or_store("email_verification", email, subject, body)
+    html_body = _email_layout(
+        title="Conta criada com sucesso",
+        intro=f"Ola, {name}. Sua conta PolarYix foi criada com sucesso.",
+        sections=[
+            ("Login", email),
+            ("Seguranca", "Por protecao, nunca enviamos sua senha por e-mail. Guarde sua senha em local seguro."),
+            ("Validade do link", "24 horas"),
+        ],
+        button_label="Confirmar e-mail",
+        button_url=verify_url,
+        footer="Se voce nao criou esta conta, ignore esta mensagem.",
+    )
+    _send_or_store("email_verification", email, subject, body, html_body)
 
 
 def send_password_reset_email(email: str, name: str, token: str) -> None:
@@ -101,16 +114,29 @@ def send_password_reset_email(email: str, name: str, token: str) -> None:
         "Atenciosamente,\n"
         "Equipe PolarYix"
     )
-    _send_or_store("password_reset", email, subject, body)
+    html_body = _email_layout(
+        title="Redefinicao de senha",
+        intro=f"Ola, {name}. Recebemos uma solicitacao para redefinir sua senha.",
+        sections=[
+            ("Login", email),
+            ("Validade do link", "30 minutos"),
+            ("Uso", "Este link pode ser usado apenas uma vez."),
+        ],
+        button_label="Redefinir senha",
+        button_url=reset_url,
+        footer="Se voce nao solicitou a redefinicao, ignore esta mensagem.",
+    )
+    _send_or_store("password_reset", email, subject, body, html_body)
 
 
-def _send_or_store(kind: str, recipient: str, subject: str, body: str) -> None:
+def _send_or_store(kind: str, recipient: str, subject: str, body: str, html_body: str | None = None) -> None:
     entry = {
         "id": secrets.token_hex(12),
         "kind": kind,
         "recipient": recipient,
         "subject": subject,
         "body": body,
+        "html_body": html_body,
         "sent": False,
         "reason": None,
         "created_at": datetime.now(UTC).isoformat(),
@@ -118,7 +144,7 @@ def _send_or_store(kind: str, recipient: str, subject: str, body: str) -> None:
 
     if _smtp_ready():
         try:
-            _send_smtp(recipient, subject, body)
+            _send_smtp(recipient, subject, body, html_body)
             entry["sent"] = True
         except Exception as exc:  # pragma: no cover - depends on external SMTP.
             logger.warning("Account email could not be sent: %s", exc)
@@ -135,12 +161,14 @@ def _smtp_ready() -> bool:
     return bool(settings.smtp_host and settings.smtp_from_email)
 
 
-def _send_smtp(recipient: str, subject: str, body: str) -> None:
+def _send_smtp(recipient: str, subject: str, body: str, html_body: str | None = None) -> None:
     message = EmailMessage()
     message["From"] = str(settings.smtp_from_email)
     message["To"] = recipient
     message["Subject"] = subject
     message.set_content(body)
+    if html_body:
+        message.add_alternative(html_body, subtype="html")
 
     with smtplib.SMTP(str(settings.smtp_host), int(settings.smtp_port), timeout=20) as smtp:
         if settings.smtp_use_tls:
@@ -148,6 +176,77 @@ def _send_smtp(recipient: str, subject: str, body: str) -> None:
         if settings.smtp_username and settings.smtp_password:
             smtp.login(str(settings.smtp_username), str(settings.smtp_password))
         smtp.send_message(message)
+
+
+def _email_layout(
+    *,
+    title: str,
+    intro: str,
+    sections: list[tuple[str, str]],
+    button_label: str,
+    button_url: str,
+    footer: str,
+) -> str:
+    logo = _logo_html()
+    rows = "".join(
+        f"""
+        <tr>
+          <td style="padding:10px 0;color:#60728e;font-size:14px;">{_escape(label)}</td>
+          <td style="padding:10px 0;color:#061334;font-size:14px;font-weight:700;text-align:right;">{_escape(value)}</td>
+        </tr>
+        """
+        for label, value in sections
+    )
+    return f"""<!doctype html>
+<html>
+  <body style="margin:0;background:#eef7ff;font-family:Arial,Helvetica,sans-serif;color:#061334;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#eef7ff;padding:28px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border:1px solid #d8eaff;border-radius:18px;overflow:hidden;">
+            <tr>
+              <td style="padding:28px 28px 12px;text-align:center;">{logo}</td>
+            </tr>
+            <tr>
+              <td style="padding:0 28px 8px;text-align:center;">
+                <p style="margin:0 0 8px;color:#0874ff;font-size:12px;font-weight:900;text-transform:uppercase;">PolarYix Account</p>
+                <h1 style="margin:0;color:#061334;font-size:30px;line-height:1.1;">{_escape(title)}</h1>
+                <p style="margin:14px 0 0;color:#60728e;font-size:16px;line-height:1.55;">{_escape(intro)}</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 28px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-top:1px solid #d8eaff;border-bottom:1px solid #d8eaff;">{rows}</table>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:8px 28px 28px;">
+                <a href="{_escape(button_url)}" style="display:inline-block;background:#0874ff;color:#ffffff;text-decoration:none;font-weight:800;padding:13px 22px;border-radius:10px;">{_escape(button_label)}</a>
+                <p style="margin:18px 0 0;color:#60728e;font-size:13px;line-height:1.5;">{_escape(footer)}</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>"""
+
+
+def _logo_html() -> str:
+    if settings.public_logo_url:
+        return f'<img src="{_escape(settings.public_logo_url)}" alt="PolarYix" width="150" style="display:inline-block;max-width:150px;height:auto;">'
+    return '<div style="font-size:24px;font-weight:900;color:#0874ff;">PolarYix</div>'
+
+
+def _escape(value: object) -> str:
+    return (
+        str(value)
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
 
 
 def _hash_token(token: str) -> str:
