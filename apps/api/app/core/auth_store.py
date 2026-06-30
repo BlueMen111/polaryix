@@ -88,6 +88,8 @@ def ensure_user_defaults(user: dict) -> dict:
     user.setdefault("max_concurrent_conversions", FREE_PLAN.max_concurrent_conversions)
     user.setdefault("priority_level", FREE_PLAN.priority_level)
     user.setdefault("auth_provider", "email")
+    user.setdefault("email_verified", user.get("auth_provider") == "google")
+    user.setdefault("email_verified_at", now if user.get("auth_provider") == "google" else None)
     user.setdefault("terms_accepted_at", None)
     user.setdefault("updated_at", now)
     return user
@@ -215,6 +217,8 @@ def public_user(user: dict) -> dict:
         "auth_provider": user.get("auth_provider", "email"),
         "avatar_url": user.get("avatar_url"),
         "terms_accepted_at": user.get("terms_accepted_at"),
+        "email_verified": bool(user.get("email_verified", False)),
+        "email_verified_at": user.get("email_verified_at"),
     }
 
 
@@ -227,6 +231,8 @@ def create_user(name: str, email: str, password: str | None = None, auth_provide
         "is_premium": False,
         "auth_provider": auth_provider,
         "google_id": google_id,
+        "email_verified": auth_provider == "google",
+        "email_verified_at": now if auth_provider == "google" else None,
         "terms_accepted_at": now if terms_accepted else None,
         "created_at": now,
         "updated_at": now,

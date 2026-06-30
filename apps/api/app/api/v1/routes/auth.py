@@ -16,8 +16,10 @@ from app.core.auth_store import (
     consume_user_credits,
     create_user,
     find_user_by_email,
+    find_user_by_id,
     get_bearer_token,
     get_current_user,
+    hash_password,
     issue_session,
     public_user,
     read_sessions,
@@ -25,6 +27,12 @@ from app.core.auth_store import (
     verify_password,
     write_sessions,
     write_users,
+)
+from app.core.account_security import (
+    consume_account_token,
+    create_account_token,
+    send_password_reset_email,
+    send_verification_email,
 )
 from app.core.config.settings import settings
 from app.core.premium import PREMIUM_PLANS, public_plan_data
@@ -44,6 +52,19 @@ class SignupPayload(BaseModel):
 class LoginPayload(BaseModel):
     email: str = Field(..., min_length=5, max_length=254)
     password: str = Field(..., min_length=1, max_length=128)
+
+
+class EmailPayload(BaseModel):
+    email: str = Field(..., min_length=5, max_length=254)
+
+
+class VerifyEmailPayload(BaseModel):
+    token: str = Field(..., min_length=20, max_length=256)
+
+
+class ResetPasswordPayload(BaseModel):
+    token: str = Field(..., min_length=20, max_length=256)
+    password: str = Field(..., min_length=8, max_length=128)
 
 
 class ActivatePlanPayload(BaseModel):
@@ -123,6 +144,8 @@ async def signup(payload: SignupPayload) -> AuthResponse:
     user = create_user(payload.name, email, payload.password, terms_accepted=True)
     users.append(user)
     write_users(users)
+    token, _ = create_account_token(user["id"], user["email"], "email_verification")
+    send_verification_email(user["email"], user["name"], token)
 
     return AuthResponse(token=issue_session(user["id"]), user=public_user(user))
 
@@ -136,7 +159,81 @@ async def login(payload: LoginPayload) -> AuthResponse:
     if user is None or not user.get("password_hash") or not verify_password(payload.password, user["password_salt"], user["password_hash"]):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="E-mail ou senha inválidos.")
 
+    if not user.get("email_verified"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Confirme seu e-mail antes de entrar. Voce pode reenviar o link de verificacao.",
+        )
+
     return AuthResponse(token=issue_session(user["id"]), user=public_user(user))
+
+
+@router.post("/email/verify")
+async def verify_email(payload: VerifyEmailPayload) -> dict:
+    token_data = consume_account_token(payload.token, "email_verification")
+    if not token_data:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Link de verificacao invalido ou expirado.")
+
+    users = read_users()
+    user = find_user_by_id(users, str(token_data.get("user_id")))
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conta nao encontrada.")
+
+    now = datetime.now(UTC).isoformat()
+    user["email_verified"] = True
+    user["email_verified_at"] = now
+    user["updated_at"] = now
+    write_users(users)
+    return {"ok": True, "message": "E-mail verificado com sucesso."}
+
+
+@router.post("/email/resend-verification")
+async def resend_verification(payload: EmailPayload) -> dict:
+    email = _normalize_email(payload.email)
+    users = read_users()
+    user = find_user_by_email(users, email)
+
+    if user and not user.get("email_verified"):
+        token, _ = create_account_token(user["id"], user["email"], "email_verification")
+        send_verification_email(user["email"], user["name"], token)
+
+    return {"ok": True, "message": "Se existir uma conta pendente para este e-mail, enviaremos um novo link."}
+
+
+@router.post("/password/forgot")
+async def forgot_password(payload: EmailPayload) -> dict:
+    email = _normalize_email(payload.email)
+    users = read_users()
+    user = find_user_by_email(users, email)
+
+    if user and user.get("password_hash"):
+        token, _ = create_account_token(user["id"], user["email"], "password_reset")
+        send_password_reset_email(user["email"], user["name"], token)
+
+    return {"ok": True, "message": "Se existir uma conta com senha para este e-mail, enviaremos um link de redefinicao."}
+
+
+@router.post("/password/reset")
+async def reset_password(payload: ResetPasswordPayload) -> dict:
+    token_data = consume_account_token(payload.token, "password_reset")
+    if not token_data:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Link de redefinicao invalido ou expirado.")
+
+    users = read_users()
+    user = find_user_by_id(users, str(token_data.get("user_id")))
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conta nao encontrada.")
+
+    salt, password_hash = hash_password(payload.password)
+    now = datetime.now(UTC).isoformat()
+    user["password_salt"] = salt
+    user["password_hash"] = password_hash
+    user["email_verified"] = True
+    user["email_verified_at"] = user.get("email_verified_at") or now
+    user["updated_at"] = now
+    write_users(users)
+    _revoke_user_sessions(str(user["id"]))
+    return {"ok": True, "message": "Senha redefinida com sucesso. Entre novamente."}
 
 
 @router.get("/me")
@@ -163,6 +260,8 @@ async def plans() -> dict:
 @router.post("/premium/activate")
 async def activate_plan(request: Request, payload: ActivatePlanPayload) -> dict:
     current = get_current_user(request, required=True)
+    if not current.get("email_verified"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Confirme seu e-mail antes de ativar Premium.")
     users = read_users()
     user = next((item for item in users if item.get("id") == current["id"]), None)
     if not user:
@@ -204,6 +303,8 @@ def _login_or_create_google_user(profile: dict) -> AuthResponse:
         user["google_id"] = user.get("google_id") or google_id
         user["avatar_url"] = user.get("avatar_url") or picture
         user["auth_provider"] = "google" if not user.get("password_hash") else user.get("auth_provider", "email")
+        user["email_verified"] = True
+        user["email_verified_at"] = user.get("email_verified_at") or now
         user["updated_at"] = now
     else:
         user = create_user(name, email, auth_provider="google", google_id=google_id, terms_accepted=True)
@@ -239,3 +340,9 @@ async def google_oauth_callback(code: str | None = None, error: str | None = Non
         return RedirectResponse(f"{_frontend_url()}/login?auth_error=google")
     session = _login_or_create_google_user(profile)
     return RedirectResponse(f"{_frontend_url()}/login?token={session.token}")
+
+
+def _revoke_user_sessions(user_id: str) -> None:
+    sessions = read_sessions()
+    filtered = {token: session for token, session in sessions.items() if str(session.get("user_id")) != user_id}
+    write_sessions(filtered)

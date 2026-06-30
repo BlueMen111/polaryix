@@ -162,6 +162,29 @@ The message includes the package purchased, amount, provider and internal checko
 
 If SMTP variables are empty in development, PolarYix writes a safe local outbox at `storage/notifications/payment_emails.json` so the flow can be tested without sending real emails.
 
+## Account Emails
+
+PolarYix also uses SMTP for account security emails:
+
+- Email verification after signup.
+- Resend verification link from `/resend-verification`.
+- Password reset request from `/forgot-password`.
+- Password reset confirmation flow from `/reset-password?token=<token>`.
+
+Development fallback:
+
+- If SMTP is empty, account emails are written to `storage/notifications/account_emails.json`.
+- Verification/reset tokens are stored hashed in `storage/auth/account_tokens.json`.
+- Verification links expire after 24 hours.
+- Password reset links expire after 30 minutes and are single-use.
+
+Production requirements:
+
+- Configure a real transactional email provider or Google Workspace SMTP.
+- Use `SMTP_FROM_EMAIL` from the final domain, for example `no-reply@polaryix.com`.
+- Configure SPF, DKIM and DMARC on the domain before sending real customer emails.
+- Test verification, resend verification, forgot password and reset password before launch.
+
 ## Production Required Checks
 
 - HTTPS/SSL active on frontend and backend.
@@ -171,6 +194,7 @@ If SMTP variables are empty in development, PolarYix writes a safe local outbox 
 - Real PayPal credentials configured.
 - `FRONTEND_URL` points to the final production domain.
 - SMTP credentials configured if payment emails must be sent in production.
+- SPF, DKIM and DMARC configured for account/payment emails.
 - CORS allows only trusted production domains.
 - Logs do not contain sensitive payment data.
 - Real low-value payment tested on Mercado Pago.
@@ -180,6 +204,7 @@ If SMTP variables are empty in development, PolarYix writes a safe local outbox 
 - Sandbox simulation is disabled with `ENVIRONMENT=production`.
 - Checkout expiration tested after 5 minutes.
 - Payment emails tested for pending and approved flows.
+- Account verification and password reset emails tested.
 
 ## Switching To Production
 
@@ -246,6 +271,10 @@ npm run dev
 - [ ] Final production domain configured.
 - [ ] `FRONTEND_URL` is correct.
 - [ ] SMTP configured and payment emails tested.
+- [ ] Email verification flow tested.
+- [ ] Resend verification flow tested.
+- [ ] Forgot/reset password flow tested.
+- [ ] SPF, DKIM and DMARC configured.
 - [ ] CORS is restricted to trusted domains.
 - [ ] SSL/HTTPS active.
 - [ ] Real Mercado Pago credentials configured.

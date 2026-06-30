@@ -142,6 +142,8 @@ async def create_payment(request: Request, payload: PaymentCreatePayload) -> dic
     user_id = str(user["id"]) if user else None
     if payload.type in {"credits", "premium"} and not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Faca login para comprar creditos ou Premium.")
+    if payload.type in {"credits", "premium"} and user and not user.get("email_verified"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Confirme seu e-mail antes de comprar creditos ou Premium.")
     if payload.provider == "mercadopago" and payload.method == "pix" and not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Faca login para gerar PIX com confirmacao automatica.")
 

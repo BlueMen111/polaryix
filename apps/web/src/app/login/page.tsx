@@ -106,6 +106,8 @@ export default function LoginPage() {
           </label>
 
           <div className={styles.formFooter}>
+            <Link href="/forgot-password">Esqueci minha senha</Link>
+            <Link href="/resend-verification">Reenviar verificacao</Link>
             <Link href="/signup">{t("auth.createAccount")}</Link>
           </div>
 

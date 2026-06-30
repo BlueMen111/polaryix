@@ -80,6 +80,8 @@ export type AuthUser = {
   max_concurrent_conversions?: number;
   priority_level?: number;
   avatar_url?: string | null;
+  email_verified?: boolean;
+  email_verified_at?: string | null;
 };
 
 export type AuthResponse = {
@@ -281,6 +283,70 @@ export async function signupWithEmail(payload: { name: string; email: string; pa
   }
 
   return parseJsonResponse<AuthResponse>(response, "Não foi possível criar a conta.");
+}
+
+export async function verifyEmailToken(token: string): Promise<{ ok: boolean; message: string }> {
+  const response = await fetch(apiUrl("/auth/email/verify"), {
+    method: "POST",
+    headers: apiHeaders({
+      "Content-Type": "application/json",
+    }),
+    body: JSON.stringify({ token }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Nao foi possivel verificar o e-mail."));
+  }
+
+  return parseJsonResponse<{ ok: boolean; message: string }>(response, "Nao foi possivel verificar o e-mail.");
+}
+
+export async function resendVerificationEmail(email: string): Promise<{ ok: boolean; message: string }> {
+  const response = await fetch(apiUrl("/auth/email/resend-verification"), {
+    method: "POST",
+    headers: apiHeaders({
+      "Content-Type": "application/json",
+    }),
+    body: JSON.stringify({ email }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Nao foi possivel reenviar o link."));
+  }
+
+  return parseJsonResponse<{ ok: boolean; message: string }>(response, "Nao foi possivel reenviar o link.");
+}
+
+export async function requestPasswordReset(email: string): Promise<{ ok: boolean; message: string }> {
+  const response = await fetch(apiUrl("/auth/password/forgot"), {
+    method: "POST",
+    headers: apiHeaders({
+      "Content-Type": "application/json",
+    }),
+    body: JSON.stringify({ email }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Nao foi possivel solicitar a redefinicao."));
+  }
+
+  return parseJsonResponse<{ ok: boolean; message: string }>(response, "Nao foi possivel solicitar a redefinicao.");
+}
+
+export async function resetPassword(payload: { token: string; password: string }): Promise<{ ok: boolean; message: string }> {
+  const response = await fetch(apiUrl("/auth/password/reset"), {
+    method: "POST",
+    headers: apiHeaders({
+      "Content-Type": "application/json",
+    }),
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Nao foi possivel redefinir a senha."));
+  }
+
+  return parseJsonResponse<{ ok: boolean; message: string }>(response, "Nao foi possivel redefinir a senha.");
 }
 
 export function persistAuthSession(data: AuthResponse) {

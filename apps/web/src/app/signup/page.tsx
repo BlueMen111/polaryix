@@ -48,7 +48,7 @@ export default function SignupPage() {
     try {
       const session = await signupWithEmail({ name, email, password, termsAccepted });
       persistAuthSession(session);
-      setStatus(t("auth.accountCreated"));
+      setStatus("Conta criada. Enviamos um link de verificacao para o seu e-mail.");
       window.location.href = "/";
     } catch (error) {
       setStatus(error instanceof Error ? error.message : t("auth.signupError"));
