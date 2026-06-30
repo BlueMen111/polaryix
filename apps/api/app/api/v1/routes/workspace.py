@@ -26,7 +26,7 @@ from app.core.conversion_history import (
     update_conversion_record,
 )
 from app.core.config.settings import settings
-from app.core.security.file_security import FileSecurityError, validate_file_name, validate_upload_size
+from app.core.security.file_security import FileSecurityError, validate_file_name, validate_file_extension, validate_upload_size
 
 
 router = APIRouter(tags=["Workspace"])
@@ -89,6 +89,7 @@ async def upload_workspace_files(request: Request, files: list[UploadFile] = Fil
     for file in files:
         try:
             safe_name = validate_file_name(file.filename or "arquivo")
+            validate_file_extension(safe_name)
             size_bytes = await validate_upload_size(file)
             ensure_storage_available(user, size_bytes)
             suffix = Path(safe_name).suffix.lower() or ".bin"

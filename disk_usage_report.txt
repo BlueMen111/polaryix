@@ -1,0 +1,119 @@
+﻿PolarYix disk usage report
+Generated: 2026-06-29 22:26:54
+
+Top-level directories by size:
+
+ SizeMB Path                       
+ ------ ----                       
+6077,84 D:\Python\polaryix\storage 
+2097,48 D:\Python\polaryix\apps    
+ 851,48 D:\Python\polaryix\.venv-1 
+  11,23 D:\Python\polaryix\.venv   
+   3,13 D:\Python\polaryix\assets  
+   0,05 D:\Python\polaryix\logs    
+   0,03 D:\Python\polaryix\docs    
+      0 D:\Python\polaryix\scripts 
+      0 D:\Python\polaryix\teste   
+      0 D:\Python\polaryix\.github 
+      0 D:\Python\polaryix\infra   
+      0 D:\Python\polaryix\packages
+
+apps/api/storage subdirectories by size:
+
+SizeMB Path                                          
+------ ----                                          
+952,48 D:\Python\polaryix\apps\api\storage\quarantine
+207,88 D:\Python\polaryix\apps\api\storage\processed 
+  0,09 D:\Python\polaryix\apps\api\storage\history   
+  0,05 D:\Python\polaryix\apps\api\storage\jobs      
+  0,01 D:\Python\polaryix\apps\api\storage\auth      
+     0 D:\Python\polaryix\apps\api\storage\usage     
+     0 D:\Python\polaryix\apps\api\storage\workspace 
+     0 D:\Python\polaryix\apps\api\storage\uploads   
+     0 D:\Python\polaryix\apps\api\storage\comments  
+     0 D:\Python\polaryix\apps\api\storage\private
+
+Largest files:
+
+ SizeMB FullName                                                                                                       
+ ------ --------                                                                                                       
+1405,45 D:\Python\polaryix\storage\processed\link_downloads\855de0bca522416eb2e5f3ab2c4014dc.mp4                       
+1405,45 D:\Python\polaryix\storage\processed\link_downloads\4849bb11960f46dfaf7180a0fd6f3264.mp4                       
+ 693,01 D:\Python\polaryix\storage\processed\link_downloads\d8c3f6bcbd954826b423e88f3fc5547b.mp4                       
+ 545,08 D:\Python\polaryix\storage\processed\link_downloads\6424662cd3b1494497f830abe814f469.mp4                       
+  463,4 D:\Python\polaryix\storage\processed\link_downloads\014c85847e2b4a208e9bea21d7cfdddc.mp4                       
+ 321,36 D:\Python\polaryix\storage\processed\link_downloads\1e7c97dbbdf34855a287ecf31b2fc853.mp4                       
+ 321,36 D:\Python\polaryix\storage\processed\link_downloads\25c70eab1c6e4cc882ac4355fc9f3983.mp4                       
+    192 D:\Python\polaryix\storage\processed\link_downloads\d8c3f6bcbd954826b423e88f3fc5547b-compatible.mp4            
+  176,3 D:\Python\polaryix\apps\api\.venv\Lib\site-packages\_polars_runtime_32\_polars_runtime.pyd                     
+    156 D:\Python\polaryix\.venv-1\Lib\site-packages\_polars_runtime_32\_polars_runtime.pyd                            
+  141,5 D:\Python\polaryix\apps\web\node_modules\@next\swc-win32-x64-msvc\next-swc.win32-x64-msvc.node                 
+  103,4 D:\Python\polaryix\storage\processed\link_downloads\1d3261a95731448e8d398629402b42dc-2.mp4                     
+  103,4 D:\Python\polaryix\storage\processed\link_downloads\2453c95c284143328c739ff62416f22d-2.mp4                     
+  103,4 D:\Python\polaryix\storage\processed\link_downloads\6c1093a7e41549c68d56a43b547bdd6e.mp4                       
+ 101,66 D:\Python\polaryix\.venv-1\Lib\site-packages\llvmlite\binding\llvmlite.dll                                     
+  62,79 D:\Python\polaryix\storage\processed\conversions\f5db5e3df46349b7b9c7023fbe14761f-base_consolidada-polaryix.xml
+  62,79 D:\Python\polaryix\storage\processed\conversions\6066b8fe8878401ab0deedf0b4d4b629-base_consolidada-polaryix.txt
+  62,79 D:\Python\polaryix\storage\processed\conversions\0e363da822da4576bfe00f08d3312ad4-base_consolidada-polaryix....
+  62,79 D:\Python\polaryix\storage\processed\conversions\ff007fceea374fdb82ec007dd8620977-base_consolidada-polaryix....
+  62,79 D:\Python\polaryix\storage\processed\conversions\27b9734d39b34e358c985042bb4057a7-base_consolidada-polaryix-...
+  58,44 D:\Python\polaryix\apps\api\storage\quarantine\7c235a6d302c43d89c8c26eaefa0a716.csv                            
+  58,44 D:\Python\polaryix\apps\api\storage\quarantine\c0718a2c2c6a4004985a193473179d49.csv                            
+  58,44 D:\Python\polaryix\apps\api\storage\quarantine\c5227712b302498c84f79c36be6fb43c.csv                            
+  58,44 D:\Python\polaryix\apps\api\storage\quarantine\bc3775ee64774e2f91bd69deecdec699.csv                            
+  58,44 D:\Python\polaryix\apps\api\storage\quarantine\299f899cea5e422b9f7cb4b13bb278bf.csv                            
+  58,44 D:\Python\polaryix\apps\api\storage\quarantine\0d9fca2e0b034a7cbfc067c11a8d89d5.csv                            
+  58,44 D:\Python\polaryix\apps\api\storage\quarantine\f00ff97030f941f1b44239a2e7035a41.csv                            
+  58,44 D:\Python\polaryix\apps\api\storage\quarantine\318ca0a6b86c4a8687afbc3a0e13f622.csv                            
+  38,48 D:\Python\polaryix\apps\api\storage\processed\link_downloads\61173301172d4a8f84e7dc3f01b096b3-compatible.mp4   
+  38,48 D:\Python\polaryix\apps\api\storage\processed\link_downloads\88e0fc007e79454fb98bdd76b5756ea3-compatible.mp4   
+  38,48 D:\Python\polaryix\apps\api\storage\processed\link_downloads\b59a781bb7b94496a193b3d653425243-compatible.mp4   
+  35,59 D:\Python\polaryix\.venv-1\Lib\site-packages\_duckdb.cp312-win_amd64.pyd                                       
+  35,59 D:\Python\polaryix\apps\api\.venv\Lib\site-packages\_duckdb.cp312-win_amd64.pyd                                
+  34,24 D:\Python\polaryix\storage\processed\link_downloads\243ce60a13944df19c6d2677ac1875dc.mp3                       
+   21,1 D:\Python\polaryix\apps\api\.venv\Lib\site-packages\pyarrow\arrow.dll                                          
+   21,1 D:\Python\polaryix\.venv-1\Lib\site-packages\pyarrow\arrow.dll                                                 
+  19,47 D:\Python\polaryix\.venv-1\Lib\site-packages\numpy.libs\libscipy_openblas64_-63c857e738469261263c764a36be943...
+  19,46 D:\Python\polaryix\.venv-1\Lib\site-packages\~umpy.libs\libscipy_openblas64_-b788215d9d47792bcba3a2e2a711432...
+  19,46 D:\Python\polaryix\apps\api\.venv\Lib\site-packages\numpy.libs\libscipy_openblas64_-b788215d9d47792bcba3a2e2...
+  19,32 D:\Python\polaryix\.venv-1\Lib\site-packages\scipy.libs\libscipy_openblas-197ee2fc9b4d071f7e048078cac74115.dll 
+   19,3 D:\Python\polaryix\storage\processed\link_downloads\37c3614223cf4efba61764040eb919ea.f298.mp4.part             
+  19,27 D:\Python\polaryix\apps\api\storage\processed\link_downloads\88e0fc007e79454fb98bdd76b5756ea3.mp4              
+  19,27 D:\Python\polaryix\apps\api\storage\processed\link_downloads\b59a781bb7b94496a193b3d653425243.mp4              
+  19,27 D:\Python\polaryix\apps\api\storage\processed\link_downloads\61173301172d4a8f84e7dc3f01b096b3.mp4              
+  18,23 D:\Python\polaryix\apps\web\node_modules\@img\sharp-win32-x64\lib\libvips-42.dll                               
+  17,14 D:\Python\polaryix\.venv-1\Lib\site-packages\onnxruntime\capi\onnxruntime_pybind11_state.pyd                   
+  16,84 D:\Python\polaryix\apps\api\storage\quarantine\52f195bf20f14d9dbb0d5775945f04dd.csv                            
+  16,84 D:\Python\polaryix\apps\api\storage\quarantine\1084e952c6be47638616e923cbe18459.csv                            
+  16,84 D:\Python\polaryix\apps\api\storage\quarantine\da57f1ea164f41d2b75da27d3514c337.csv                            
+  16,84 D:\Python\polaryix\apps\api\storage\quarantine\70d7b81445cb4763b8ad9c00fe9eb36a.csv                            
+  16,84 D:\Python\polaryix\apps\api\storage\quarantine\565023fcea9c4fa29df5fc8ea91df9fd.csv                            
+  16,52 D:\Python\polaryix\.venv-1\Lib\site-packages\onnxruntime\capi\onnxruntime.dll                                  
+  14,72 D:\Python\polaryix\apps\api\storage\quarantine\ab0ae8172c324c6486d6da641de0afea.csv                            
+  14,72 D:\Python\polaryix\apps\api\storage\quarantine\fdb1c481639a4fefbd819bb358cbb61d.csv                            
+  14,72 D:\Python\polaryix\apps\api\storage\quarantine\d461658fc0ec42caa8040ce67508291d.csv                            
+  14,72 D:\Python\polaryix\apps\api\storage\quarantine\082dc2b91dc34f8890e71c9f3804299e.csv                            
+  14,72 D:\Python\polaryix\apps\api\storage\quarantine\e56e23add51247a2adb173352c006098.csv                            
+  14,72 D:\Python\polaryix\apps\api\storage\quarantine\6fd0087c89c646b9a6bdaba1d206164c.csv                            
+  14,72 D:\Python\polaryix\apps\api\storage\quarantine\4d8cf5671e434191bb3c6d2c9d33caeb.csv                            
+  14,72 D:\Python\polaryix\apps\api\storage\quarantine\37b904ceb46a481b98f7f06694330cfd.csv                            
+  13,78 D:\Python\polaryix\apps\api\storage\quarantine\2f09fceb544e4a729f231d519105b5e7.csv                            
+  13,78 D:\Python\polaryix\apps\api\storage\quarantine\c5fa4829b0fb4a098bdca1fddc36e79f.csv                            
+  13,78 D:\Python\polaryix\apps\api\storage\quarantine\c3b19f61592c4e8b95570237afbb2624.csv                            
+  13,78 D:\Python\polaryix\apps\api\storage\quarantine\5ab5ece7763348a5b60d02f825a7dba2.csv                            
+  13,78 D:\Python\polaryix\apps\api\storage\quarantine\c605b402f67b4d828b75b6c325e68417.csv                            
+  13,78 D:\Python\polaryix\apps\api\storage\quarantine\5dfe71c368684d88aca377a1c128cb50.csv                            
+  13,67 D:\Python\polaryix\apps\web\.next\cache\webpack\client-production\0.pack                                       
+  12,92 D:\Python\polaryix\apps\api\.venv\Lib\site-packages\pyarrow\arrow_flight.dll                                   
+  12,92 D:\Python\polaryix\.venv-1\Lib\site-packages\pyarrow\arrow_flight.dll                                          
+  11,61 D:\Python\polaryix\apps\web\.next\cache\webpack\client-development\1.pack.gz                                   
+  10,71 D:\Python\polaryix\apps\web\.next\cache\webpack\server-production\3.pack                                       
+  10,58 D:\Python\polaryix\apps\web\.next\cache\webpack\server-production\1.pack                                       
+   9,94 D:\Python\polaryix\apps\web\.next\cache\webpack\client-production\2.pack                                       
+   9,06 D:\Python\polaryix\apps\api\.venv\Lib\site-packages\pyarrow\arrow_compute.dll                                  
+   9,06 D:\Python\polaryix\.venv-1\Lib\site-packages\pyarrow\arrow_compute.dll                                         
+   8,69 D:\Python\polaryix\apps\web\node_modules\typescript\lib\typescript.js                                          
+   8,62 D:\Python\polaryix\apps\api\storage\quarantine\d5301505fe92472cab8c28134273e7a9.csv                            
+   8,62 D:\Python\polaryix\apps\api\storage\quarantine\d99c98ca2434499186f5d7dc6724fa4c.csv                            
+   8,62 D:\Python\polaryix\apps\api\storage\quarantine\d2400e8967094b10ba2353e56923508b.csv                            
+   8,62 D:\Python\polaryix\apps\api\storage\quarantine\712470f097984d91920afc74fc32df9d.csv

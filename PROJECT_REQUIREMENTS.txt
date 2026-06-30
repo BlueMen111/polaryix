@@ -1,0 +1,49 @@
+PolarYix project requirements
+Generated: 2026-06-29
+
+Runtime
+- Python 3.12 recommended for the API.
+- Node.js 20+ recommended for the web app.
+- FFmpeg available in PATH for video/audio conversions and link downloads.
+- yt-dlp installed from apps/api/requirements.txt for link downloads.
+- rembg[cpu] installed from apps/api/requirements.txt for background removal.
+
+API
+- Install dependencies: pip install -r apps/api/requirements.txt
+- Start development API: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 from apps/api
+- Required production env:
+  - DEBUG=false
+  - FRONTEND_URL=https://polaryix.vercel.app
+  - ALLOWED_ORIGINS=https://polaryix.vercel.app
+  - ADMIN_CLEANUP_TOKEN=<strong random token>
+  - GOOGLE_CLIENT_ID=<google oauth client id>
+  - GOOGLE_CLIENT_SECRET=<google oauth client secret>
+  - GOOGLE_REDIRECT_URI=<api callback url>
+
+Web
+- Install dependencies: npm install from apps/web
+- Development: npm run dev
+- Production build: npm run build
+- Start built app: npm run start
+
+Storage
+- Generated files are written under storage/ and apps/api/storage/.
+- Never commit generated storage, virtualenvs, node_modules, .next, logs or local auth JSON.
+- Configure regular cleanup for expired conversion/workspace files.
+- Use a persistent production storage backend before going live if multiple API instances are used.
+
+Security expectations
+- Premium/Free status must always be read from the backend session/user record.
+- The frontend may display plan state, but it must not decide plan limits, credits, watermark or quality gates.
+- All downloads and workspace file access must verify ownership by user_id.
+- Anonymous usage limits must not rely only on localStorage/browser state.
+- File uploads must validate filename, extension, size and actual parse/open behavior.
+- Keep secrets out of git and out of client bundles.
+
+Known high-priority production work
+- Replace JSON file auth/session storage with a database or durable KV store.
+- Add session expiration and token rotation.
+- Add login/signup rate limiting.
+- Tighten CORS to owned production domains only.
+- Re-enable/safely handle CSV injection protection for exported/opened spreadsheet data.
+- Add automated tests for credits, Premium gates, watermark, ownership and link quality selection.

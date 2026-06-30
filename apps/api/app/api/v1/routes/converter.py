@@ -446,7 +446,17 @@ def _link_download_candidates(download_format: str, is_premium: bool = False) ->
             ],
         )
 
-    if option in {"hd", "4k"}:
+    if option == "hd":
+        return (
+            "video",
+            [
+                "bestvideo[height<=1080]+bestaudio/best[height<=1080]",
+                "best[height<=1080][ext=mp4]/best[height<=1080]/best",
+                "bestvideo[height<=720][vcodec^=avc1]+bestaudio[acodec^=mp4a]/best[height<=720]",
+            ],
+        )
+
+    if option == "4k":
         return (
             "video",
             [
@@ -986,7 +996,11 @@ async def get_usage(
             "is_premium": profile["is_premium"],
         }
 
-    current_usage = _current_usage(request, is_premium, premium_plan)
+    current_usage = _current_usage(
+        request,
+        bool(account["is_premium"]),
+        str(account["premium_plan"]),
+    )
     return {
         "used": current_usage["used"],
         "limit": current_usage["limit"],
