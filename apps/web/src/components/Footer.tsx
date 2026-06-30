@@ -36,8 +36,11 @@ export function Footer() {
     <footer className={styles.footer}>
       <div className={styles.inner}>
         <section className={styles.counter} aria-label={isPortuguese ? "Conversoes realizadas" : "Completed conversions"}>
-          <span>{isPortuguese ? "Conversoes realizadas:" : "Completed conversions:"}</span>
-          <strong>{formattedTotal}</strong>
+          <p>
+            {isPortuguese ? "Convertemos " : "Converted "}
+            <strong>{formattedTotal}</strong>
+            {isPortuguese ? " arquivos" : " files"}
+          </p>
         </section>
 
         <nav className={styles.columns} aria-label={isPortuguese ? "Links do rodape" : "Footer links"}>

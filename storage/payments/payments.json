@@ -1,0 +1,26 @@
+[
+  {
+    "id": "5bb2e2cc-50f4-41e2-a0a1-c04181345640",
+    "user_id": "b7d2e63f-960a-4e93-b578-5da47e85a1c0",
+    "provider": "mercadopago",
+    "type": "premium",
+    "amount": 59.88,
+    "currency": "BRL",
+    "status": "approved",
+    "external_payment_id": "sandbox-5bb2e2cc-50f4-41e2-a0a1-c04181345640",
+    "checkout_url": "https://polaryix.vercel.app/payment/pending?payment_id=5bb2e2cc-50f4-41e2-a0a1-c04181345640&sandbox=1",
+    "qr_code": "POLARYIX-SANDBOX-5bb2e2cc-50f4-41e2-a0a1-c04181345640",
+    "qr_code_base64": null,
+    "created_at": "2026-06-30T13:16:56.705846+00:00",
+    "updated_at": "2026-06-30T13:20:49.037743+00:00",
+    "paid_at": "2026-06-30T13:20:49.030569+00:00",
+    "metadata": {
+      "plan": "basic",
+      "billing": "annual",
+      "credits": 1000,
+      "method": "pix",
+      "sandbox_simulated": true
+    },
+    "benefit_applied": true
+  }
+]
