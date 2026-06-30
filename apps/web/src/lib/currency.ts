@@ -31,6 +31,5 @@ export function convertPriceByLocale(valueBRL: number, language: Language) {
 
 export function formatPriceByLanguage(valueBRL: number, language: Language) {
   const price = convertPriceByLocale(valueBRL, language);
-  const formatted = formatCurrency(price.value, price.locale, price.currency);
-  return price.estimated ? `approx. ${formatted}` : formatted;
+  return formatCurrency(price.value, price.locale, price.currency);
 }

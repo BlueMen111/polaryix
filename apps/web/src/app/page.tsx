@@ -37,6 +37,45 @@ const formatGroups = [
 const allFormats = formatGroups.flatMap((group) => group.formats);
 const formatOptions = allFormats.map((format) => ({ value: format, label: format }));
 
+const fallbackComments: UserComment[] = [
+  {
+    id: "fallback-1",
+    message: "Converti meus arquivos em segundos. Muito mais pratico.",
+    user_name: "Usuario Polaryix",
+    created_at: "2026-01-01T00:00:00Z",
+  },
+  {
+    id: "fallback-2",
+    message: "Interface limpa, rapida e facil de usar.",
+    user_name: "Usuario Polaryix",
+    created_at: "2026-01-01T00:00:00Z",
+  },
+  {
+    id: "fallback-3",
+    message: "O Polaryix economizou muito tempo no meu fluxo de trabalho.",
+    user_name: "Usuario Polaryix",
+    created_at: "2026-01-01T00:00:00Z",
+  },
+  {
+    id: "fallback-4",
+    message: "Finalmente um conversor simples e bonito.",
+    user_name: "Usuario Polaryix",
+    created_at: "2026-01-01T00:00:00Z",
+  },
+  {
+    id: "fallback-5",
+    message: "O fluxo PNG para DDS ficou direto e sem distracoes.",
+    user_name: "Usuario Polaryix",
+    created_at: "2026-01-01T00:00:00Z",
+  },
+  {
+    id: "fallback-6",
+    message: "Uso para testar imagens de jogos e tudo ficou mais agil.",
+    user_name: "Usuario Polaryix",
+    created_at: "2026-01-01T00:00:00Z",
+  },
+];
+
 const downloadCards = [
   { name: "YouTube", textKey: "home.downloadYoutube", icon: "/assets/icons/youtube.svg", brand: "youtube" },
   { name: "TikTok", textKey: "home.downloadTikTok", icon: "/assets/icons/tiktok.svg", brand: "tiktok" },
@@ -132,16 +171,6 @@ function StatusMessage({ message, t }: { message: string; t: (key: string) => st
 
 export default function HomePage() {
   const { t } = useLanguage();
-  const fallbackComments = useMemo<UserComment[]>(
-    () =>
-      [1, 2, 3, 4, 5, 6].map((index) => ({
-        id: `fallback-${index}`,
-        message: t(`home.fallbackComment${index}`),
-        user_name: "Polaryix",
-        created_at: "2026-01-01T00:00:00Z",
-      })),
-    [t]
-  );
   const [fromFormat, setFromFormat] = useState("PNG");
   const [toFormat, setToFormat] = useState("DDS");
   const [openPicker, setOpenPicker] = useState<"from" | "to" | null>(null);
@@ -151,7 +180,7 @@ export default function HomePage() {
   const [status, setStatus] = useState(t("home.initialStatus"));
   const [downloadUrl, setDownloadUrl] = useState("");
   const [downloadFormat, setDownloadFormat] = useState<(typeof downloadOptions)[number]["id"]>("mp4");
-  const [downloadStatus, setDownloadStatus] = useState("Cole um link para preparar o download.");
+  const [downloadStatus, setDownloadStatus] = useState(t("home.initialDownloadStatus"));
   const [linkPreview, setLinkPreview] = useState<LinkPreview | null>(null);
   const [previewStatus, setPreviewStatus] = useState("");
   const [downloadProgress, setDownloadProgress] = useState(0);
@@ -179,7 +208,7 @@ export default function HomePage() {
 
   useEffect(() => {
     setComments((current) => (current.length ? current : fallbackComments));
-  }, [fallbackComments]);
+  }, []);
 
   useEffect(() => {
     const token = window.localStorage.getItem("polaryix:auth-token");
@@ -273,7 +302,7 @@ export default function HomePage() {
         setLinkPreview(preview);
         setPreviewStatus("");
       } catch (error) {
-        setPreviewStatus(error instanceof Error ? error.message : "Não foi possível carregar o preview.");
+        setPreviewStatus(error instanceof Error ? error.message : t("home.previewError"));
       }
     }, 700);
 
@@ -321,7 +350,7 @@ export default function HomePage() {
     if (limitedFiles.length > 1) {
       const invalidFileMessage = limitedFiles.map((file) => validateFileForConversion(file, nextFromFormat)).find(Boolean);
       const detectedSuffix = detectedFormat ? ` Formato detectado: ${detectedFormat}.` : "";
-      setStatus(invalidFileMessage || `${limitedFiles.length} arquivos prontos para converter em ${toFormat}. O download virá em ZIP.${detectedSuffix}`);
+      setStatus(invalidFileMessage || t("home.filesReadyZip", { count: limitedFiles.length, format: toFormat, suffix: detectedSuffix }));
       return;
     }
 
@@ -330,7 +359,7 @@ export default function HomePage() {
     setStatus(
       invalidFileMessage ||
       (limitedFiles[0]
-        ? `${limitedFiles[0].name} pronto para converter em ${toFormat}.${detectedSuffix}`
+        ? t("home.fileReadyToConvert", { filename: limitedFiles[0].name, format: toFormat, suffix: detectedSuffix })
         : t("home.initialStatus"))
     );
   }
@@ -443,7 +472,7 @@ export default function HomePage() {
 
   async function handleLinkDownload() {
     if (!downloadUrl.trim()) {
-      setDownloadStatus("Cole uma URL antes de preparar o download.");
+      setDownloadStatus(t("home.pasteUrlFirst"));
       return;
     }
 
@@ -475,11 +504,11 @@ export default function HomePage() {
         await new Promise((resolve) => window.setTimeout(resolve, 1000));
         job = await getLinkDownloadJob(job.id);
         setDownloadProgress(job.progress ?? 0);
-        setDownloadStatus(job.message || "Processando download...");
+        setDownloadStatus(job.message || t("home.processingDownload"));
       }
 
       if (job.status === "error") {
-        throw new Error(job.message || "Não foi possível concluir o download.");
+        throw new Error(job.message || t("home.downloadCompleteError"));
       }
 
       const filename = await downloadLinkJobFile(job);
@@ -555,18 +584,18 @@ export default function HomePage() {
 
   function jobStatusLabel(job: ConversionJob) {
     if (job.status === "queued") {
-      return `Aguardando na fila${job.queue_position ? ` - Posicao: ${job.queue_position}` : ""}`;
+      return job.queue_position ? t("home.statusQueuedPosition", { position: job.queue_position }) : t("common.queued");
     }
     if (job.status === "processing") {
-      return "Processando";
+      return t("common.processing");
     }
     if (job.status === "completed") {
-      return "Concluido";
+      return t("common.completed");
     }
     if (job.status === "cancelled") {
       return "Cancelado";
     }
-    return "Falhou";
+    return t("common.failed");
   }
 
   return (

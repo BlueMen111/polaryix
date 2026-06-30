@@ -1,17 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useLanguage } from "@/i18n/LanguageProvider";
 import { downloadMyFile, listMyFiles, type ConvertedFile } from "@/lib/api";
 import styles from "./page.module.css";
-
-const statusLabels: Record<ConvertedFile["status"], string> = {
-  queued: "Aguardando",
-  processing: "Processando",
-  completed: "Concluido",
-  failed: "Erro",
-  expired: "Expirado",
-  deleted: "Removido",
-};
 
 function formatBytes(value: number) {
   if (!value) {
@@ -23,20 +15,33 @@ function formatBytes(value: number) {
   return `${(value / 1024 ** index).toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
 }
 
-function formatDate(value: string) {
+function formatDate(value: string, locale: string) {
   if (!value) {
     return "-";
   }
 
-  return new Intl.DateTimeFormat("pt-BR", {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: "short",
     timeStyle: "short",
   }).format(new Date(value));
 }
 
+function statusLabel(status: ConvertedFile["status"], t: (key: string) => string) {
+  const labels: Record<ConvertedFile["status"], string> = {
+    queued: t("common.queued"),
+    processing: t("common.processing"),
+    completed: t("common.completed"),
+    failed: t("common.error"),
+    expired: t("common.expired"),
+    deleted: t("files.removed"),
+  };
+  return labels[status] ?? status;
+}
+
 export default function FilesPage() {
+  const { language, t } = useLanguage();
   const [files, setFiles] = useState<ConvertedFile[]>([]);
-  const [status, setStatus] = useState("Carregando arquivos...");
+  const [status, setStatus] = useState(t("files.loading"));
   const [downloadingId, setDownloadingId] = useState("");
 
   const isLoggedIn = useMemo(() => {
@@ -49,19 +54,19 @@ export default function FilesPage() {
 
   useEffect(() => {
     if (!isLoggedIn) {
-      setStatus("Entre na sua conta para ver seus arquivos convertidos.");
+      setStatus(t("files.loginRequired"));
       return;
     }
 
     listMyFiles()
       .then((data) => {
         setFiles(data.files);
-        setStatus(data.files.length ? "" : "Voce ainda nao tem conversoes salvas.");
+        setStatus(data.files.length ? "" : t("files.empty"));
       })
       .catch((error) => {
-        setStatus(error instanceof Error ? error.message : "Nao foi possivel carregar seus arquivos.");
+        setStatus(error instanceof Error ? error.message : t("files.loadError"));
       });
-  }, [isLoggedIn]);
+  }, [isLoggedIn, t]);
 
   async function handleDownload(file: ConvertedFile) {
     setDownloadingId(file.id);
@@ -69,7 +74,7 @@ export default function FilesPage() {
     try {
       await downloadMyFile(file);
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Nao foi possivel baixar este arquivo.");
+      setStatus(error instanceof Error ? error.message : t("files.downloadError"));
     } finally {
       setDownloadingId("");
     }
@@ -80,12 +85,12 @@ export default function FilesPage() {
       <section className={styles.panel}>
         <div className={styles.header}>
           <div>
-            <p className={styles.eyebrow}>Meus arquivos</p>
-            <h1>Arquivos convertidos</h1>
-            <p>Seus ultimos arquivos ficam disponiveis por ate 12 horas apos a conversao.</p>
+            <p className={styles.eyebrow}>{t("files.eyebrow")}</p>
+            <h1>{t("files.title")}</h1>
+            <p>{t("files.subtitle")}</p>
           </div>
           <a className={styles.primaryLink} href="/">
-            Nova conversao
+            {t("files.newConversion")}
           </a>
         </div>
 
@@ -96,13 +101,13 @@ export default function FilesPage() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Arquivo</th>
-                  <th>Formato</th>
-                  <th>Status</th>
-                  <th>Tamanho</th>
-                  <th>Data</th>
-                  <th>Qualidade</th>
-                  <th aria-label="Acoes" />
+                  <th>{t("files.file")}</th>
+                  <th>{t("files.format")}</th>
+                  <th>{t("files.status")}</th>
+                  <th>{t("files.size")}</th>
+                  <th>{t("files.date")}</th>
+                  <th>{t("files.quality")}</th>
+                  <th aria-label={t("files.actions")} />
                 </tr>
               </thead>
               <tbody>
@@ -115,21 +120,21 @@ export default function FilesPage() {
                         {file.error_message ? <span>{file.error_message}</span> : null}
                       </td>
                       <td>
-                        {file.original_format} para {file.target_format}
+                        {file.original_format} {t("files.to")} {file.target_format}
                       </td>
                       <td>
-                        <span className={`${styles.badge} ${styles[file.status]}`}>{statusLabels[file.status]}</span>
+                        <span className={`${styles.badge} ${styles[file.status]}`}>{statusLabel(file.status, t)}</span>
                       </td>
                       <td>{formatBytes(Number(file.file_size || 0))}</td>
-                      <td>{formatDate(file.created_at)}</td>
+                      <td>{formatDate(file.created_at, language)}</td>
                       <td>{file.quality_delivered || file.quality_requested || "-"}</td>
                       <td>
                         {canDownload ? (
                           <button type="button" onClick={() => handleDownload(file)} disabled={downloadingId === file.id}>
-                            {downloadingId === file.id ? "Baixando..." : "Download"}
+                            {downloadingId === file.id ? t("files.downloading") : t("common.download")}
                           </button>
                         ) : (
-                          <em>Indisponivel</em>
+                          <em>{t("files.unavailable")}</em>
                         )}
                       </td>
                     </tr>
