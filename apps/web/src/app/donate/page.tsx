@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createPayment, type PaymentProvider } from "@/lib/api";
-import styles from "../payments.module.css";
+import styles from "./page.module.css";
 
 const suggestions = [5, 10, 25, 50];
 
@@ -12,10 +12,13 @@ export default function DonatePage() {
   const [loading, setLoading] = useState("");
 
   async function donate(provider: PaymentProvider, method: "checkout" | "pix" = "checkout") {
+    const safeAmount = Math.max(1, Math.min(Number(amount) || 10, 10000));
+    setAmount(safeAmount);
     setLoading(`${provider}-${method}`);
     setMessage("Criando doacao segura...");
+
     try {
-      const { payment } = await createPayment({ provider, type: "donation", amount, currency: "BRL", method });
+      const { payment } = await createPayment({ provider, type: "donation", amount: safeAmount, currency: "BRL", method });
       window.localStorage.setItem("polaryix:last-payment-id", payment.id);
       window.location.href = payment.checkout_url || `/payment/pending?payment_id=${payment.id}`;
     } catch (error) {
@@ -28,29 +31,43 @@ export default function DonatePage() {
   return (
     <main className={styles.page}>
       <section className={styles.hero}>
-        <p className={styles.eyebrow}>Apoie o PolarYix</p>
+        <p>Apoie o PolarYix</p>
         <h1>Faca uma doacao</h1>
-        <p>Sua doacao ajuda a manter conversoes, ferramentas de imagem e infraestrutura do projeto.</p>
+        <span>Sua doacao ajuda a manter conversoes, ferramentas de imagem e infraestrutura do projeto.</span>
       </section>
+
       <section className={styles.panel}>
         <h2>Valor</h2>
-        <div className={styles.statusActions}>
+        <div className={styles.suggestions}>
           {suggestions.map((value) => (
-            <button key={value} className={amount === value ? styles.button : styles.ghostButton} type="button" onClick={() => setAmount(value)}>R$ {value}</button>
+            <button key={value} className={amount === value ? styles.active : undefined} type="button" onClick={() => setAmount(value)}>
+              R$ {value}
+            </button>
           ))}
         </div>
-        <input className={styles.amountInput} min={1} max={10000} type="number" value={amount} onChange={(event) => setAmount(Number(event.target.value))} />
-        <div className={styles.statusActions}>
-          <button className={styles.button} disabled={loading === "mercadopago-checkout"} type="button" onClick={() => donate("mercadopago")}>Mercado Pago</button>
-          <button className={styles.ghostButton} disabled={loading === "mercadopago-pix"} type="button" onClick={() => donate("mercadopago", "pix")}>PIX</button>
-          <button className={styles.ghostButton} disabled={loading === "paypal-checkout"} type="button" onClick={() => donate("paypal")}>PayPal</button>
+
+        <label className={styles.amountField}>
+          <span>Valor personalizado</span>
+          <input min={1} max={10000} type="number" value={amount} onChange={(event) => setAmount(Number(event.target.value))} />
+        </label>
+
+        <div className={styles.actions}>
+          <button disabled={loading === "mercadopago-checkout"} type="button" onClick={() => donate("mercadopago")}>Mercado Pago</button>
+          <button disabled={loading === "mercadopago-pix"} type="button" onClick={() => donate("mercadopago", "pix")}>PIX</button>
+          <button disabled={loading === "paypal-checkout"} type="button" onClick={() => donate("paypal")}>PayPal</button>
         </div>
+
         {message ? <p className={styles.message}>{message}</p> : null}
       </section>
+
       <section className={styles.security}>
         <strong>Pagamento seguro</strong>
         <p>Compra protegida e processada por Mercado Pago e PayPal. Nenhum dado de cartao fica salvo no PolarYix.</p>
-        <div className={styles.badges}><span>Secure Checkout</span><span>SSL Secure</span><span>Protected Payment</span></div>
+        <div>
+          <span>Secure Checkout</span>
+          <span>SSL Secure</span>
+          <span>Protected Payment</span>
+        </div>
       </section>
     </main>
   );

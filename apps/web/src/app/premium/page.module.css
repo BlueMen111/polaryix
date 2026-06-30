@@ -147,6 +147,13 @@
   line-height: 0.9;
 }
 
+.billingNote {
+  display: block;
+  margin-top: 0.7rem;
+  color: #60728e;
+  font-weight: 800;
+}
+
 .planGrid ul {
   min-height: 230px;
   list-style: none;
@@ -186,6 +193,45 @@
 .planGrid button:hover {
   transform: translateY(-2px);
   box-shadow: 0 22px 42px rgba(8, 116, 255, 0.26);
+}
+
+.paymentActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  padding: 1rem 1.6rem 1.6rem;
+}
+
+.paymentActions button {
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  border-radius: 12px;
+}
+
+.paymentActions button:last-child {
+  grid-column: 1 / -1;
+  border: 1px solid rgba(8, 116, 255, 0.16);
+  background: rgba(255, 255, 255, 0.72);
+  color: #0874ff;
+  box-shadow: none;
+}
+
+.securityBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+
+.securityBadges span {
+  border: 1px solid rgba(8, 116, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(8, 116, 255, 0.08);
+  color: #0874ff;
+  font-size: 0.74rem;
+  font-weight: 950;
+  padding: 0.45rem 0.65rem;
 }
 
 .freeNote {
