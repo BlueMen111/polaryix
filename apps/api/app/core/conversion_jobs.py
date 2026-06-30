@@ -14,6 +14,7 @@ from fastapi import HTTPException, status
 from app.core.auth_store import refund_user_credits
 from app.core.config.settings import settings
 from app.core.conversion_history import storage_limit_bytes, storage_used_bytes, update_conversion_record
+from app.core.public_stats import record_public_operation
 
 logger = logging.getLogger("polaryix.conversion_jobs")
 
@@ -227,17 +228,18 @@ def _complete_job(job_id: str, result: dict) -> None:
         for job in jobs:
             if job.get("id") == job_id:
                 file_size = int(result.get("file_size") or 0)
-                used = storage_used_bytes(str(job.get("user_id")))
-                limit = storage_limit_bytes(job)
-                if used + file_size > limit:
-                    output_path = Path(str(result.get("output_path") or ""))
-                    try:
-                        if output_path.exists() and output_path.is_file():
-                            output_path.unlink()
-                    except OSError:
-                        logger.warning("Failed to delete output after storage limit exceeded: %s", output_path)
-                    _fail_job(job, "Voce atingiu o limite de armazenamento do seu plano.")
-                    return
+                if job.get("preserve_in_workspace"):
+                    used = storage_used_bytes(str(job.get("user_id")))
+                    limit = storage_limit_bytes(job)
+                    if used + file_size > limit:
+                        output_path = Path(str(result.get("output_path") or ""))
+                        try:
+                            if output_path.exists() and output_path.is_file():
+                                output_path.unlink()
+                        except OSError:
+                            logger.warning("Failed to delete output after storage limit exceeded: %s", output_path)
+                        _fail_job(job, "Voce atingiu o limite de armazenamento do seu plano.")
+                        return
                 job["status"] = "completed"
                 job["output_path"] = result.get("output_path")
                 job["finished_at"] = _now()
@@ -255,6 +257,8 @@ def _complete_job(job_id: str, result: dict) -> None:
                     file_size=result.get("file_size") or 0,
                     finished_at=job["finished_at"],
                 )
+                category = "image_tool" if str(job.get("job_type") or "") == "image_tool" else "conversion"
+                record_public_operation(category, event_id=str(job_id), amount=1)
                 break
         write_jobs(jobs)
     logger.info("Conversion job completed: %s", job_id)

@@ -64,6 +64,9 @@ def storage_used_bytes(user_id: str) -> int:
             continue
         if record.get("deleted_at"):
             continue
+        operation_type = str(record.get("operation_type") or "").lower()
+        if operation_type != "upload" and not record.get("is_favorite"):
+            continue
         total += int(record.get("file_size") or 0)
     return total
 

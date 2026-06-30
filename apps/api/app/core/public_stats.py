@@ -1,13 +1,60 @@
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
+from pathlib import Path
+from uuid import uuid4
 
+from app.core.config.settings import settings
 from app.core.conversion_history import read_history
-from app.core.conversion_jobs import read_jobs
 
 
 SUCCESS_STATUSES = {"completed", "expired", "deleted"}
 IMAGE_OPERATIONS = {"remove_background", "optimize_image", "upscale_image", "remaster_image"}
+STAT_CATEGORIES = {"conversion", "image_tool", "download"}
+
+
+def public_stats_events_path() -> Path:
+    return settings.storage_path / "stats" / "public_operations.json"
+
+
+def read_public_stat_events() -> list[dict]:
+    path = public_stats_events_path()
+    if not path.exists():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return []
+    return data if isinstance(data, list) else []
+
+
+def write_public_stat_events(events: list[dict]) -> None:
+    path = public_stats_events_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(events, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def record_public_operation(category: str, event_id: str | None = None, amount: int = 1) -> None:
+    normalized = category if category in STAT_CATEGORIES else "conversion"
+    safe_amount = max(int(amount), 0)
+    if safe_amount <= 0:
+        return
+
+    events = read_public_stat_events()
+    unique_id = event_id or f"{normalized}:{uuid4()}"
+    if any(event.get("event_id") == unique_id for event in events):
+        return
+
+    events.append(
+        {
+            "event_id": unique_id,
+            "category": normalized,
+            "amount": safe_amount,
+            "created_at": datetime.now(UTC).isoformat(),
+        }
+    )
+    write_public_stat_events(events)
 
 
 def get_public_stats() -> dict:
@@ -19,14 +66,24 @@ def get_public_stats() -> dict:
     }
     seen_ids: set[str] = set()
 
+    for event in read_public_stat_events():
+        event_id = str(event.get("event_id") or "")
+        if event_id:
+            seen_ids.add(event_id)
+        _add_category_to_totals(totals, str(event.get("category") or ""), int(event.get("amount") or 0))
+
     for record in read_history():
+        record_id = str(record.get("id") or "")
+        if record_id and record_id in seen_ids:
+            continue
         if not _is_successful_record(record):
             continue
 
-        record_id = str(record.get("id") or "")
         if record_id:
             seen_ids.add(record_id)
         _add_record_to_totals(totals, record)
+
+    from app.core.conversion_jobs import read_jobs
 
     for job in read_jobs():
         job_id = str(job.get("id") or "")
@@ -72,3 +129,14 @@ def _add_job_to_totals(totals: dict, job: dict) -> None:
         totals["total_image_tools"] += 1
     else:
         totals["total_conversions"] += 1
+
+
+def _add_category_to_totals(totals: dict, category: str, amount: int) -> None:
+    if amount <= 0:
+        return
+    if category == "download":
+        totals["total_downloads"] += amount
+    elif category == "image_tool":
+        totals["total_image_tools"] += amount
+    else:
+        totals["total_conversions"] += amount

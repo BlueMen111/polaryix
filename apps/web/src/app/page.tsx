@@ -9,8 +9,9 @@ import {
   UserComment,
   cancelConversionJob,
   createComment,
-  createConversionJob,
   createLinkDownloadJob,
+  convertFile,
+  convertFiles,
   downloadConversionJob,
   downloadLinkJobFile,
   getConversionJob,
@@ -439,28 +440,25 @@ export default function HomePage() {
     setStatus(selectedFiles.length > 1 ? t("home.sendingConversions", { count: selectedFiles.length }) : t("home.sendingConversion"));
 
     try {
-      const token = window.localStorage.getItem("polaryix:auth-token");
-      if (!token) {
-        setStatus("Entre com Google ou e-mail para usar a fila de conversoes.");
-        return;
+      if (selectedFiles.length === 1) {
+        const result = await convertFile({
+          file: selectedFiles[0],
+          fromFormat,
+          toFormat,
+          isPremium,
+          premiumPlan,
+        });
+        setStatus(`Download iniciado: ${result.filename}`);
+      } else {
+        const result = await convertFiles({
+          files: selectedFiles,
+          fromFormat,
+          toFormat,
+          isPremium,
+          premiumPlan,
+        });
+        setStatus(`Download iniciado: ${result.filename}`);
       }
-
-      const created = await Promise.all(
-        selectedFiles.map((file) =>
-          createConversionJob({
-            file,
-            fromFormat,
-            toFormat,
-          })
-        )
-      );
-      const jobs = created.map((item) => item.job);
-      setConversionJobs((current) => [...jobs, ...current.filter((job) => !jobs.some((createdJob) => createdJob.id === job.id))]);
-      setStatus(
-        isPremium
-          ? t("home.conversionSentPremium")
-          : t("home.conversionSentFree")
-      );
       await refreshUsage();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Erro ao converter arquivo.");

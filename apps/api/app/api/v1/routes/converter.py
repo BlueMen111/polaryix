@@ -14,6 +14,7 @@ from uuid import uuid4
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.responses import FileResponse
 from PIL import Image, UnidentifiedImageError
+from starlette.background import BackgroundTask
 
 try:
     import yt_dlp
@@ -22,8 +23,9 @@ except Exception:  # pragma: no cover - optional runtime dependency guard
 
 from app.core.config.settings import settings
 from app.core.auth_store import consume_user_credits, get_current_user, public_user
-from app.core.conversion_history import create_conversion_record, ensure_storage_available, update_conversion_record
+from app.core.conversion_history import create_conversion_record, update_conversion_record
 from app.core.conversion_queue import submit_conversion_job
+from app.core.public_stats import record_public_operation
 from app.core.conversion.compatibility import (
     CONVERTIBLE_AUDIO_FORMATS,
     CONVERTIBLE_TABULAR_FORMATS,
@@ -122,6 +124,18 @@ def _write_usage(data: dict) -> None:
     path = _usage_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _delete_temporary_file(path: Path) -> None:
+    try:
+        resolved = path.resolve()
+        processed_root = settings.processed_path.resolve()
+        if processed_root not in resolved.parents and resolved != processed_root:
+            return
+        if resolved.exists() and resolved.is_file():
+            resolved.unlink()
+    except OSError:
+        return
 
 
 def _usage_key(request: Request) -> str:
@@ -805,6 +819,7 @@ def _run_link_download_job(
                 download_url=f"/api/v1/me/files/{history_id}/download",
                 quality_delivered=quality_delivered,
             )
+        record_public_operation("download", event_id=history_id or f"download:{job_id}", amount=1)
         _update_link_job(
             job_id,
             status="ready",
@@ -1049,26 +1064,7 @@ async def convert_file(
             final_path = settings.processed_path / "conversions" / f"{uuid4().hex}-{output_name}"
             final_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(output_path, final_path)
-            if account.get("user_id"):
-                ensure_storage_available(_account_user(account) or {}, final_path.stat().st_size)
-                record = create_conversion_record(
-                    user_id=account["user_id"],
-                    user=_account_user(account),
-                    original_filename=safe_name,
-                    original_format=source_format,
-                    target_format=target_format,
-                    output_path=str(final_path),
-                    download_url="pending",
-                    file_size=final_path.stat().st_size,
-                    status="completed",
-                    is_premium_job=bool(account["is_premium"]),
-                    priority_level=int(account["limits"].priority_level),
-                    operation_type="conversion",
-                    extension=target_format.lower(),
-                    started_at=datetime.now(UTC).isoformat(),
-                    finished_at=datetime.now(UTC).isoformat(),
-                )
-                update_conversion_record(str(record["id"]), download_url=f"/api/v1/workspace/{record['id']}/download")
+            record_public_operation("conversion", amount=1)
 
     except FileSecurityError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
@@ -1079,6 +1075,7 @@ async def convert_file(
         final_path,
         media_type="application/octet-stream",
         filename=output_name,
+        background=BackgroundTask(_delete_temporary_file, final_path),
     )
 
 
@@ -1146,29 +1143,7 @@ async def convert_batch(
             final_path = settings.processed_path / "conversions" / zip_name
             final_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(zip_path, final_path)
-            if account.get("user_id"):
-                for output_path, output_name in converted:
-                    individual_path = settings.processed_path / "conversions" / f"{uuid4().hex}-{output_name}"
-                    shutil.copyfile(output_path, individual_path)
-                    ensure_storage_available(_account_user(account) or {}, individual_path.stat().st_size)
-                    record = create_conversion_record(
-                        user_id=account["user_id"],
-                        user=_account_user(account),
-                        original_filename=output_name,
-                        original_format=source_format,
-                        target_format=target_format,
-                        output_path=str(individual_path),
-                        download_url="pending",
-                        file_size=individual_path.stat().st_size,
-                        status="completed",
-                        is_premium_job=bool(account["is_premium"]),
-                        priority_level=int(account["limits"].priority_level),
-                        operation_type="conversion",
-                        extension=target_format.lower(),
-                        started_at=datetime.now(UTC).isoformat(),
-                        finished_at=datetime.now(UTC).isoformat(),
-                    )
-                    update_conversion_record(str(record["id"]), download_url=f"/api/v1/workspace/{record['id']}/download")
+            record_public_operation("conversion", amount=len(converted))
 
     except FileSecurityError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
@@ -1179,6 +1154,7 @@ async def convert_batch(
         final_path,
         media_type="application/zip",
         filename=zip_name,
+        background=BackgroundTask(_delete_temporary_file, final_path),
     )
 
 
@@ -1350,6 +1326,7 @@ async def download_link(
                 prepared_path = compatible_path
 
         _consume_account_credits(request, account, _download_credit_cost(selected_download_format, media_type))
+        record_public_operation("download", amount=1)
 
     except HTTPException:
         raise
