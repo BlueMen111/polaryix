@@ -939,9 +939,6 @@ export default function HomePage() {
         </section>
       </main>
 
-      <footer className={styles.footer}>
-        <p>{t("home.footer")}</p>
-      </footer>
     </div>
   );
 }

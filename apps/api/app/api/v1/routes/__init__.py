@@ -14,6 +14,7 @@ from app.api.v1.routes.health import router as health_router
 from app.api.v1.routes.image_tools import router as image_tools_router
 from app.api.v1.routes.me import router as me_router
 from app.api.v1.routes.payments import router as payments_router
+from app.api.v1.routes.stats import router as stats_router
 from app.api.v1.routes.workspace import router as workspace_router
 
 api_router = APIRouter(prefix="/api/v1")
@@ -25,6 +26,7 @@ api_router.include_router(comments_router)
 api_router.include_router(conversions_router)
 api_router.include_router(me_router)
 api_router.include_router(payments_router)
+api_router.include_router(stats_router)
 api_router.include_router(analysis_sessions_router)
 api_router.include_router(analysis_sessions_files_router)
 api_router.include_router(analysis_sessions_progress_router)

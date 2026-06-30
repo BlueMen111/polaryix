@@ -215,6 +215,13 @@ export type PaymentRecord = {
   metadata: Record<string, unknown>;
 };
 
+export type PublicStats = {
+  total_conversions: number;
+  total_image_tools: number;
+  total_downloads: number;
+  updated_at: string;
+};
+
 async function parseJsonError(response: Response, fallback: string): Promise<string> {
   try {
     const errorData = await response.json();
@@ -401,6 +408,19 @@ export async function capturePayPalPayment(paymentId: string): Promise<{ payment
   }
 
   return parseJsonResponse<{ payment: PaymentRecord }>(response, "Nao foi possivel capturar o pagamento PayPal.");
+}
+
+export async function getPublicStats(): Promise<PublicStats> {
+  const response = await fetch(apiUrl("/stats/public"), {
+    headers: apiHeaders(),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Nao foi possivel carregar as estatisticas."));
+  }
+
+  return parseJsonResponse<PublicStats>(response, "Nao foi possivel carregar as estatisticas.");
 }
 
 export function startGoogleLogin() {
