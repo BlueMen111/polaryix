@@ -197,9 +197,8 @@
 
 .paymentActions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.65rem;
   padding: 1rem 1.6rem 1.6rem;
+  gap: 0.75rem;
 }
 
 .paymentActions button {
@@ -209,8 +208,25 @@
   border-radius: 12px;
 }
 
-.paymentActions button:last-child {
-  grid-column: 1 / -1;
+.continueButton {
+  min-height: 50px !important;
+}
+
+.providerChoices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+  padding-top: 0.2rem;
+}
+
+.providerChoices button {
+  min-height: 40px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  box-shadow: 0 10px 22px rgba(8, 116, 255, 0.14);
+}
+
+.providerChoices button:last-child {
   border: 1px solid rgba(8, 116, 255, 0.16);
   background: rgba(255, 255, 255, 0.72);
   color: #0874ff;
@@ -260,5 +276,9 @@
   .planTop,
   .planGrid ul {
     min-height: auto;
+  }
+
+  .providerChoices {
+    grid-template-columns: 1fr;
   }
 }

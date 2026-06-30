@@ -54,6 +54,7 @@ export default function PremiumPage() {
   const [billing, setBilling] = useState<Billing>("annual");
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState("");
+  const [selectedPlanId, setSelectedPlanId] = useState("");
 
   async function startCheckout(plan: PlanOption, provider: PaymentProvider, method: "checkout" | "pix" = "checkout") {
     const token = window.localStorage.getItem("polaryix:auth-token");
@@ -118,15 +119,28 @@ export default function PremiumPage() {
             </ul>
 
             <div className={styles.paymentActions}>
-              <button type="button" onClick={() => startCheckout(plan, "mercadopago")} disabled={loading === `${plan.id}-mercadopago-checkout`}>
-                Mercado Pago
+              <button
+                className={styles.continueButton}
+                type="button"
+                onClick={() => setSelectedPlanId((current) => (current === plan.id ? "" : plan.id))}
+                aria-expanded={selectedPlanId === plan.id}
+              >
+                Continuar
               </button>
-              <button type="button" onClick={() => startCheckout(plan, "mercadopago", "pix")} disabled={loading === `${plan.id}-mercadopago-pix`}>
-                PIX
-              </button>
-              <button type="button" onClick={() => startCheckout(plan, "paypal")} disabled={loading === `${plan.id}-paypal-checkout`}>
-                PayPal
-              </button>
+
+              {selectedPlanId === plan.id ? (
+                <div className={styles.providerChoices} aria-label={`Opcoes de pagamento para ${plan.name}`}>
+                  <button type="button" onClick={() => startCheckout(plan, "mercadopago")} disabled={loading === `${plan.id}-mercadopago-checkout`}>
+                    Mercado Pago
+                  </button>
+                  <button type="button" onClick={() => startCheckout(plan, "mercadopago", "pix")} disabled={loading === `${plan.id}-mercadopago-pix`}>
+                    PIX
+                  </button>
+                  <button type="button" onClick={() => startCheckout(plan, "paypal")} disabled={loading === `${plan.id}-paypal-checkout`}>
+                    PayPal
+                  </button>
+                </div>
+              ) : null}
             </div>
           </article>
         ))}
