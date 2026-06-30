@@ -10,6 +10,8 @@ from email.message import EmailMessage
 from pathlib import Path
 
 from app.core.config.settings import settings
+from app.core.database import SessionLocal, is_database_enabled
+from app.core.db_models import AccountTokenModel
 
 
 logger = logging.getLogger("polaryix.account_security")
@@ -52,12 +54,53 @@ def create_account_token(user_id: str, email: str, token_type: str) -> tuple[str
     ]
     tokens.append(record)
     _write_tokens(tokens)
+    if is_database_enabled():
+        with SessionLocal() as db:
+            db.query(AccountTokenModel).filter(
+                AccountTokenModel.user_id == user_id,
+                AccountTokenModel.type == token_type,
+                AccountTokenModel.used_at.is_(None),
+            ).update({AccountTokenModel.used_at: now}, synchronize_session=False)
+            db.merge(
+                AccountTokenModel(
+                    id=record["id"],
+                    user_id=user_id,
+                    email=email,
+                    type=token_type,
+                    token_hash=record["token_hash"],
+                    created_at=now,
+                    expires_at=now + expires_delta,
+                    used_at=None,
+                )
+            )
+            db.commit()
     return token, record
 
 
 def consume_account_token(token: str, token_type: str) -> dict | None:
     token_hash = _hash_token(token)
     now = datetime.now(UTC)
+    if is_database_enabled():
+        with SessionLocal() as db:
+            item = db.query(AccountTokenModel).filter(
+                AccountTokenModel.type == token_type,
+                AccountTokenModel.token_hash == token_hash,
+                AccountTokenModel.used_at.is_(None),
+            ).first()
+            if not item or item.expires_at <= now:
+                return None
+            item.used_at = now
+            db.commit()
+            return {
+                "id": item.id,
+                "user_id": item.user_id,
+                "email": item.email,
+                "type": item.type,
+                "token_hash": item.token_hash,
+                "created_at": item.created_at.isoformat(),
+                "expires_at": item.expires_at.isoformat(),
+                "used_at": item.used_at.isoformat() if item.used_at else None,
+            }
     tokens = _read_tokens()
     matched: dict | None = None
 

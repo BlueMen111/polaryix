@@ -8,6 +8,8 @@ from uuid import uuid4
 
 from app.core.auth_store import apply_plan_to_user, find_user_by_id, read_users, write_users
 from app.core.config.settings import settings
+from app.core.database import SessionLocal, is_database_enabled
+from app.core.db_models import PaymentEventModel, PaymentModel
 from app.core.payment_notifications import send_payment_notification
 
 
@@ -77,18 +79,36 @@ def _write_json(path: Path, data) -> None:
 
 
 def read_payments() -> list[dict]:
+    if is_database_enabled():
+        with SessionLocal() as db:
+            return [_db_payment_to_dict(payment) for payment in db.query(PaymentModel).all()]
     return _read_json(payments_path(), [])
 
 
 def write_payments(payments: list[dict]) -> None:
+    if is_database_enabled():
+        with SessionLocal() as db:
+            for payment in payments:
+                db.merge(_dict_to_db_payment(payment))
+            db.commit()
+        return
     _write_json(payments_path(), payments)
 
 
 def read_payment_events() -> list[dict]:
+    if is_database_enabled():
+        with SessionLocal() as db:
+            return [_db_event_to_dict(event) for event in db.query(PaymentEventModel).all()]
     return _read_json(payment_events_path(), [])
 
 
 def write_payment_events(events: list[dict]) -> None:
+    if is_database_enabled():
+        with SessionLocal() as db:
+            for event in events:
+                db.merge(_dict_to_db_event(event))
+            db.commit()
+        return
     _write_json(payment_events_path(), events)
 
 
@@ -305,3 +325,75 @@ def _safe_event_payload(payload: dict) -> dict:
         elif isinstance(value, (str, int, float, bool)) or value is None:
             safe[key] = value
     return safe
+
+
+def _to_iso(value: datetime | None) -> str | None:
+    return value.isoformat() if value else None
+
+
+def _db_payment_to_dict(payment: PaymentModel) -> dict:
+    return {
+        "id": payment.id,
+        "user_id": payment.user_id,
+        "provider": payment.provider,
+        "type": payment.type,
+        "amount": payment.amount,
+        "currency": payment.currency,
+        "status": payment.status,
+        "external_payment_id": payment.external_payment_id,
+        "checkout_url": payment.checkout_url,
+        "qr_code": payment.qr_code,
+        "qr_code_base64": payment.qr_code_base64,
+        "created_at": _to_iso(payment.created_at),
+        "updated_at": _to_iso(payment.updated_at),
+        "expires_at": _to_iso(payment.expires_at),
+        "paid_at": _to_iso(payment.paid_at),
+        "metadata": payment.metadata_json or {},
+        "benefit_applied": payment.benefit_applied,
+    }
+
+
+def _dict_to_db_payment(payment: dict) -> PaymentModel:
+    return PaymentModel(
+        id=str(payment["id"]),
+        user_id=payment.get("user_id"),
+        provider=str(payment.get("provider") or ""),
+        type=str(payment.get("type") or ""),
+        amount=float(payment.get("amount") or 0),
+        currency=str(payment.get("currency") or "BRL"),
+        status=str(payment.get("status") or "pending"),
+        external_payment_id=payment.get("external_payment_id"),
+        checkout_url=payment.get("checkout_url"),
+        qr_code=payment.get("qr_code"),
+        qr_code_base64=payment.get("qr_code_base64"),
+        metadata_json=payment.get("metadata") or {},
+        benefit_applied=bool(payment.get("benefit_applied", False)),
+        created_at=_parse_datetime(payment.get("created_at")) or datetime.now(UTC),
+        updated_at=_parse_datetime(payment.get("updated_at")) or datetime.now(UTC),
+        expires_at=_parse_datetime(payment.get("expires_at")),
+        paid_at=_parse_datetime(payment.get("paid_at")),
+    )
+
+
+def _db_event_to_dict(event: PaymentEventModel) -> dict:
+    return {
+        "id": event.id,
+        "provider": event.provider,
+        "event_id": event.event_id,
+        "event_type": event.event_type,
+        "payload": event.payload or {},
+        "signature_valid": event.signature_valid,
+        "processed_at": _to_iso(event.processed_at),
+    }
+
+
+def _dict_to_db_event(event: dict) -> PaymentEventModel:
+    return PaymentEventModel(
+        id=str(event["id"]),
+        provider=str(event.get("provider") or ""),
+        event_id=str(event.get("event_id") or ""),
+        event_type=str(event.get("event_type") or ""),
+        payload=event.get("payload") or {},
+        signature_valid=bool(event.get("signature_valid", False)),
+        processed_at=_parse_datetime(event.get("processed_at")) or datetime.now(UTC),
+    )

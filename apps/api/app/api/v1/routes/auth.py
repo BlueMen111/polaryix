@@ -24,6 +24,8 @@ from app.core.auth_store import (
     public_user,
     read_sessions,
     read_users,
+    revoke_session,
+    revoke_user_sessions,
     verify_password,
     write_sessions,
     write_users,
@@ -246,9 +248,7 @@ async def me(request: Request) -> dict:
 async def logout(request: Request) -> dict:
     token = get_bearer_token(request)
     if token:
-        sessions = read_sessions()
-        sessions.pop(token, None)
-        write_sessions(sessions)
+        revoke_session(token)
     return {"ok": True}
 
 
@@ -343,6 +343,4 @@ async def google_oauth_callback(code: str | None = None, error: str | None = Non
 
 
 def _revoke_user_sessions(user_id: str) -> None:
-    sessions = read_sessions()
-    filtered = {token: session for token, session in sessions.items() if str(session.get("user_id")) != user_id}
-    write_sessions(filtered)
+    revoke_user_sessions(user_id)

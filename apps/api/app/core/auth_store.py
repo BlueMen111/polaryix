@@ -11,6 +11,8 @@ from uuid import uuid4
 from fastapi import HTTPException, Request, status
 
 from app.core.config.settings import settings
+from app.core.database import SessionLocal, is_database_enabled
+from app.core.db_models import SessionModel, UserModel
 from app.core.premium import FREE_PLAN, get_plan_limits, normalize_billing, normalize_plan
 
 
@@ -40,20 +42,33 @@ def write_json(path: Path, data) -> None:
 
 
 def read_users() -> list[dict]:
+    if is_database_enabled():
+        with SessionLocal() as db:
+            return [_db_user_to_dict(user) for user in db.query(UserModel).all()]
     data = read_json(users_path(), [])
     return data if isinstance(data, list) else []
 
 
 def write_users(users: list[dict]) -> None:
+    if is_database_enabled():
+        with SessionLocal() as db:
+            for user in users:
+                db.merge(_dict_to_db_user(user))
+            db.commit()
+        return
     write_json(users_path(), users)
 
 
 def read_sessions() -> dict:
+    if is_database_enabled():
+        return {}
     data = read_json(sessions_path(), {})
     return data if isinstance(data, dict) else {}
 
 
 def write_sessions(sessions: dict) -> None:
+    if is_database_enabled():
+        return
     write_json(sessions_path(), sessions)
 
 
@@ -159,6 +174,19 @@ def refresh_user_credits(user: dict) -> dict:
 
 def issue_session(user_id: str) -> str:
     token = secrets.token_urlsafe(32)
+    if is_database_enabled():
+        with SessionLocal() as db:
+            db.merge(
+                SessionModel(
+                    token_hash=_session_token_hash(token),
+                    user_id=user_id,
+                    created_at=datetime.now(UTC),
+                    expires_at=None,
+                    revoked_at=None,
+                )
+            )
+            db.commit()
+        return token
     sessions = read_sessions()
     sessions[token] = {"user_id": user_id, "created_at": datetime.now(UTC).isoformat()}
     write_sessions(sessions)
@@ -191,6 +219,54 @@ def get_current_user(request: Request, required: bool = False) -> dict | None:
     if not user:
         if required:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuário não encontrado.")
+        return None
+
+    refresh_user_credits(user)
+    write_users(users)
+    return user
+
+
+def get_current_user(request: Request, required: bool = False) -> dict | None:
+    token = get_bearer_token(request)
+    if not token:
+        if required:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Faca login para continuar.")
+        return None
+
+    if is_database_enabled():
+        with SessionLocal() as db:
+            session = db.get(SessionModel, _session_token_hash(token))
+            if not session or session.revoked_at is not None:
+                if required:
+                    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sessao expirada. Entre novamente.")
+                return None
+            if session.expires_at and session.expires_at <= datetime.now(UTC):
+                if required:
+                    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sessao expirada. Entre novamente.")
+                return None
+            db_user = db.get(UserModel, session.user_id)
+            if not db_user:
+                if required:
+                    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario nao encontrado.")
+                return None
+            user = _db_user_to_dict(db_user)
+            refresh_user_credits(user)
+            db.merge(_dict_to_db_user(user))
+            db.commit()
+            return user
+
+    sessions = read_sessions()
+    session = sessions.get(token)
+    if not session:
+        if required:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sessao expirada. Entre novamente.")
+        return None
+
+    users = read_users()
+    user = find_user_by_id(users, str(session.get("user_id")))
+    if not user:
+        if required:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario nao encontrado.")
         return None
 
     refresh_user_credits(user)
@@ -286,3 +362,113 @@ def refund_user_credits(user_id: str, amount: int) -> dict:
     user["updated_at"] = datetime.now(UTC).isoformat()
     write_users(users)
     return user
+
+
+def revoke_session(token: str) -> None:
+    if is_database_enabled():
+        with SessionLocal() as db:
+            session = db.get(SessionModel, _session_token_hash(token))
+            if session:
+                session.revoked_at = datetime.now(UTC)
+                db.commit()
+        return
+    sessions = read_sessions()
+    sessions.pop(token, None)
+    write_sessions(sessions)
+
+
+def revoke_user_sessions(user_id: str) -> None:
+    if is_database_enabled():
+        with SessionLocal() as db:
+            db.query(SessionModel).filter(SessionModel.user_id == user_id, SessionModel.revoked_at.is_(None)).update(
+                {SessionModel.revoked_at: datetime.now(UTC)},
+                synchronize_session=False,
+            )
+            db.commit()
+        return
+    sessions = read_sessions()
+    filtered = {token: session for token, session in sessions.items() if str(session.get("user_id")) != user_id}
+    write_sessions(filtered)
+
+
+def _session_token_hash(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _to_datetime(value: object) -> datetime | None:
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=UTC)
+    try:
+        parsed = datetime.fromisoformat(str(value))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed
+
+
+def _to_iso(value: datetime | None) -> str | None:
+    return value.isoformat() if value else None
+
+
+def _db_user_to_dict(user: UserModel) -> dict:
+    return {
+        "id": user.id,
+        "email": user.email,
+        "name": user.name,
+        "password_salt": user.password_salt,
+        "password_hash": user.password_hash,
+        "auth_provider": user.auth_provider,
+        "google_id": user.google_id,
+        "avatar_url": user.avatar_url,
+        "email_verified": user.email_verified,
+        "email_verified_at": _to_iso(user.email_verified_at),
+        "terms_accepted_at": _to_iso(user.terms_accepted_at),
+        "is_premium": user.is_premium,
+        "plan": user.plan,
+        "billing": user.billing,
+        "plan_started_at": _to_iso(user.plan_started_at),
+        "plan_expires_at": _to_iso(user.plan_expires_at),
+        "monthly_credits": user.monthly_credits,
+        "credits_remaining": user.credits_remaining,
+        "credits_period": user.credits_period,
+        "max_file_size_mb": user.max_file_size_mb,
+        "max_concurrent_conversions": user.max_concurrent_conversions,
+        "priority_level": user.priority_level,
+        "created_at": _to_iso(user.created_at),
+        "updated_at": _to_iso(user.updated_at),
+    }
+
+
+def _dict_to_db_user(user: dict) -> UserModel:
+    ensure_user_defaults(user)
+    now = datetime.now(UTC)
+    return UserModel(
+        id=str(user["id"]),
+        email=str(user.get("email") or "").lower(),
+        name=str(user.get("name") or "Usuario"),
+        password_salt=user.get("password_salt"),
+        password_hash=user.get("password_hash"),
+        auth_provider=str(user.get("auth_provider") or "email"),
+        google_id=user.get("google_id"),
+        avatar_url=user.get("avatar_url"),
+        email_verified=bool(user.get("email_verified", False)),
+        email_verified_at=_to_datetime(user.get("email_verified_at")),
+        terms_accepted_at=_to_datetime(user.get("terms_accepted_at")),
+        is_premium=bool(user.get("is_premium", False)),
+        plan=str(user.get("plan") or "free"),
+        billing=str(user.get("billing") or "daily"),
+        plan_started_at=_to_datetime(user.get("plan_started_at")),
+        plan_expires_at=_to_datetime(user.get("plan_expires_at")),
+        monthly_credits=int(user.get("monthly_credits") or FREE_PLAN.monthly_credits),
+        credits_remaining=int(user.get("credits_remaining") or 0),
+        credits_period=user.get("credits_period"),
+        max_file_size_mb=int(user.get("max_file_size_mb") or FREE_PLAN.max_file_size_mb),
+        max_concurrent_conversions=int(user.get("max_concurrent_conversions") or FREE_PLAN.max_concurrent_conversions),
+        priority_level=int(user.get("priority_level") or FREE_PLAN.priority_level),
+        metadata_json={},
+        created_at=_to_datetime(user.get("created_at")) or now,
+        updated_at=_to_datetime(user.get("updated_at")) or now,
+    )

@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:3000"
     backend_public_url: str | None = None
     public_logo_url: str | None = None
+    database_url: str | None = None
+    database_echo: bool = False
     google_client_id: str | None = None
     google_client_secret: str | None = None
     google_redirect_uri: str | None = None

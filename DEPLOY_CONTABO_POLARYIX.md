@@ -26,6 +26,7 @@ Tecnologias:
 - SMTP
 - Mercado Pago
 - PayPal
+- PostgreSQL
 
 Sistema recomendado:
 
@@ -74,7 +75,7 @@ DEPLOY_CONTABO_POLARYIX.md
 
 ```bash
 apt update && apt upgrade -y
-apt install -y python3 python3-venv python3-pip nginx git curl build-essential
+apt install -y python3 python3-venv python3-pip nginx git curl build-essential postgresql postgresql-contrib
 ```
 
 Node.js 20:
@@ -137,6 +138,71 @@ Importante:
 
 ---
 
+## PostgreSQL
+
+Criar banco e usuario:
+
+```bash
+sudo -u postgres psql
+```
+
+Dentro do PostgreSQL:
+
+```sql
+CREATE DATABASE polaryix;
+CREATE USER polaryix_user WITH ENCRYPTED PASSWORD 'TROQUE_POR_UMA_SENHA_FORTE';
+GRANT ALL PRIVILEGES ON DATABASE polaryix TO polaryix_user;
+\c polaryix
+GRANT ALL ON SCHEMA public TO polaryix_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO polaryix_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO polaryix_user;
+\q
+```
+
+No `apps/api/.env`:
+
+```env
+DATABASE_URL=postgresql+psycopg://polaryix_user:TROQUE_POR_UMA_SENHA_FORTE@localhost:5432/polaryix
+DATABASE_ECHO=false
+```
+
+Criar tabelas:
+
+```bash
+cd /var/www/polaryix/apps/api
+source venv/bin/activate
+python -m scripts.create_db_schema
+```
+
+Migrar JSON existentes para PostgreSQL sem apagar os arquivos JSON:
+
+```bash
+python -m scripts.migrate_json_to_postgres
+```
+
+Importante:
+
+- Este script copia usuarios, sessoes, tokens de conta, pagamentos, eventos de pagamento, comentarios e estatisticas publicas.
+- Ele nao apaga os arquivos JSON.
+- Rode backup antes de qualquer migracao.
+- Quando `DATABASE_URL` estiver configurado com uma URL real, o runtime usa PostgreSQL para estes dados criticos.
+- Se `DATABASE_URL` estiver vazio ou ainda com placeholder, o app usa fallback JSON para desenvolvimento.
+
+Backup do banco:
+
+```bash
+mkdir -p /var/backups/polaryix
+PGPASSWORD='TROQUE_POR_UMA_SENHA_FORTE' pg_dump -U polaryix_user -h localhost polaryix > /var/backups/polaryix/polaryix-$(date +%F-%H%M).sql
+```
+
+Entrar no banco:
+
+```bash
+PGPASSWORD='TROQUE_POR_UMA_SENHA_FORTE' psql -U polaryix_user -h localhost -d polaryix
+```
+
+---
+
 ## Variaveis Principais
 
 Exemplo para producao usando o mesmo dominio:
@@ -148,6 +214,8 @@ FRONTEND_URL=https://polaryix.com
 BACKEND_PUBLIC_URL=https://polaryix.com
 PUBLIC_LOGO_URL=https://polaryix.com/assets/polaryix-logo.png
 ALLOWED_ORIGINS=https://polaryix.com,https://www.polaryix.com
+DATABASE_URL=postgresql+psycopg://polaryix_user:SENHA_FORTE@localhost:5432/polaryix
+DATABASE_ECHO=false
 ```
 
 Se usar subdominio para API:
@@ -481,6 +549,7 @@ Comandos:
 cd /var/www/polaryix/apps/api
 source venv/bin/activate
 pip install -r requirements.txt
+python -m scripts.create_db_schema
 
 cd /var/www/polaryix/apps/web
 npm install
@@ -530,11 +599,23 @@ Antes de atualizacoes importantes:
 tar -czf /var/backups/polaryix/pre-update-$(date +%F-%H%M).tar.gz /var/www/polaryix
 ```
 
+Backup PostgreSQL:
+
+```bash
+PGPASSWORD='SENHA_FORTE' pg_dump -U polaryix_user -h localhost polaryix > /var/backups/polaryix/db-$(date +%F-%H%M).sql
+```
+
 ---
 
 ## Checklist Antes de Produzir
 
 - [ ] `.env` real criado em `apps/api/.env`.
+- [ ] PostgreSQL instalado.
+- [ ] Banco `polaryix` criado.
+- [ ] Usuario `polaryix_user` criado.
+- [ ] `DATABASE_URL` configurado.
+- [ ] Schema criado com `python -m scripts.create_db_schema`.
+- [ ] JSON migrado com `python -m scripts.migrate_json_to_postgres` quando aplicavel.
 - [ ] Nenhum secret dentro de `.env.example`.
 - [ ] `ENVIRONMENT=production`.
 - [ ] `DEBUG=false`.
