@@ -21,66 +21,28 @@ import {
   listComments,
   persistAuthSession,
 } from "@/lib/api";
+import { useLanguage } from "@/i18n/LanguageProvider";
 import { detectFormatFromFileName, validateConversion, validateFileForConversion } from "@/lib/conversionCompatibility";
 import styles from "./page.module.css";
 
 const formatGroups = [
-  { title: "Imagens", formats: ["PNG", "DDS", "JPG", "JPEG", "WEBP", "TGA", "BMP", "TIFF", "AVIF", "SVG", "ICO"] },
-  { title: "Vídeos", formats: ["MP4", "MOV", "AVI", "MKV", "WEBM", "M4V", "FLV", "WMV"] },
-  { title: "Áudios", formats: ["MP3", "WAV", "AAC", "OGG", "FLAC", "M4A", "WMA"] },
-  { title: "Documentos", formats: ["PDF", "DOCX", "DOC", "XLSX", "CSV", "PPTX", "TXT", "MD"] },
-  { title: "Arquivos", formats: ["ZIP", "RAR", "7Z", "TAR", "GZ"] },
-  { title: "Outros", formats: ["JSON", "XML", "HTML", "HEIC", "PSD"] },
+  { titleKey: "home.format.images", formats: ["PNG", "DDS", "JPG", "JPEG", "WEBP", "TGA", "BMP", "TIFF", "AVIF", "SVG", "ICO"] },
+  { titleKey: "home.format.videos", formats: ["MP4", "MOV", "AVI", "MKV", "WEBM", "M4V", "FLV", "WMV"] },
+  { titleKey: "home.format.audios", formats: ["MP3", "WAV", "AAC", "OGG", "FLAC", "M4A", "WMA"] },
+  { titleKey: "home.format.documents", formats: ["PDF", "DOCX", "DOC", "XLSX", "CSV", "PPTX", "TXT", "MD"] },
+  { titleKey: "home.format.archives", formats: ["ZIP", "RAR", "7Z", "TAR", "GZ"] },
+  { titleKey: "home.format.others", formats: ["JSON", "XML", "HTML", "HEIC", "PSD"] },
 ];
 
 const allFormats = formatGroups.flatMap((group) => group.formats);
 const formatOptions = allFormats.map((format) => ({ value: format, label: format }));
 
-const fallbackComments: UserComment[] = [
-  {
-    id: "fallback-1",
-    message: "Converti meus arquivos em segundos. Muito mais pratico.",
-    user_name: "Usuario Polaryix",
-    created_at: "2026-01-01T00:00:00Z",
-  },
-  {
-    id: "fallback-2",
-    message: "Interface limpa, rapida e facil de usar.",
-    user_name: "Usuario Polaryix",
-    created_at: "2026-01-01T00:00:00Z",
-  },
-  {
-    id: "fallback-3",
-    message: "O Polaryix economizou muito tempo no meu fluxo de trabalho.",
-    user_name: "Usuario Polaryix",
-    created_at: "2026-01-01T00:00:00Z",
-  },
-  {
-    id: "fallback-4",
-    message: "Finalmente um conversor simples e bonito.",
-    user_name: "Usuario Polaryix",
-    created_at: "2026-01-01T00:00:00Z",
-  },
-  {
-    id: "fallback-5",
-    message: "O fluxo PNG para DDS ficou direto e sem distracoes.",
-    user_name: "Usuario Polaryix",
-    created_at: "2026-01-01T00:00:00Z",
-  },
-  {
-    id: "fallback-6",
-    message: "Uso para testar imagens de jogos e tudo ficou mais agil.",
-    user_name: "Usuario Polaryix",
-    created_at: "2026-01-01T00:00:00Z",
-  },
-];
-
 const downloadCards = [
-  { name: "YouTube", text: "Vídeos e áudios em poucos cliques.", icon: "/assets/icons/youtube.svg", brand: "youtube" },
-  { name: "TikTok", text: "Cole o link e escolha o formato.", icon: "/assets/icons/tiktok.svg", brand: "tiktok" },
+  { name: "YouTube", textKey: "home.downloadYoutube", icon: "/assets/icons/youtube.svg", brand: "youtube" },
+  { name: "TikTok", textKey: "home.downloadTikTok", icon: "/assets/icons/tiktok.svg", brand: "tiktok" },
 ];
 
-const heroBadges = ["Rápido", "Seguro", "Sem limites"];
+const heroBadgeKeys = ["home.badgeFast", "home.badgeSafe", "home.badgeNoLimits"];
 const heroFormatPairs = [
   ["PNG", "DDS"],
   ["TXT", "DOCX"],
@@ -103,30 +65,32 @@ function FormatPicker({
   isOpen,
   onToggle,
   onSelect,
+  t,
 }: {
   label: string;
   value: string;
   isOpen: boolean;
   onToggle: () => void;
   onSelect: (value: string) => void;
+  t: (key: string) => string;
 }) {
   return (
     <div className={styles.formatPicker}>
       <span className={styles.pickerLabel}>{label}</span>
       <button type="button" className={styles.pickerButton} onClick={onToggle} aria-expanded={isOpen}>
         <strong>{value}</strong>
-        <span>Escolher</span>
+        <span>{t("home.pickFormat")}</span>
       </button>
       {isOpen ? (
         <div className={styles.formatMenu}>
           {formatGroups.map((group) => (
-            <section key={group.title}>
-              <h3>{group.title}</h3>
+            <section key={group.titleKey}>
+              <h3>{t(group.titleKey)}</h3>
               <div>
                 {group.formats.map((format) => (
                   <button
                     type="button"
-                    key={`${group.title}-${format}`}
+                    key={`${group.titleKey}-${format}`}
                     className={format === value ? styles.activeFormat : undefined}
                     onClick={() => onSelect(format)}
                   >
@@ -142,13 +106,13 @@ function FormatPicker({
   );
 }
 
-function StatusMessage({ message }: { message: string }) {
+function StatusMessage({ message, t }: { message: string; t: (key: string) => string }) {
   const impossiblePrefix = "Essa conversão não é possível.";
 
   if (message.startsWith(impossiblePrefix)) {
     return (
       <>
-        Essa conversão <strong className={styles.errorHighlight}>não é possível</strong>.
+        <strong className={styles.errorHighlight}>{t("home.impossiblePrefix")}</strong>
         {message.slice(impossiblePrefix.length)}
       </>
     );
@@ -157,7 +121,7 @@ function StatusMessage({ message }: { message: string }) {
   if (message.startsWith("Essa conversão ainda não é suportada.")) {
     return (
       <>
-        Essa conversão ainda <strong className={styles.errorHighlight}>não é suportada</strong>.
+        <strong className={styles.errorHighlight}>{t("home.unsupportedPrefix")}</strong>
         {message.slice("Essa conversão ainda não é suportada.".length)}
       </>
     );
@@ -167,13 +131,24 @@ function StatusMessage({ message }: { message: string }) {
 }
 
 export default function HomePage() {
+  const { t } = useLanguage();
+  const fallbackComments = useMemo<UserComment[]>(
+    () =>
+      [1, 2, 3, 4, 5, 6].map((index) => ({
+        id: `fallback-${index}`,
+        message: t(`home.fallbackComment${index}`),
+        user_name: "Polaryix",
+        created_at: "2026-01-01T00:00:00Z",
+      })),
+    [t]
+  );
   const [fromFormat, setFromFormat] = useState("PNG");
   const [toFormat, setToFormat] = useState("DDS");
   const [openPicker, setOpenPicker] = useState<"from" | "to" | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [fileName, setFileName] = useState("");
-  const [status, setStatus] = useState("Selecione um arquivo para preparar a conversão.");
+  const [status, setStatus] = useState(t("home.initialStatus"));
   const [downloadUrl, setDownloadUrl] = useState("");
   const [downloadFormat, setDownloadFormat] = useState<(typeof downloadOptions)[number]["id"]>("mp4");
   const [downloadStatus, setDownloadStatus] = useState("Cole um link para preparar o download.");
@@ -185,7 +160,7 @@ export default function HomePage() {
   const [isPremium, setIsPremium] = useState(false);
   const [premiumPlan, setPremiumPlan] = useState("basic");
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
-  const [comments, setComments] = useState<UserComment[]>(fallbackComments);
+  const [comments, setComments] = useState<UserComment[]>([]);
   const [commentMessage, setCommentMessage] = useState("");
   const [commentStatus, setCommentStatus] = useState("");
   const [isPostingComment, setIsPostingComment] = useState(false);
@@ -201,6 +176,10 @@ export default function HomePage() {
   const batchLimit = isPremium ? (premiumPlan === "pro" ? 60 : 30) : 2;
   const totalSelectedSize = useMemo(() => selectedFiles.reduce((sum, file) => sum + file.size, 0), [selectedFiles]);
   const [heroFormatFrom, heroFormatTo] = heroFormatPairs[heroFormatIndex];
+
+  useEffect(() => {
+    setComments((current) => (current.length ? current : fallbackComments));
+  }, [fallbackComments]);
 
   useEffect(() => {
     const token = window.localStorage.getItem("polaryix:auth-token");
@@ -272,7 +251,7 @@ export default function HomePage() {
       setUsageError("");
     } catch {
       setUsage(null);
-      setUsageError("Não foi possível atualizar os créditos agora.");
+      setUsageError(t("home.usageError"));
     }
   }
 
@@ -352,7 +331,7 @@ export default function HomePage() {
       invalidFileMessage ||
       (limitedFiles[0]
         ? `${limitedFiles[0].name} pronto para converter em ${toFormat}.${detectedSuffix}`
-        : "Selecione um arquivo para preparar a conversão.")
+        : t("home.initialStatus"))
     );
   }
 
@@ -370,27 +349,27 @@ export default function HomePage() {
 
   function tokenLabel() {
     if (usage) {
-      return `${usage.remaining} créditos restantes`;
+      return t("home.creditsRemaining", { credits: usage.remaining });
     }
 
-    return usageError ? "30 créditos grátis/dia" : "30 créditos grátis/dia";
+    return t("home.freeCredits");
   }
 
   function downloadProgressLabel() {
     if (downloadProgress >= 92 && isDownloading) {
-      return "Finalizando arquivo";
+      return t("home.finalizingFile");
     }
 
     if (downloadProgress >= 55 && isDownloading) {
-      return "Preparando mídia";
+      return t("home.preparingMedia");
     }
 
-    return "Progresso";
+    return t("home.progress");
   }
 
   function downloadProgressHint() {
     if (downloadProgress >= 92 && isDownloading) {
-      return "Para vídeos longos, essa etapa pode levar alguns minutos enquanto o arquivo final é preparado.";
+      return t("home.longVideoHint");
     }
 
     return "";
@@ -410,7 +389,7 @@ export default function HomePage() {
 
   async function handleConvert() {
     if (selectedFiles.length === 0) {
-      setStatus("Escolha um arquivo antes de iniciar a conversão.");
+      setStatus(t("home.chooseFileFirst"));
       fileInputRef.current?.click();
       return;
     }
@@ -428,7 +407,7 @@ export default function HomePage() {
     }
 
     setIsConverting(true);
-    setStatus(selectedFiles.length > 1 ? `Enviando ${selectedFiles.length} conversoes para a fila...` : "Enviando conversao para a fila...");
+    setStatus(selectedFiles.length > 1 ? t("home.sendingConversions", { count: selectedFiles.length }) : t("home.sendingConversion"));
 
     try {
       const token = window.localStorage.getItem("polaryix:auth-token");
@@ -450,8 +429,8 @@ export default function HomePage() {
       setConversionJobs((current) => [...jobs, ...current.filter((job) => !jobs.some((createdJob) => createdJob.id === job.id))]);
       setStatus(
         isPremium
-          ? "Conversao enviada. Priority queue enabled."
-          : "Conversao enviada. Aguardando na fila."
+          ? t("home.conversionSentPremium")
+          : t("home.conversionSentFree")
       );
       await refreshUsage();
     } catch (error) {
@@ -473,7 +452,7 @@ export default function HomePage() {
     const selectedOption = downloadOptions.find((option) => option.id === downloadFormat) ?? downloadOptions[0];
 
     if (selectedOption.premium && !isPremium) {
-      setDownloadStatus("Essa qualidade é exclusiva do Premium. Escolha MP4 ou MP3.");
+      setDownloadStatus(t("home.premiumQualityOnly"));
       setIsDownloading(false);
       return;
     }
@@ -550,7 +529,7 @@ export default function HomePage() {
       const { job } = await getConversionJob(jobId);
       setConversionJobs((current) => current.map((item) => (item.id === job.id ? job : item)));
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Nao foi possivel atualizar a conversao.");
+      setStatus(error instanceof Error ? error.message : t("home.refreshConversionError"));
     }
   }
 
@@ -558,10 +537,10 @@ export default function HomePage() {
     try {
       const { job } = await cancelConversionJob(jobId);
       setConversionJobs((current) => current.map((item) => (item.id === job.id ? job : item)));
-      setStatus("Conversao cancelada. Credito devolvido.");
+      setStatus(t("home.conversionCancelled"));
       await refreshUsage();
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Nao foi possivel cancelar a conversao.");
+      setStatus(error instanceof Error ? error.message : t("home.cancelConversionError"));
     }
   }
 
@@ -570,7 +549,7 @@ export default function HomePage() {
       const filename = await downloadConversionJob(job);
       setStatus(`Download iniciado: ${filename}`);
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Nao foi possivel baixar a conversao.");
+      setStatus(error instanceof Error ? error.message : t("home.downloadConversionError"));
     }
   }
 
@@ -599,12 +578,12 @@ export default function HomePage() {
           <div className={styles.heroInner}>
             <div className={styles.heroCopy}>
               <h1>
-                Conversões rápidas, visuais e sem <span>complicação</span>
+                {t("home.heroTitleBefore")} <span>{t("home.heroTitleHighlight")}</span>
               </h1>
-              <p>Converta arquivos com controle, velocidade e praticidade.</p>
+              <p>{t("home.heroSubtitle")}</p>
               <div className={styles.heroBadges}>
-                {heroBadges.map((badge) => (
-                  <span key={badge}>{badge}</span>
+                {heroBadgeKeys.map((badgeKey) => (
+                  <span key={badgeKey}>{t(badgeKey)}</span>
                 ))}
               </div>
             </div>
@@ -630,8 +609,8 @@ export default function HomePage() {
           <section id="converter" className={styles.converterSection} aria-labelledby="converter-title">
             <div className={styles.sectionHeader}>
               <div>
-                <p>Converter imagem</p>
-                <h2 id="converter-title">Escolha os formatos e envie seu arquivo</h2>
+                <p>{t("home.converterEyebrow")}</p>
+                <h2 id="converter-title">{t("home.converterTitle")}</h2>
               </div>
               <span className={styles.tokenBadge}>{tokenLabel()}</span>
             </div>
@@ -639,7 +618,7 @@ export default function HomePage() {
             <div className={styles.converterPanel}>
               <div className={styles.formatRow}>
                 <FormatPicker
-                  label="Converter de"
+                  label={t("home.convertFrom")}
                   value={fromFormat}
                   isOpen={openPicker === "from"}
                   onToggle={() => setOpenPicker(openPicker === "from" ? null : "from")}
@@ -647,12 +626,13 @@ export default function HomePage() {
                     setFromFormat(format);
                     setOpenPicker(null);
                   }}
+                  t={t}
                 />
-                <button type="button" className={styles.swapButton} onClick={swapFormats} aria-label="Inverter formatos">
+                <button type="button" className={styles.swapButton} onClick={swapFormats} aria-label={t("home.swapFormats")}>
                   ⇄
                 </button>
                 <FormatPicker
-                  label="Converter para"
+                  label={t("home.convertTo")}
                   value={toFormat}
                   isOpen={openPicker === "to"}
                   onToggle={() => setOpenPicker(openPicker === "to" ? null : "to")}
@@ -660,6 +640,7 @@ export default function HomePage() {
                     setToFormat(format);
                     setOpenPicker(null);
                   }}
+                  t={t}
                 />
               </div>
 
@@ -677,9 +658,9 @@ export default function HomePage() {
                   }}
                 >
                   <input ref={fileInputRef} type="file" onChange={handleFileChange} accept={acceptList} multiple />
-                  <strong>Selecionar arquivo</strong>
-                  <span>Arraste ou escolha arquivos para converter</span>
-                  <small>Fluxo atual: {conversionLabel} · limite por lote: {batchLimit}</small>
+                  <strong>{t("home.selectFile")}</strong>
+                  <span>{t("home.dragFiles")}</span>
+                  <small>{t("home.currentFlow", { conversion: conversionLabel, limit: batchLimit })}</small>
                 </button>
               ) : (
                 <div
@@ -698,7 +679,7 @@ export default function HomePage() {
                       <article className={styles.fileQueueItem} key={`${file.name}-${file.size}-${index}`}>
                         <span className={styles.fileIcon}>IMG</span>
                         <strong>{file.name}</strong>
-                        <span className={styles.fileTo}>para</span>
+                        <span className={styles.fileTo}>{t("home.to")}</span>
                         <select value={toFormat} onChange={(event) => setToFormat(event.target.value)}>
                           {formatOptions.map((option) => (
                             <option key={option.value} value={option.value}>
@@ -706,7 +687,7 @@ export default function HomePage() {
                             </option>
                           ))}
                         </select>
-                        <em>Pronto</em>
+                        <em>{t("home.ready")}</em>
                         <small>{formatFileSize(file.size)}</small>
                         <button type="button" onClick={() => removeSelectedFile(index)} aria-label={`Remover ${file.name}`}>
                           ×
@@ -716,7 +697,7 @@ export default function HomePage() {
                   </div>
 
                   <div className={styles.queueConvertAll}>
-                    <span>Converta todos para</span>
+                    <span>{t("home.convertAllTo")}</span>
                     <select value={toFormat} onChange={(event) => setToFormat(event.target.value)}>
                       {formatOptions.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -728,13 +709,13 @@ export default function HomePage() {
 
                   <div className={styles.fileQueueActions}>
                     <button type="button" className={styles.addFilesButton} onClick={() => fileInputRef.current?.click()}>
-                      + Adicionar mais arquivos
+                      {t("home.addMoreFiles")}
                     </button>
                     <p>
-                      {selectedFiles.length}/{batchLimit} arquivos · {formatFileSize(totalSelectedSize)}
+                      {t("home.filesCount", { count: selectedFiles.length, limit: batchLimit, size: formatFileSize(totalSelectedSize) })}
                     </p>
                     <button type="button" className={styles.queueConvertButton} onClick={handleConvert} disabled={isConverting}>
-                      {isConverting ? "Convertendo..." : "Converter"}
+                      {isConverting ? t("home.converting") : t("home.convert")}
                       <span>→</span>
                     </button>
                   </div>
@@ -744,40 +725,40 @@ export default function HomePage() {
               {selectedFiles.length === 0 ? (
                 <div className={styles.actionRow}>
                   <button type="button" className={styles.convertButton} onClick={handleConvert} disabled={isConverting}>
-                    {isConverting ? "Convertendo..." : "Converter agora"}
+                    {isConverting ? t("home.converting") : t("home.convertNow")}
                   </button>
                   <p className={styles.statusText}>
-                    <StatusMessage message={status} />
+                    <StatusMessage message={status} t={t} />
                   </p>
                   {isTokenLimitMessage(status) ? (
                     <a className={styles.limitNotice} href="/premium">
-                      Seus tokens acabaram. Conheça o Premium para continuar convertendo.
+                      {t("home.tokenLimitConvert")}
                     </a>
                   ) : null}
                 </div>
               ) : (
                 <>
                   <p className={styles.statusText}>
-                    <StatusMessage message={status} />
+                    <StatusMessage message={status} t={t} />
                   </p>
                   {isTokenLimitMessage(status) ? (
                     <a className={styles.limitNotice} href="/premium">
-                      Seus tokens acabaram. Conheça o Premium para continuar convertendo.
+                      {t("home.tokenLimitConvert")}
                     </a>
                   ) : null}
                 </>
               )}
 
               {conversionJobs.length > 0 ? (
-                <div className={styles.jobPanel} aria-label="Fila de conversoes">
+                <div className={styles.jobPanel} aria-label={t("home.jobQueue")}>
                   {conversionJobs.map((job) => (
                     <article className={styles.jobCard} key={job.id}>
                       <div>
                         <strong>{job.original_filename}</strong>
                         <span>
-                          {job.input_format} para {job.output_format}
+                          {job.input_format} {t("home.to")} {job.output_format}
                         </span>
-                        {job.is_priority ? <em>Priority queue enabled</em> : null}
+                        {job.is_priority ? <em>{t("home.priorityQueue")}</em> : null}
                       </div>
                       <p className={styles.statusText}>
                         {jobStatusLabel(job)}
@@ -785,16 +766,16 @@ export default function HomePage() {
                       </p>
                       <div className={styles.jobActions}>
                         <button type="button" onClick={() => handleRefreshJob(job.id)}>
-                          Atualizar status
+                          {t("home.refreshStatus")}
                         </button>
                         {job.status === "queued" ? (
                           <button type="button" onClick={() => handleCancelJob(job.id)}>
-                            Cancelar
+                            {t("common.cancel")}
                           </button>
                         ) : null}
                         {job.status === "completed" ? (
                           <button type="button" onClick={() => handleDownloadJob(job)}>
-                            Baixar
+                            {t("common.download")}
                           </button>
                         ) : null}
                       </div>
@@ -808,9 +789,9 @@ export default function HomePage() {
           <section id="download-link" className={styles.downloadSection} aria-labelledby="download-title">
             <div className={styles.downloadCopy}>
               <div>
-                <p>Download por link</p>
-                <h2 id="download-title">Baixe vídeos e áudios por link</h2>
-                <span>Cole um link do YouTube ou TikTok para baixar vídeo ou áudio rapidamente.</span>
+                <p>{t("home.downloadLinkEyebrow")}</p>
+                <h2 id="download-title">{t("home.downloadLinkTitle")}</h2>
+                <span>{t("home.downloadLinkSubtitle")}</span>
               </div>
               <span className={styles.tokenBadge}>{tokenLabel()}</span>
             </div>
@@ -820,10 +801,10 @@ export default function HomePage() {
                 type="url"
                 value={downloadUrl}
                 onChange={(event) => setDownloadUrl(event.target.value)}
-                placeholder="Cole a URL aqui"
-                aria-label="URL para baixar vídeo ou áudio"
+                placeholder={t("home.urlPlaceholder")}
+                aria-label={t("home.urlAria")}
               />
-              <div className={styles.downloadModes} aria-label="Formato do download">
+              <div className={styles.downloadModes} aria-label={t("home.downloadFormat")}>
                 {downloadOptions.map((option) => (
                   <button
                     type="button"
@@ -832,7 +813,7 @@ export default function HomePage() {
                     onClick={() => {
                       setDownloadFormat(option.id);
                       if (option.premium && !isPremium) {
-                        setDownloadStatus("Essa qualidade é exclusiva do Premium. Escolha MP4 ou MP3.");
+                        setDownloadStatus(t("home.premiumQualityOnly"));
                       }
                     }}
                     disabled={isDownloading}
@@ -843,14 +824,14 @@ export default function HomePage() {
                 ))}
               </div>
               <button type="button" onClick={handleLinkDownload} disabled={isDownloading}>
-                {isDownloading ? "Preparando..." : "Preparar download"}
+                {isDownloading ? t("home.preparing") : t("home.prepareDownload")}
               </button>
               <p className={styles.statusText}>
-                <StatusMessage message={downloadStatus} />
+                <StatusMessage message={downloadStatus} t={t} />
               </p>
               {isTokenLimitMessage(downloadStatus) ? (
                 <a className={styles.limitNotice} href="/premium">
-                  Seus tokens acabaram. Conheça o Premium para continuar baixando.
+                  {t("home.tokenLimitDownload")}
                 </a>
               ) : null}
             </div>
@@ -859,7 +840,7 @@ export default function HomePage() {
               <div className={styles.previewCard}>
                 {linkPreview?.thumbnail ? <img src={linkPreview.thumbnail} alt="" /> : <div className={styles.previewPlaceholder} />}
                 <div>
-                  <strong>{linkPreview?.title ?? "Preview do link"}</strong>
+                  <strong>{linkPreview?.title ?? t("home.previewTitle")}</strong>
                   {linkPreview?.uploader ? <span>{linkPreview.uploader}</span> : null}
                   {formatDuration(linkPreview?.duration) ? <small>{formatDuration(linkPreview?.duration)}</small> : null}
                   {previewStatus ? <p>{previewStatus}</p> : null}
@@ -868,7 +849,7 @@ export default function HomePage() {
             )}
 
             {(isDownloading || downloadProgress > 0) && (
-              <div className={styles.progressWrap} aria-label="Progresso do download">
+              <div className={styles.progressWrap} aria-label={t("home.downloadProgress")}>
                 <div>
                   <span>{downloadProgressLabel()}</span>
                   <strong>{downloadProgress}%</strong>
@@ -883,35 +864,35 @@ export default function HomePage() {
                 <article key={card.name} className={styles[card.brand as "youtube" | "tiktok"]}>
                   <img src={card.icon} alt="" aria-hidden="true" />
                   <strong>{card.name}</strong>
-                  <p>{card.text}</p>
+                  <p>{t(card.textKey)}</p>
                 </article>
               ))}
             </div>
           </section>
         </div>
 
-        <section className={styles.testimonialsSection} aria-label="Comentários de usuários">
+        <section className={styles.testimonialsSection} aria-label={t("home.testimonialsAria")}>
           <div className={styles.testimonialHeader}>
             <div>
-              <p>Comentarios</p>
-              <h2>Quem converte com o Polaryix volta pela praticidade</h2>
+              <p>{t("home.commentsEyebrow")}</p>
+              <h2>{t("home.commentsTitle")}</h2>
             </div>
             <form className={styles.commentForm} onSubmit={handleCommentSubmit}>
               <textarea
                 value={commentMessage}
                 onChange={(event) => setCommentMessage(event.target.value)}
-                placeholder={currentUser ? "Conte como foi usar o Polaryix" : "Entre para deixar um comentario"}
+                placeholder={currentUser ? t("home.commentPlaceholderLogged") : t("home.commentPlaceholderGuest")}
                 maxLength={500}
                 disabled={!currentUser || isPostingComment}
               />
               <div>
-                <span>{commentStatus || (currentUser ? `Comentando como ${currentUser.name}` : "Login Google ou conta Polaryix necessario")}</span>
+                <span>{commentStatus || (currentUser ? t("home.commentingAs", { name: currentUser.name }) : t("home.commentLoginNeeded"))}</span>
                 {currentUser ? (
                   <button type="submit" disabled={isPostingComment}>
-                    {isPostingComment ? "Enviando..." : "Enviar comentario"}
+                    {isPostingComment ? t("home.sending") : t("home.sendComment")}
                   </button>
                 ) : (
-                  <a href="/login">Entrar para comentar</a>
+                  <a href="/login">{t("home.loginToComment")}</a>
                 )}
               </div>
             </form>
@@ -930,7 +911,7 @@ export default function HomePage() {
       </main>
 
       <footer className={styles.footer}>
-        <p>© 2026 Polaryix. Todos os direitos reservados.</p>
+        <p>{t("home.footer")}</p>
       </footer>
     </div>
   );

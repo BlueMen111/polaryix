@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useLanguage } from "@/i18n/LanguageProvider";
 import { activatePremiumPlan } from "@/lib/api";
+import { formatPriceByLanguage } from "@/lib/currency";
 import styles from "./page.module.css";
 
 type Billing = "annual" | "monthly";
@@ -49,7 +50,7 @@ const plans = {
 } satisfies Record<Billing, PlanOption[]>;
 
 export default function PremiumPage() {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const [billing, setBilling] = useState<Billing>("annual");
   const [status, setStatus] = useState("");
   const [isActivating, setIsActivating] = useState("");
@@ -101,9 +102,8 @@ export default function PremiumPage() {
               <span>{t(plan.badgeKey)}</span>
               <h2>{t(plan.nameKey)}</h2>
               <div className={styles.price}>
-                <small>R$</small>
-                <strong>{plan.price}</strong>
-                <em>/ mes</em>
+                <strong>{formatPriceByLanguage(plan.price, language)}</strong>
+                <em>{t("premium.perMonth")}</em>
               </div>
             </div>
 

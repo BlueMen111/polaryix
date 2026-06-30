@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/i18n/LanguageProvider";
-import { languages, type Language } from "@/i18n/translations";
 import type { AuthUser } from "@/lib/api";
 import { logout } from "@/lib/api";
-import { useTheme, type ThemePreference } from "@/theme/ThemeProvider";
+import { useTheme } from "@/theme/ThemeProvider";
 import styles from "./Header.module.css";
 
 const conversionGroups = [
@@ -26,7 +25,7 @@ const imageTools = [
 
 export function Header() {
   const { language, setLanguage, t } = useLanguage();
-  const { theme, appliedTheme, setTheme } = useTheme();
+  const { appliedTheme, setTheme } = useTheme();
   const [isConversionsOpen, setIsConversionsOpen] = useState(false);
   const [isImageToolsOpen, setIsImageToolsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -54,6 +53,10 @@ export function Header() {
     setIsConversionsOpen(false);
     setIsImageToolsOpen(false);
     setIsMobileMenuOpen(false);
+  }
+
+  function toggleTheme() {
+    setTheme(appliedTheme === "dark" ? "light" : "dark");
   }
 
   return (
@@ -89,12 +92,7 @@ export function Header() {
             onMouseEnter={() => setIsConversionsOpen(true)}
             onMouseLeave={() => setIsConversionsOpen(false)}
           >
-            <button
-              type="button"
-              className={styles.navLink}
-              onClick={() => setIsConversionsOpen((current) => !current)}
-              aria-expanded={isConversionsOpen}
-            >
+            <button type="button" className={styles.navLink} onClick={() => setIsConversionsOpen((current) => !current)} aria-expanded={isConversionsOpen}>
               {t("nav.conversions")}
             </button>
 
@@ -133,12 +131,7 @@ export function Header() {
             onMouseEnter={() => setIsImageToolsOpen(true)}
             onMouseLeave={() => setIsImageToolsOpen(false)}
           >
-            <button
-              type="button"
-              className={styles.navLink}
-              onClick={() => setIsImageToolsOpen((current) => !current)}
-              aria-expanded={isImageToolsOpen}
-            >
+            <button type="button" className={styles.navLink} onClick={() => setIsImageToolsOpen((current) => !current)} aria-expanded={isImageToolsOpen}>
               {t("nav.imageEditing")}
             </button>
             <div className={styles.imageDropdown}>
@@ -152,25 +145,33 @@ export function Header() {
             </div>
           </div>
 
+          <Link href="/premium" className={styles.signupButton} onClick={closeMenus}>
+            {t("nav.premium")}
+          </Link>
+
           <div className={styles.compactControls}>
-            <label>
-              <span>{appliedTheme === "dark" ? "☾" : "☀"} {t("nav.theme")}</span>
-              <select value={theme} onChange={(event) => setTheme(event.target.value as ThemePreference)} aria-label={t("nav.theme")}>
-                <option value="light">{t("nav.light")}</option>
-                <option value="dark">{t("nav.dark")}</option>
-                <option value="system">{t("nav.system")}</option>
-              </select>
-            </label>
-            <label>
-              <span>{t("nav.language")}</span>
-              <select value={language} onChange={(event) => setLanguage(event.target.value as Language)} aria-label={t("nav.language")}>
-                {Object.entries(languages).map(([key, value]) => (
-                  <option key={key} value={key}>
-                    {value.shortLabel}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className={styles.languageToggle} role="group" aria-label={t("nav.language")}>
+              <span className={language === "en-US" ? styles.languageIndicatorRight : styles.languageIndicator} aria-hidden="true" />
+              <button type="button" className={language === "pt-BR" ? styles.toggleActive : undefined} onClick={() => setLanguage("pt-BR")} aria-pressed={language === "pt-BR"}>
+                PT
+              </button>
+              <button type="button" className={language === "en-US" ? styles.toggleActive : undefined} onClick={() => setLanguage("en-US")} aria-pressed={language === "en-US"}>
+                EN
+              </button>
+            </div>
+
+            <button
+              type="button"
+              className={`${styles.themeToggle} ${appliedTheme === "dark" ? styles.themeDark : ""}`}
+              onClick={toggleTheme}
+              aria-label={appliedTheme === "dark" ? t("nav.switchToLight") : t("nav.switchToDark")}
+              aria-pressed={appliedTheme === "dark"}
+            >
+              <span className={styles.themeTrack} aria-hidden="true">
+                <i className={styles.sun} />
+                <i className={styles.moon} />
+              </span>
+            </button>
           </div>
 
           {user ? (
@@ -183,9 +184,6 @@ export function Header() {
               {t("nav.login")}
             </Link>
           )}
-          <Link href="/premium" className={styles.signupButton} onClick={closeMenus}>
-            {t("nav.premium")}
-          </Link>
         </nav>
       </div>
     </header>
