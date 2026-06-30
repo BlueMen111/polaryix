@@ -193,6 +193,28 @@ export type ImageToolJob = {
   tool_options?: Record<string, unknown>;
 };
 
+export type PaymentProvider = "mercadopago" | "paypal";
+export type PaymentType = "donation" | "credits" | "premium";
+export type PaymentStatus = "pending" | "approved" | "rejected" | "cancelled" | "expired" | "refunded" | "failed";
+
+export type PaymentRecord = {
+  id: string;
+  user_id?: string | null;
+  provider: PaymentProvider;
+  type: PaymentType;
+  amount: number;
+  currency: string;
+  status: PaymentStatus;
+  external_payment_id?: string | null;
+  checkout_url?: string | null;
+  qr_code?: string | null;
+  qr_code_base64?: string | null;
+  created_at: string;
+  updated_at: string;
+  paid_at?: string | null;
+  metadata: Record<string, unknown>;
+};
+
 async function parseJsonError(response: Response, fallback: string): Promise<string> {
   try {
     const errorData = await response.json();
@@ -306,6 +328,79 @@ export async function activatePremiumPlan(payload: { plan: "basic" | "pro"; bill
   const data = await parseJsonResponse<{ user: AuthUser }>(response, "Não foi possível ativar o plano.");
   persistAuthSession({ token: getAuthToken(), user: data.user });
   return data;
+}
+
+export async function createPayment(payload: {
+  provider: PaymentProvider;
+  type: PaymentType;
+  amount?: number;
+  currency?: string;
+  plan?: "basic" | "pro";
+  billing?: "monthly" | "annual";
+  creditsPackage?: "starter" | "creator" | "studio";
+  method?: "checkout" | "pix";
+}): Promise<{ payment: PaymentRecord }> {
+  const response = await fetch(apiUrl("/payments/create"), {
+    method: "POST",
+    headers: authHeaders({
+      "Content-Type": "application/json",
+    }),
+    body: JSON.stringify({
+      provider: payload.provider,
+      type: payload.type,
+      amount: payload.amount,
+      currency: payload.currency ?? "BRL",
+      plan: payload.plan,
+      billing: payload.billing,
+      credits_package: payload.creditsPackage,
+      method: payload.method ?? "checkout",
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Nao foi possivel iniciar o pagamento."));
+  }
+
+  return parseJsonResponse<{ payment: PaymentRecord }>(response, "Nao foi possivel iniciar o pagamento.");
+}
+
+export async function getPaymentStatus(paymentId: string): Promise<{ payment: PaymentRecord }> {
+  const response = await fetch(apiUrl(`/payments/${paymentId}/status`), {
+    headers: authHeaders(),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Nao foi possivel consultar o pagamento."));
+  }
+
+  return parseJsonResponse<{ payment: PaymentRecord }>(response, "Nao foi possivel consultar o pagamento.");
+}
+
+export async function sandboxApprovePayment(paymentId: string): Promise<{ payment: PaymentRecord }> {
+  const response = await fetch(apiUrl(`/payments/${paymentId}/sandbox/approve`), {
+    method: "POST",
+    headers: authHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Nao foi possivel simular a aprovacao."));
+  }
+
+  return parseJsonResponse<{ payment: PaymentRecord }>(response, "Nao foi possivel simular a aprovacao.");
+}
+
+export async function capturePayPalPayment(paymentId: string): Promise<{ payment: PaymentRecord }> {
+  const response = await fetch(apiUrl(`/payments/paypal/${paymentId}/capture`), {
+    method: "POST",
+    headers: authHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseJsonError(response, "Nao foi possivel capturar o pagamento PayPal."));
+  }
+
+  return parseJsonResponse<{ payment: PaymentRecord }>(response, "Nao foi possivel capturar o pagamento PayPal.");
 }
 
 export function startGoogleLogin() {

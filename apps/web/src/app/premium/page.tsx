@@ -1,130 +1,100 @@
 "use client";
 
 import { useState } from "react";
-import { useLanguage } from "@/i18n/LanguageProvider";
-import { activatePremiumPlan } from "@/lib/api";
+import { createPayment, type PaymentProvider } from "@/lib/api";
 import { formatPriceByLanguage } from "@/lib/currency";
-import styles from "./page.module.css";
+import { useLanguage } from "@/i18n/LanguageProvider";
+import styles from "../payments.module.css";
 
 type Billing = "annual" | "monthly";
 type PlanType = "basic" | "pro";
-type PlanOption = {
-  id: string;
-  plan: PlanType;
-  billing: Billing;
-  nameKey: string;
-  price: number;
-  badgeKey: string;
-  featureKeys: string[];
-};
 
-const basicFeatureKeys = [
-  "premium.basicFeature1",
-  "premium.basicFeature2",
-  "premium.basicFeature3",
-  "premium.basicFeature4",
-  "premium.basicFeature5",
-  "premium.basicFeature6",
-  "premium.basicFeature7",
-];
-
-const proFeatureKeys = [
-  "premium.proFeature1",
-  "premium.proFeature2",
-  "premium.proFeature3",
-  "premium.proFeature4",
-  "premium.proFeature5",
-  "premium.proFeature6",
-  "premium.proFeature7",
-];
-
-const plans = {
+const plans: Record<Billing, Array<{ plan: PlanType; name: string; price: number; features: string[] }>> = {
   annual: [
-    { id: "basic-annual", plan: "basic", billing: "annual", nameKey: "premium.basicAnnual", price: 4.99, badgeKey: "premium.saveMore", featureKeys: basicFeatureKeys },
-    { id: "pro-annual", plan: "pro", billing: "annual", nameKey: "premium.proAnnual", price: 12.99, badgeKey: "premium.popular", featureKeys: proFeatureKeys },
+    { plan: "basic", name: "Basic Anual", price: 59.88, features: ["1000 creditos por mes", "Fila prioritaria", "Workspace Premium", "Resultado sem marca d'agua"] },
+    { plan: "pro", name: "Pro Anual", price: 155.88, features: ["3000 creditos por mes", "Fila prioritaria maxima", "Arquivos ate 1 GB", "Upscaling 4x sem marca d'agua"] },
   ],
   monthly: [
-    { id: "basic-monthly", plan: "basic", billing: "monthly", nameKey: "premium.basicMonthly", price: 9.99, badgeKey: "premium.flexible", featureKeys: basicFeatureKeys },
-    { id: "pro-monthly", plan: "pro", billing: "monthly", nameKey: "premium.proMonthly", price: 18.99, badgeKey: "premium.maxPower", featureKeys: proFeatureKeys },
+    { plan: "basic", name: "Basic Mensal", price: 9.99, features: ["1000 creditos", "Fila prioritaria", "Workspace Premium", "Resultado sem marca d'agua"] },
+    { plan: "pro", name: "Pro Mensal", price: 18.99, features: ["3000 creditos", "Fila prioritaria maxima", "Arquivos ate 1 GB", "Upscaling 4x sem marca d'agua"] },
   ],
-} satisfies Record<Billing, PlanOption[]>;
+};
 
 export default function PremiumPage() {
-  const { language, t } = useLanguage();
+  const { language } = useLanguage();
   const [billing, setBilling] = useState<Billing>("annual");
-  const [status, setStatus] = useState("");
-  const [isActivating, setIsActivating] = useState("");
-  const visiblePlans = plans[billing];
+  const [loading, setLoading] = useState("");
+  const [message, setMessage] = useState("");
 
-  async function selectPlan(plan: PlanOption) {
+  async function startCheckout(plan: PlanType, provider: PaymentProvider, method: "checkout" | "pix" = "checkout") {
     const token = window.localStorage.getItem("polaryix:auth-token");
     if (!token) {
-      window.location.href = `/login?next=/premium&plan=${plan.id}`;
+      window.location.href = `/login?next=/premium`;
       return;
     }
 
-    setIsActivating(plan.id);
-    setStatus("Ativando plano...");
-
+    const key = `${plan}-${provider}-${method}`;
+    setLoading(key);
+    setMessage("Criando checkout seguro...");
     try {
-      const result = await activatePremiumPlan({ plan: plan.plan, billing: plan.billing });
-      setStatus(`${result.user.plan === "pro" ? "Pro Premium" : "Basic"} ativado. Redirecionando...`);
-      window.location.href = "/";
+      const { payment } = await createPayment({ provider, type: "premium", plan, billing, method });
+      window.localStorage.setItem("polaryix:last-payment-id", payment.id);
+      if (payment.checkout_url) {
+        window.location.href = payment.checkout_url;
+        return;
+      }
+      window.location.href = `/payment/pending?payment_id=${payment.id}`;
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Nao foi possivel ativar o plano.");
+      setMessage(error instanceof Error ? error.message : "Nao foi possivel iniciar o pagamento.");
     } finally {
-      setIsActivating("");
+      setLoading("");
     }
   }
 
   return (
     <main className={styles.page}>
       <section className={styles.hero}>
-        <p>Polaryix Pass</p>
-        <h1>{t("premium.title")}</h1>
-        <span>{t("premium.subtitle")}</span>
+        <p className={styles.eyebrow}>Polaryix Premium</p>
+        <h1>Escolha seu plano</h1>
+        <p>Compra segura por Mercado Pago, PIX ou PayPal. O PolarYix nao armazena dados do seu cartao.</p>
       </section>
 
-      <section className={styles.billingSwitch} aria-label="Selecionar cobranca">
-        <button type="button" className={billing === "monthly" ? styles.active : undefined} onClick={() => setBilling("monthly")}>
-          {t("premium.monthly")}
-        </button>
-        <button type="button" className={billing === "annual" ? styles.active : undefined} onClick={() => setBilling("annual")}>
-          {t("premium.annual")}
-        </button>
+      <section className={styles.statusActions} aria-label="Selecionar cobranca">
+        <button className={billing === "monthly" ? styles.button : styles.ghostButton} type="button" onClick={() => setBilling("monthly")}>Mensal</button>
+        <button className={billing === "annual" ? styles.button : styles.ghostButton} type="button" onClick={() => setBilling("annual")}>Anual</button>
       </section>
-      <p className={styles.savings}>{t("premium.savings")}</p>
 
-      <section className={styles.planGrid}>
-        {visiblePlans.map((plan) => (
-          <article key={plan.id} className={plan.id.includes("pro") ? styles.featuredPlan : styles.plan}>
-            <div className={styles.planTop}>
-              <span>{t(plan.badgeKey)}</span>
-              <h2>{t(plan.nameKey)}</h2>
-              <div className={styles.price}>
-                <strong>{formatPriceByLanguage(plan.price, language)}</strong>
-                <em>{t("premium.perMonth")}</em>
-              </div>
+      {message ? <p className={styles.message}>{message}</p> : null}
+
+      <section className={styles.grid}>
+        {plans[billing].map((item) => (
+          <article className={styles.panel} key={`${item.plan}-${billing}`}>
+            <p className={styles.eyebrow}>{item.plan === "pro" ? "Mais completo" : "Essencial"}</p>
+            <h2>{item.name}</h2>
+            <div className={styles.price}>
+              <strong>{formatPriceByLanguage(item.price, language)}</strong>
+              <span>{billing === "annual" ? "/ ano" : "/ mes"}</span>
             </div>
-
-            <ul>
-              {plan.featureKeys.map((featureKey) => (
-                <li key={featureKey}>{t(featureKey)}</li>
-              ))}
+            <ul className={styles.features}>
+              {item.features.map((feature) => <li key={feature}>{feature}</li>)}
             </ul>
-
-            <button type="button" onClick={() => selectPlan(plan)} disabled={isActivating === plan.id}>
-              {isActivating === plan.id ? t("premium.activating") : t("premium.continue")}
-            </button>
+            <div className={styles.actions}>
+              <button className={styles.button} disabled={loading === `${item.plan}-mercadopago-checkout`} type="button" onClick={() => startCheckout(item.plan, "mercadopago")}>Mercado Pago</button>
+              <button className={styles.ghostButton} disabled={loading === `${item.plan}-mercadopago-pix`} type="button" onClick={() => startCheckout(item.plan, "mercadopago", "pix")}>PIX</button>
+              <button className={styles.ghostButton} disabled={loading === `${item.plan}-paypal-checkout`} type="button" onClick={() => startCheckout(item.plan, "paypal")}>PayPal</button>
+            </div>
           </article>
         ))}
       </section>
 
-      {status ? <p className={styles.savings}>{status}</p> : null}
-
-      <section className={styles.freeNote}>
-        <strong>{t("premium.freePlan")}</strong>
-        <p>{t("premium.freeNote")}</p>
+      <section className={styles.security}>
+        <strong>Pagamento seguro</strong>
+        <p>Compra protegida, processada por Mercado Pago e PayPal. Conexao segura via HTTPS. O PolarYix nunca salva numero do cartao, CVV ou validade.</p>
+        <div className={styles.badges}>
+          <span>Secure Checkout</span>
+          <span>SSL Secure</span>
+          <span>Protected Payment</span>
+        </div>
       </section>
     </main>
   );

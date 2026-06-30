@@ -23,6 +23,14 @@ class Settings(BaseSettings):
     google_client_id: str | None = None
     google_client_secret: str | None = None
     google_redirect_uri: str | None = None
+    mercadopago_access_token: str | None = None
+    mercadopago_public_key: str | None = None
+    mercadopago_webhook_secret: str | None = None
+    mercadopago_env: str = "sandbox"
+    paypal_client_id: str | None = None
+    paypal_client_secret: str | None = None
+    paypal_webhook_id: str | None = None
+    paypal_env: str = "sandbox"
     conversion_workers: int = 2
     max_concurrent_conversions: int = 2
     file_retention_hours: int = 12
