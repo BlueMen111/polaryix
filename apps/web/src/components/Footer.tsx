@@ -59,8 +59,11 @@ export function Footer() {
           <div>
             <Link href="/convert/dds-to-png">DDS to PNG</Link>
             <Link href="/convert/png-to-dds">PNG to DDS</Link>
+            <Link href="/convert/webp-to-png">WEBP to PNG</Link>
+            <Link href="/convert/mp4-to-mp3">MP4 to MP3</Link>
             <Link href="/youtube-to-mp3">YouTube to MP3</Link>
             <Link href="/youtube-to-mp4">YouTube to MP4</Link>
+            <Link href="/download/tiktok-to-mp4">TikTok to MP4</Link>
             <Link href="/security">Security</Link>
             <Link href="/terms">{isPortuguese ? "Termos de uso" : "Terms of Use"}</Link>
           </div>

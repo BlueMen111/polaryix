@@ -20,12 +20,34 @@
   padding: clamp(1.4rem, 4vw, 2.2rem);
 }
 
+.heroTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 .eyebrow {
   margin: 0;
   color: #0874ff;
   font-size: 0.78rem;
   font-weight: 950;
   text-transform: uppercase;
+}
+
+.creditBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  border: 1px solid rgba(8, 116, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(8, 116, 255, 0.06);
+  color: #0874ff;
+  font-size: 0.9rem;
+  font-weight: 950;
+  padding: 0 1rem;
+  white-space: nowrap;
 }
 
 .hero h1 {
@@ -93,5 +115,10 @@
 
   .actions {
     display: grid;
+  }
+
+  .heroTop {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

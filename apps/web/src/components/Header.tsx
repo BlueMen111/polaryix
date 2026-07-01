@@ -26,6 +26,19 @@ const imageTools = [
 const conversionSeoLinks: Record<string, string> = {
   "DDS para PNG": "/convert/dds-to-png",
   "PNG para DDS": "/convert/png-to-dds",
+  "JPG para PNG": "/convert/jpg-to-png",
+  "WEBP para PNG": "/convert/webp-to-png",
+  "TIFF para JPG": "/convert/tiff-to-jpg",
+  "MP4 para WEBM": "/convert/mp4-to-webm",
+  "MOV para MP4": "/convert/mov-to-mp4",
+  "AVI para MP4": "/convert/avi-to-mp4",
+  "MKV para MP4": "/convert/mkv-to-mp4",
+  "MP3 para WAV": "/convert/mp3-to-wav",
+  "WAV para MP3": "/convert/wav-to-mp3",
+  "AAC para MP3": "/convert/aac-to-mp3",
+  "OGG para MP3": "/convert/ogg-to-mp3",
+  "JSON": "/convert/json-to-xml",
+  "XML": "/convert/xml-to-json",
 };
 
 export function Header() {
