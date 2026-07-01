@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.responses import FileResponse
+from starlette.background import BackgroundTask
 
 from app.api.v1.routes.converter import (
     _convert_stored_file,
@@ -25,6 +26,7 @@ from app.core.conversion_jobs import (
     create_job,
     get_user_job,
     list_user_jobs,
+    mark_job_downloaded,
     public_job,
 )
 from app.core.security.file_security import FileSecurityError
@@ -163,4 +165,9 @@ async def download_conversion(request: Request, job_id: str) -> FileResponse:
 
     filename = Path(str(job.get("original_filename") or file_path.name)).stem
     target = str(job.get("output_format") or file_path.suffix.lstrip(".")).lower()
-    return FileResponse(file_path, media_type="application/octet-stream", filename=f"{filename}-polaryix.{target}")
+    return FileResponse(
+        file_path,
+        media_type="application/octet-stream",
+        filename=f"{filename}-polaryix.{target}",
+        background=BackgroundTask(mark_job_downloaded, str(user["id"]), job_id),
+    )

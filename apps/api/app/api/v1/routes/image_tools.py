@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.responses import FileResponse
+from starlette.background import BackgroundTask
 
 from app.core.auth_store import consume_user_credits, get_current_user, refund_user_credits
 from app.core.config.settings import settings
@@ -15,6 +16,7 @@ from app.core.conversion_jobs import (
     configure_job_processor,
     create_job,
     get_user_job,
+    mark_job_downloaded,
     public_job,
 )
 from app.core.image_tools import IMAGE_TOOL_COSTS, process_image_tool
@@ -238,4 +240,9 @@ async def download_image_tool_job(request: Request, job_id: str) -> FileResponse
     if not file_path.exists() or file_path.stat().st_size == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Arquivo final nao encontrado.")
 
-    return FileResponse(file_path, media_type="application/octet-stream", filename=file_path.name)
+    return FileResponse(
+        file_path,
+        media_type="application/octet-stream",
+        filename=file_path.name,
+        background=BackgroundTask(mark_job_downloaded, str(user["id"]), job_id),
+    )

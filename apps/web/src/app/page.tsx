@@ -929,6 +929,23 @@ export default function HomePage() {
           </section>
         </div>
 
+        <section className={styles.popularToolsSection} aria-label="Popular PolarYix tools">
+          <div>
+            <p>POPULAR TOOLS</p>
+            <h2>File converters and media tools</h2>
+            <span>Find PolarYix tools for DDS, PNG, YouTube, MP3, MP4 and online image processing.</span>
+          </div>
+          <div className={styles.popularToolsGrid}>
+            <a href="/convert/dds-to-png">DDS to PNG Converter</a>
+            <a href="/convert/png-to-dds">PNG to DDS Converter</a>
+            <a href="/youtube-to-mp3">YouTube to MP3 Converter</a>
+            <a href="/youtube-to-mp4">YouTube to MP4 Converter</a>
+            <a href="/image/remove-background">Remove Background Online</a>
+            <a href="/image/optimize">Image Optimizer</a>
+            <a href="/image/upscale">Image Upscaler</a>
+          </div>
+        </section>
+
         <section className={styles.testimonialsSection} aria-label={t("home.testimonialsAria")}>
           <div className={styles.testimonialHeader}>
             <div>

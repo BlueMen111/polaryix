@@ -4,9 +4,10 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import FileResponse
+from starlette.background import BackgroundTask
 
 from app.core.auth_store import get_current_user
-from app.core.conversion_history import get_user_record, list_user_records, public_record
+from app.core.conversion_history import get_user_record, list_user_records, mark_record_downloaded, public_record
 
 
 router = APIRouter(prefix="/me", tags=["Me"])
@@ -39,4 +40,9 @@ async def download_my_file(request: Request, file_id: str) -> FileResponse:
 
     filename = Path(str(record.get("original_filename") or file_path.name)).stem
     target = str(record.get("target_format") or file_path.suffix.lstrip(".")).lower()
-    return FileResponse(file_path, media_type="application/octet-stream", filename=f"{filename}-polaryix.{target}")
+    return FileResponse(
+        file_path,
+        media_type="application/octet-stream",
+        filename=f"{filename}-polaryix.{target}",
+        background=BackgroundTask(mark_record_downloaded, str(user["id"]), file_id),
+    )

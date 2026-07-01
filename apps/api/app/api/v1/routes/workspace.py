@@ -5,6 +5,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import FileResponse
+from starlette.background import BackgroundTask
 
 from app.api.v1.routes.converter import _normalize_format, _validate_conversion_or_raise
 from app.core.auth_store import consume_user_credits
@@ -19,6 +20,7 @@ from app.core.conversion_history import (
     ensure_storage_available,
     get_user_record,
     list_workspace_records,
+    mark_record_downloaded,
     public_record,
     retention_hours,
     set_favorite,
@@ -259,7 +261,12 @@ async def download_workspace_file(request: Request, file_id: str) -> FileRespons
 
     filename = Path(str(record.get("original_filename") or file_path.name)).stem
     extension = str(record.get("extension") or record.get("target_format") or file_path.suffix.lstrip(".")).lower()
-    return FileResponse(file_path, media_type="application/octet-stream", filename=f"{filename}-polaryix.{extension}")
+    return FileResponse(
+        file_path,
+        media_type="application/octet-stream",
+        filename=f"{filename}-polaryix.{extension}",
+        background=BackgroundTask(mark_record_downloaded, str(user["id"]), file_id),
+    )
 
 
 @router.get("/dashboard")

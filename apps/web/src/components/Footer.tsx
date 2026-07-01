@@ -51,10 +51,16 @@ export function Footer() {
           </div>
           <div>
             <Link href="/image-tools">{isPortuguese ? "Ferramentas de imagem" : "Image tools"}</Link>
+            <Link href="/image/remove-background">Remove Background</Link>
+            <Link href="/image/optimize">Image Optimizer</Link>
             <Link href="/workspace">Workspace</Link>
             <Link href="/dashboard">Dashboard</Link>
           </div>
           <div>
+            <Link href="/convert/dds-to-png">DDS to PNG</Link>
+            <Link href="/convert/png-to-dds">PNG to DDS</Link>
+            <Link href="/youtube-to-mp3">YouTube to MP3</Link>
+            <Link href="/youtube-to-mp4">YouTube to MP4</Link>
             <Link href="/security">Security</Link>
             <Link href="/terms">{isPortuguese ? "Termos de uso" : "Terms of Use"}</Link>
           </div>

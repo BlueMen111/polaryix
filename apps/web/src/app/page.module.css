@@ -914,6 +914,69 @@
   line-height: 1.45;
 }
 
+.popularToolsSection {
+  width: min(1120px, calc(100% - 32px));
+  margin: 1rem auto 0;
+  border: 1px solid rgba(8, 116, 255, 0.12);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 24px 70px rgba(8, 48, 110, 0.1);
+  padding: 1.2rem;
+}
+
+.popularToolsSection > div:first-child {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.popularToolsSection p {
+  margin: 0;
+  color: #0874ff;
+  font-size: 0.78rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.popularToolsSection h2 {
+  margin: 0;
+  color: #061334;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+}
+
+.popularToolsSection span {
+  color: #60728e;
+  line-height: 1.5;
+}
+
+.popularToolsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.popularToolsGrid a {
+  min-height: 46px;
+  border: 1px solid rgba(8, 116, 255, 0.16);
+  border-radius: 12px;
+  background: rgba(247, 251, 255, 0.92);
+  color: #0874ff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 950;
+  padding: 0.65rem 0.8rem;
+  text-align: center;
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+
+.popularToolsGrid a:hover {
+  border-color: rgba(8, 116, 255, 0.42);
+  background: rgba(8, 116, 255, 0.08);
+  transform: translateY(-1px);
+}
+
 .testimonialsSection {
   padding: 3.5rem 0 0;
 }
@@ -1137,7 +1200,8 @@
   }
 
   .downloadModes,
-  .downloadCards {
+  .downloadCards,
+  .popularToolsGrid {
     grid-template-columns: 1fr;
   }
 

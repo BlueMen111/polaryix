@@ -9,8 +9,27 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Polaryix - Conversoes futuristas",
-  description: "Converta arquivos e prepare midias autorizadas em uma experiencia premium, rapida e futurista.",
+  metadataBase: new URL("https://polaryix.com"),
+  title: "PolarYix - File Converter, DDS to PNG, PNG to DDS, YouTube to MP3",
+  description:
+    "Convert images, videos, audio and documents online. Use PolarYix for DDS to PNG, PNG to DDS, YouTube to MP3, YouTube to MP4, image optimization and background removal.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    siteName: "PolarYix",
+    title: "PolarYix - File Converter, DDS to PNG, PNG to DDS, YouTube to MP3",
+    description: "Convert images, videos, audio and documents online with PolarYix.",
+    url: "https://polaryix.com",
+    type: "website",
+    images: ["/assets/polaryix-logo.png"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "PolarYix - File Converter, DDS to PNG, PNG to DDS, YouTube to MP3",
+    description: "Convert images, videos, audio and documents online with PolarYix.",
+    images: ["/assets/polaryix-logo.png"],
+  },
   icons: {
     icon: [
       { url: "/assets/favicon.svg", type: "image/svg+xml" },

@@ -1,17 +1,19 @@
-"use client";
-
+import type { Metadata } from "next";
 import { ImageToolWorkspace } from "@/components/ImageToolWorkspace";
-import { useLanguage } from "@/i18n/LanguageProvider";
+
+export const metadata: Metadata = {
+  title: "Image Optimizer | PolarYix",
+  description: "Optimize and compress images online with PolarYix.",
+  alternates: { canonical: "/image/optimize" },
+};
 
 export default function OptimizeImagePage() {
-  const { t } = useLanguage();
-
   return (
     <ImageToolWorkspace
       operation="optimize_image"
-      eyebrow={t("image.optimize.title")}
-      title={t("image.optimize.pageTitle")}
-      description={t("image.optimize.pageDescription")}
+      eyebrow="Image Optimizer"
+      title="Image Optimizer"
+      description="Optimize and compress images online with PolarYix."
       cost="2 tokens"
     />
   );

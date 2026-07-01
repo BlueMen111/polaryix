@@ -141,6 +141,41 @@ def get_user_job(user_id: str, job_id: str) -> dict:
     return job
 
 
+def mark_job_downloaded(user_id: str, job_id: str) -> dict | None:
+    with _lock:
+        jobs = read_jobs()
+        updated: dict | None = None
+        for job in jobs:
+            if job.get("id") != job_id or job.get("user_id") != user_id:
+                continue
+
+            job["downloaded_at"] = _now()
+            if not job.get("preserve_in_workspace"):
+                output_path = Path(str(job.get("output_path") or ""))
+                try:
+                    storage_root = settings.storage_path.resolve()
+                    resolved = output_path.resolve()
+                    if storage_root in resolved.parents or resolved == storage_root:
+                        if resolved.exists() and resolved.is_file():
+                            resolved.unlink()
+                    else:
+                        logger.warning("Skipped job download cleanup outside storage: %s", resolved)
+                except OSError as exc:
+                    logger.warning("Failed to delete downloaded job output %s: %s", output_path, exc)
+                job["status"] = "deleted"
+            updated = job
+            break
+
+        if updated is None:
+            return None
+
+        write_jobs(jobs)
+
+    if not updated.get("preserve_in_workspace"):
+        update_conversion_record(str(job_id), status="deleted", deleted_at=updated.get("downloaded_at"), download_url=None)
+    return public_job(updated)
+
+
 def cancel_user_job(user_id: str, job_id: str) -> dict:
     with _lock:
         jobs = read_jobs()

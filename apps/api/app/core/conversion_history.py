@@ -169,6 +169,33 @@ def delete_user_record(user_id: str, record_id: str) -> dict:
     return public_record(updated)
 
 
+def mark_record_downloaded(user_id: str, record_id: str) -> dict | None:
+    current = _now()
+    records = read_history()
+    updated: dict | None = None
+    for record in records:
+        if record.get("id") != record_id or record.get("user_id") != user_id:
+            continue
+
+        operation_type = str(record.get("operation_type") or "").lower()
+        if record.get("is_favorite") or operation_type == "upload":
+            updated = record
+            break
+
+        _delete_storage_file(record.get("output_path"))
+        record["status"] = "deleted"
+        record["deleted_at"] = current.isoformat()
+        record["download_url"] = None
+        updated = record
+        break
+
+    if updated is None:
+        return None
+
+    write_history(records)
+    return public_record(updated)
+
+
 def get_user_record(user_id: str, record_id: str) -> dict:
     record = next((item for item in read_history() if item.get("id") == record_id and item.get("user_id") == user_id), None)
     if not record:

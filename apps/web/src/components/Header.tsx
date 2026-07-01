@@ -9,7 +9,7 @@ import { useTheme } from "@/theme/ThemeProvider";
 import styles from "./Header.module.css";
 
 const conversionGroups = [
-  { titleKey: "nav.images", items: ["PNG para DDS", "JPG para PNG", "WEBP para PNG", "TIFF para JPG"] },
+  { titleKey: "nav.images", items: ["DDS para PNG", "PNG para DDS", "JPG para PNG", "WEBP para PNG", "TIFF para JPG"] },
   { titleKey: "nav.videos", items: ["MP4 para WEBM", "MOV para MP4", "AVI para MP4", "MKV para MP4"] },
   { titleKey: "nav.audios", items: ["MP3 para WAV", "WAV para MP3", "AAC para MP3", "OGG para MP3"] },
   { titleKey: "nav.documents", items: ["PDF para DOCX", "DOCX para PDF", "XLSX para CSV", "PPTX para PDF"] },
@@ -22,6 +22,11 @@ const imageTools = [
   { href: "/image/optimize", titleKey: "image.optimize.title", descriptionKey: "nav.smallerFile" },
   { href: "/image/upscale", titleKey: "image.upscale.title", descriptionKey: "nav.moreResolution" },
 ];
+
+const conversionSeoLinks: Record<string, string> = {
+  "DDS para PNG": "/convert/dds-to-png",
+  "PNG para DDS": "/convert/png-to-dds",
+};
 
 export function Header() {
   const { language, setLanguage, t } = useLanguage();
@@ -102,7 +107,7 @@ export function Header() {
                   <h3>{t(group.titleKey)}</h3>
                   <div>
                     {group.items.map((item) => (
-                      <a href="/#converter" key={item} onClick={closeMenus}>
+                      <a href={conversionSeoLinks[item] ?? "/#converter"} key={item} onClick={closeMenus}>
                         {item}
                       </a>
                     ))}

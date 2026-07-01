@@ -1,18 +1,20 @@
-"use client";
-
+import type { Metadata } from "next";
 import { ImageToolWorkspace } from "@/components/ImageToolWorkspace";
-import { useLanguage } from "@/i18n/LanguageProvider";
+
+export const metadata: Metadata = {
+  title: "Image Upscaler | PolarYix",
+  description: "Upscale images online with PolarYix and improve resolution.",
+  alternates: { canonical: "/image/upscale" },
+};
 
 export default function UpscaleImagePage() {
-  const { t } = useLanguage();
-
   return (
     <ImageToolWorkspace
       operation="upscale_image"
-      eyebrow={t("image.upscale.title")}
-      title={t("image.upscale.pageTitle")}
-      description={t("image.upscale.description")}
-      cost={t("image.upscale.cost")}
+      eyebrow="Image Upscaler"
+      title="Image Upscaler"
+      description="Upscale images online with PolarYix and improve resolution."
+      cost="5 tokens em 2x · 10 tokens em 4x"
     />
   );
 }

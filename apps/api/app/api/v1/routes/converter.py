@@ -1618,6 +1618,7 @@ async def download_link(
         prepared_path,
         media_type="application/octet-stream",
         filename=filename,
+        background=BackgroundTask(_delete_temporary_file, prepared_path),
     )
 
 
