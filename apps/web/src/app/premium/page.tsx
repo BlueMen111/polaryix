@@ -19,7 +19,7 @@ type PlanOption = {
 };
 
 const basicFeatures = [
-  "1000 creditos por mes",
+  "1500 creditos por mes",
   "Fila prioritaria",
   "Workspace Premium",
   "Resultado sem marca d'agua",
@@ -29,7 +29,7 @@ const basicFeatures = [
 ];
 
 const proFeatures = [
-  "3000 creditos por mes",
+  "4500 creditos por mes",
   "Fila prioritaria maxima",
   "Arquivos ate 1 GB",
   "Upscaling 4x sem marca d'agua",

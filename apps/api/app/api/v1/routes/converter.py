@@ -11,6 +11,7 @@ from datetime import datetime, timedelta, timezone
 UTC = timezone.utc
 from functools import partial
 from pathlib import Path
+from urllib.parse import urlparse
 from uuid import uuid4
 
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Request, UploadFile, status
@@ -27,6 +28,7 @@ from app.core.config.settings import settings
 from app.core.auth_store import consume_user_credits, get_current_user, public_user
 from app.core.conversion_history import create_conversion_record, update_conversion_record
 from app.core.conversion_queue import submit_conversion_job
+from app.core.credit_costs import CONVERSION_CREDIT_COST, link_download_credit_cost
 from app.core.public_stats import record_public_operation
 from app.core.conversion.compatibility import (
     CONVERTIBLE_AUDIO_FORMATS,
@@ -292,7 +294,8 @@ def _consume_credits_for_usage_key(
     current = int(usage.get(key, {}).get("used", 0))
     if current + amount > limit:
         detail = (
-            "Seus tokens gratuitos acabaram. Eles renovam apos 24h, mas voce pode se tornar Premium para ter acesso ilimitado de uso."
+            f"Seus tokens gratuitos acabaram. Necessario: {amount}, restantes: {max(limit - current, 0)}. "
+            "Eles renovam apos 24h, mas voce pode se tornar Premium para ter acesso ilimitado de uso."
             if not is_premium
             else f"Voce nao tem creditos suficientes neste ciclo. Limite: {limit}, usados: {current}, necessario: {amount}."
         )
@@ -368,7 +371,8 @@ def _consume_credits(request: Request, amount: int, is_premium: bool = False, pr
 
     if current + amount > limit:
         detail = (
-            "Seus tokens gratuitos acabaram. Eles renovam apos 24h, mas voce pode se tornar Premium para ter acesso ilimitado de uso."
+            f"Seus tokens gratuitos acabaram. Necessario: {amount}, restantes: {max(limit - current, 0)}. "
+            "Eles renovam apos 24h, mas voce pode se tornar Premium para ter acesso ilimitado de uso."
             if not is_premium
             else f"Voce nao tem creditos suficientes neste ciclo. Limite: {limit}, usados: {current}, necessario: {amount}."
         )
@@ -386,12 +390,7 @@ def _consume_credits(request: Request, amount: int, is_premium: bool = False, pr
 
 
 def _download_credit_cost(download_format: str, media_type: str) -> int:
-    option = download_format.strip().lower()
-    if option == "mp3" or media_type.strip().lower() == "audio":
-        return 2
-    if option in {"mp4", "hd", "4k"}:
-        return 5
-    return 1
+    return link_download_credit_cost(download_format, media_type)
 
 
 def _output_filename(input_name: str, target_format: str) -> str:
@@ -413,23 +412,51 @@ def _ensure_ffmpeg_available() -> None:
         )
 
 
-def _clean_error_message(value: object) -> str:
-    message = ANSI_PATTERN.sub("", str(value)).strip()
+def _link_platform(url: str | None) -> str:
+    if not url:
+        return "generic"
 
-    if "Instagram sent an empty media response" in message or "cookies" in message.lower():
+    hostname = (urlparse(url).hostname or "").lower()
+    if hostname.startswith("www."):
+        hostname = hostname[4:]
+
+    if hostname in {"youtube.com", "youtu.be", "music.youtube.com", "m.youtube.com"} or hostname.endswith(".youtube.com"):
+        return "youtube"
+    if hostname == "instagram.com" or hostname.endswith(".instagram.com"):
+        return "instagram"
+    if hostname == "tiktok.com" or hostname.endswith(".tiktok.com"):
+        return "tiktok"
+    return "generic"
+
+
+def _clean_error_message(value: object, url: str | None = None) -> str:
+    message = ANSI_PATTERN.sub("", str(value)).strip()
+    lower_message = message.lower()
+    platform = _link_platform(url)
+
+    if platform == "instagram" and ("instagram sent an empty media response" in lower_message or "cookies" in lower_message):
         return (
             "O Instagram não liberou essa mídia publicamente. Abra o post no navegador sem login para confirmar se ele é público. "
             "Se exigir conta/login, será necessário configurar cookies no servidor para baixar esse conteúdo."
         )
 
-    if "requested format is not available" in message.lower():
+    if platform == "youtube" and ("cookies" in lower_message or "sign in to confirm" in lower_message or "confirm your age" in lower_message):
+        return (
+            "O YouTube não liberou o preview desse vídeo publicamente. Abra o link no navegador sem login para confirmar se ele está público. "
+            "Se exigir conta, idade ou verificação, será necessário configurar cookies do YouTube no servidor."
+        )
+
+    if "requested format is not available" in lower_message:
         return "Esse formato não está disponível para o link informado. Tente MP4, MP3 ou Full HD no Premium."
 
-    if "http error 403" in message.lower() or "forbidden" in message.lower():
+    if platform == "youtube" and ("http error 403" in lower_message or "forbidden" in lower_message):
         return (
             "O YouTube bloqueou uma das URLs temporárias durante o download. "
             "Tente novamente; o Polaryix vai alternar para um formato mais estável automaticamente."
         )
+
+    if "http error 403" in lower_message or "forbidden" in lower_message:
+        return "A plataforma bloqueou temporariamente o acesso a essa mídia pública. Tente novamente em instantes."
 
     return message
 
@@ -837,7 +864,7 @@ def _run_link_download_job(
             update_conversion_record(history_id, status="failed", error_message=str(exc.detail), finished_at=datetime.now(UTC).isoformat())
         _update_link_job(job_id, status="error", progress=0, message=str(exc.detail))
     except Exception as exc:
-        message = f"Nao foi possivel baixar esse link: {_clean_error_message(exc)}"
+        message = f"Nao foi possivel baixar esse link: {_clean_error_message(exc, url)}"
         if history_id:
             update_conversion_record(history_id, status="failed", error_message=message, finished_at=datetime.now(UTC).isoformat())
         _update_link_job(job_id, status="error", progress=0, message=message)
@@ -1061,7 +1088,7 @@ async def convert_file(
                 priority_level=int(account["limits"].priority_level),
             )
             output_path, output_name = future.result()
-            _consume_account_credits(request, account, 1)
+            _consume_account_credits(request, account, CONVERSION_CREDIT_COST)
 
             final_path = settings.processed_path / "conversions" / f"{uuid4().hex}-{output_name}"
             final_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1128,7 +1155,7 @@ async def convert_batch(
             ]
             for future in futures:
                 converted.append(future.result())
-            _consume_account_credits(request, account, len(saved_files))
+            _consume_account_credits(request, account, len(saved_files) * CONVERSION_CREDIT_COST)
 
             zip_name = f"polaryix-conversoes-{uuid4().hex[:8]}.zip"
             zip_path = workdir / zip_name
@@ -1335,7 +1362,7 @@ async def download_link(
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Não foi possível baixar esse link: {_clean_error_message(exc)}",
+            detail=f"Não foi possível baixar esse link: {_clean_error_message(exc, normalized_url)}",
         ) from exc
 
     title = info.get("title") if isinstance(info, dict) else "polaryix-download"
@@ -1369,7 +1396,7 @@ async def link_preview(url: str = Form(...)) -> dict:
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Não foi possível carregar o preview desse link: {_clean_error_message(exc)}",
+            detail=f"Não foi possível carregar o preview desse link: {_clean_error_message(exc, normalized_url)}",
         ) from exc
 
     return {

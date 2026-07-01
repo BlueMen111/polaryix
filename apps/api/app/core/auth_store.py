@@ -12,10 +12,14 @@ from uuid import uuid4
 
 from fastapi import HTTPException, Request, status
 
+from app.core.analytics import record_analytics_event
 from app.core.config.settings import settings
 from app.core.database import SessionLocal, is_database_enabled
 from app.core.db_models import SessionModel, UserModel
 from app.core.premium import FREE_PLAN, get_plan_limits, normalize_billing, normalize_plan
+
+
+ONE_TIME_LOGIN_BONUS_CREDITS = 20
 
 
 def users_path() -> Path:
@@ -108,16 +112,36 @@ def ensure_user_defaults(user: dict) -> dict:
     user.setdefault("email_verified", user.get("auth_provider") == "google")
     user.setdefault("email_verified_at", now if user.get("auth_provider") == "google" else None)
     user.setdefault("terms_accepted_at", None)
+    user.setdefault("login_bonus_granted", False)
     user.setdefault("updated_at", now)
     return user
 
 
-def apply_plan_to_user(user: dict, plan: str, billing: str) -> dict:
+def grant_login_bonus_once(user: dict) -> dict:
+    ensure_user_defaults(user)
+    if bool(user.get("login_bonus_granted")):
+        return user
+
+    if bool(user.get("is_premium")) or normalize_plan(user.get("plan")) != "free":
+        user["login_bonus_granted"] = True
+        user["updated_at"] = datetime.now(UTC).isoformat()
+        return user
+
+    refresh_user_credits(user)
+    user["credits_remaining"] = int(user.get("credits_remaining", 0) or 0) + ONE_TIME_LOGIN_BONUS_CREDITS
+    user["login_bonus_granted"] = True
+    user["updated_at"] = datetime.now(UTC).isoformat()
+    return user
+
+
+def apply_plan_to_user(user: dict, plan: str, billing: str, *, add_plan_credits: bool = True) -> dict:
     now = datetime.now(UTC)
     normalized_plan = normalize_plan(plan)
     normalized_billing = normalize_billing(billing)
     limits = get_plan_limits(normalized_plan, normalized_billing, normalized_plan != "free")
     expires_at = now + (timedelta(days=365) if normalized_billing == "annual" else timedelta(days=30))
+    current_credits = int(user.get("credits_remaining", 0) or 0)
+    next_credits = current_credits + limits.monthly_credits if limits.is_premium and add_plan_credits else limits.monthly_credits
 
     user.update(
         {
@@ -127,7 +151,7 @@ def apply_plan_to_user(user: dict, plan: str, billing: str) -> dict:
             "plan_started_at": now.isoformat(),
             "plan_expires_at": expires_at.isoformat() if limits.is_premium else None,
             "monthly_credits": limits.monthly_credits,
-            "credits_remaining": limits.monthly_credits,
+            "credits_remaining": next_credits,
             "credits_period": now.strftime("%Y-%m"),
             "max_file_size_mb": limits.max_file_size_mb,
             "max_concurrent_conversions": limits.max_concurrent_conversions,
@@ -161,7 +185,8 @@ def refresh_user_credits(user: dict) -> dict:
         period = now.strftime("%Y-%m-%d")
 
     if user.get("credits_period") != period:
-        user["credits_remaining"] = limits.monthly_credits
+        if not is_premium:
+            user["credits_remaining"] = limits.monthly_credits
         user["credits_period"] = period
 
     user["monthly_credits"] = limits.monthly_credits
@@ -297,6 +322,7 @@ def public_user(user: dict) -> dict:
         "terms_accepted_at": user.get("terms_accepted_at"),
         "email_verified": bool(user.get("email_verified", False)),
         "email_verified_at": user.get("email_verified_at"),
+        "login_bonus_granted": bool(user.get("login_bonus_granted", False)),
     }
 
 
@@ -314,6 +340,7 @@ def create_user(name: str, email: str, password: str | None = None, auth_provide
         "terms_accepted_at": now if terms_accepted else None,
         "created_at": now,
         "updated_at": now,
+        "login_bonus_granted": False,
     }
 
     if password is not None:
@@ -339,12 +366,24 @@ def consume_user_credits(user_id: str, amount: int) -> dict:
     if remaining < amount:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Seus créditos acabaram. Faça upgrade para Premium ou aguarde a renovação do seu saldo.",
+            detail=(
+                f"Creditos insuficientes. Esta operacao precisa de {amount} creditos "
+                f"e voce tem {remaining} creditos restantes."
+            ),
         )
 
     user["credits_remaining"] = remaining - amount
     user["updated_at"] = datetime.now(UTC).isoformat()
     write_users(users)
+    record_analytics_event(
+        event_type="credits_used",
+        path=None,
+        referrer=None,
+        user_agent=None,
+        ip_address=None,
+        user_id=user_id,
+        metadata={"amount": amount, "balance_after": user["credits_remaining"]},
+    )
     return user
 
 
@@ -441,6 +480,7 @@ def _db_user_to_dict(user: UserModel) -> dict:
         "priority_level": user.priority_level,
         "created_at": _to_iso(user.created_at),
         "updated_at": _to_iso(user.updated_at),
+        "login_bonus_granted": bool((user.metadata_json or {}).get("login_bonus_granted", False)),
     }
 
 
@@ -470,7 +510,7 @@ def _dict_to_db_user(user: dict) -> UserModel:
         max_file_size_mb=int(user.get("max_file_size_mb") or FREE_PLAN.max_file_size_mb),
         max_concurrent_conversions=int(user.get("max_concurrent_conversions") or FREE_PLAN.max_concurrent_conversions),
         priority_level=int(user.get("priority_level") or FREE_PLAN.priority_level),
-        metadata_json={},
+        metadata_json={"login_bonus_granted": bool(user.get("login_bonus_granted", False))},
         created_at=_to_datetime(user.get("created_at")) or now,
         updated_at=_to_datetime(user.get("updated_at")) or now,
     )

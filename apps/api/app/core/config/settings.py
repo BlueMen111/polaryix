@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     max_upload_size_mb: int = 100
     max_rows_preview: int = 0
     free_daily_credits: int = 30
-    basic_monthly_credits: int = 1000
-    pro_monthly_credits: int = 3000
+    basic_monthly_credits: int = 1500
+    pro_monthly_credits: int = 4500
     frontend_url: str = "http://localhost:3000"
     backend_public_url: str | None = None
     public_logo_url: str | None = None

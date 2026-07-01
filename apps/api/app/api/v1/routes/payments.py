@@ -13,6 +13,7 @@ from urllib.request import urlopen
 from fastapi import APIRouter, Header, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
+from app.core.analytics import record_analytics_event
 from app.core.auth_store import get_current_user
 from app.core.config.settings import settings
 from app.core.payments_store import (
@@ -164,6 +165,16 @@ async def create_payment(request: Request, payload: PaymentCreatePayload) -> dic
     else:
         payment = _create_paypal_order(payment)
 
+    if payload.type == "premium":
+        record_analytics_event(
+            event_type="premium_checkout_started",
+            path="/premium",
+            referrer=None,
+            user_agent=request.headers.get("user-agent"),
+            ip_address=_client_ip(request),
+            user_id=user_id,
+            metadata={"provider": payload.provider, "method": payload.method or "checkout", "plan": metadata.get("plan"), "billing": metadata.get("billing")},
+        )
     send_payment_notification(payment, "pending")
     return {"payment": payment}
 
@@ -453,6 +464,13 @@ def _payment_title(payment: dict) -> str:
     if payment.get("type") == "credits":
         return "PolarYix credits package"
     return "PolarYix donation"
+
+
+def _client_ip(request: Request) -> str | None:
+    forwarded_for = request.headers.get("x-forwarded-for")
+    if forwarded_for:
+        return forwarded_for.split(",", 1)[0].strip()
+    return request.client.host if request.client else None
 
 
 def _map_status(value: str) -> str:

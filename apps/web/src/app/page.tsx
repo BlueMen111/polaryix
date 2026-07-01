@@ -94,9 +94,9 @@ const heroFormatPairs = [
 ];
 
 const downloadOptions = [
-  { id: "mp4", label: "MP4", detail: "720p - 5 tokens", mediaType: "video", premium: false },
-  { id: "mp3", label: "MP3", detail: "2 tokens", mediaType: "audio", premium: false },
-  { id: "4k", label: "4K", detail: "5 tokens - Premium", mediaType: "video", premium: true },
+  { id: "mp4", label: "MP4", detail: "720p - 7 tokens", mediaType: "video", premium: false },
+  { id: "mp3", label: "MP3", detail: "4 tokens", mediaType: "audio", premium: false },
+  { id: "4k", label: "4K", detail: "7 tokens - Premium", mediaType: "video", premium: true },
 ] as const;
 
 function FormatPicker({

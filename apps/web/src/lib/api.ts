@@ -496,6 +496,22 @@ export async function getPublicStats(): Promise<PublicStats> {
   return parseJsonResponse<PublicStats>(response, "Nao foi possivel carregar as estatisticas.");
 }
 
+export async function recordAnalyticsEvent(payload: { eventType?: string; path?: string; referrer?: string; metadata?: Record<string, string | number | boolean | null> }): Promise<void> {
+  await fetch(apiUrl("/analytics/events"), {
+    method: "POST",
+    headers: authHeaders({
+      "Content-Type": "application/json",
+    }),
+    body: JSON.stringify({
+      event_type: payload.eventType ?? "page_view",
+      path: payload.path,
+      referrer: payload.referrer,
+      metadata: payload.metadata ?? {},
+    }),
+    keepalive: true,
+  }).catch(() => undefined);
+}
+
 export function startGoogleLogin(nextPath?: string) {
   if (nextPath) {
     window.localStorage.setItem("polaryix:auth-next", nextPath);

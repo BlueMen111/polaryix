@@ -18,6 +18,7 @@ from app.api.v1.routes.converter import (
 from app.core.auth_store import consume_user_credits, get_current_user, refund_user_credits
 from app.core.config.settings import settings
 from app.core.conversion_history import create_conversion_record, ensure_storage_available, update_conversion_record
+from app.core.credit_costs import CONVERSION_CREDIT_COST
 from app.core.conversion_jobs import (
     cancel_user_job,
     configure_conversion_job_processor,
@@ -84,7 +85,7 @@ async def create_conversion(
 
     account = _request_account(request)
     priority = 10 if is_premium_user(user) else 1
-    credits_cost = 1
+    credits_cost = CONVERSION_CREDIT_COST
 
     upload_dir = settings.storage_path / "jobs" / "uploads"
     upload_dir.mkdir(parents=True, exist_ok=True)

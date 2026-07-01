@@ -9,7 +9,7 @@ from urllib.parse import urlencode
 from urllib.request import Request as UrlRequest
 from urllib.request import urlopen
 
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, Header, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 
@@ -19,6 +19,7 @@ from app.core.auth_store import (
     create_user,
     find_user_by_email,
     find_user_by_id,
+    grant_login_bonus_once,
     get_bearer_token,
     get_current_user,
     hash_password,
@@ -38,6 +39,7 @@ from app.core.account_security import (
     send_password_reset_email,
     send_verification_email,
 )
+from app.core.analytics import record_analytics_event
 from app.core.config.settings import settings
 from app.core.premium import PREMIUM_PLANS, public_plan_data
 
@@ -156,6 +158,7 @@ async def signup(payload: SignupPayload) -> SignupResponse:
     write_users(users)
     token, _ = create_account_token(user["id"], user["email"], "email_verification")
     send_verification_email(user["email"], user["name"], token)
+    record_analytics_event(event_type="signup", path="/signup", referrer=None, user_agent=None, ip_address=None, user_id=str(user["id"]))
 
     return SignupResponse(
         ok=True,
@@ -179,6 +182,9 @@ async def login(payload: LoginPayload) -> AuthResponse:
             detail="Confirme seu e-mail antes de entrar. Voce pode reenviar o link de verificacao.",
         )
 
+    grant_login_bonus_once(user)
+    write_users(users)
+    record_analytics_event(event_type="login", path="/login", referrer=None, user_agent=None, ip_address=None, user_id=str(user["id"]))
     return AuthResponse(token=issue_session(user["id"]), user=public_user(user))
 
 
@@ -197,6 +203,7 @@ async def verify_email(payload: VerifyEmailPayload) -> dict:
     user["email_verified"] = True
     user["email_verified_at"] = now
     user["updated_at"] = now
+    grant_login_bonus_once(user)
     write_users(users)
     return {"ok": True, "message": "E-mail verificado com sucesso."}
 
@@ -270,7 +277,12 @@ async def plans() -> dict:
 
 
 @router.post("/premium/activate")
-async def activate_plan(request: Request, payload: ActivatePlanPayload) -> dict:
+async def activate_plan(request: Request, payload: ActivatePlanPayload, x_admin_token: str | None = Header(default=None)) -> dict:
+    if settings.environment == "production":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Ativacao manual indisponivel em producao. Use o checkout.")
+    if settings.admin_cleanup_token and x_admin_token != settings.admin_cleanup_token:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Token administrativo invalido.")
+
     current = get_current_user(request, required=True)
     if not current.get("email_verified"):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Confirme seu e-mail antes de ativar Premium.")
@@ -324,6 +336,7 @@ def _login_or_create_google_user(profile: dict) -> AuthResponse:
         users.append(user)
 
     write_users(users)
+    record_analytics_event(event_type="login", path="/auth/google", referrer=None, user_agent=None, ip_address=None, user_id=str(user["id"]), metadata={"provider": "google"})
     return AuthResponse(token=issue_session(user["id"]), user=public_user(user))
 
 

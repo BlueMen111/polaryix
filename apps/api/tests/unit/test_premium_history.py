@@ -11,14 +11,16 @@ from pathlib import Path
 from app.core import conversion_history
 from app.core.config.settings import settings
 from app.core.conversion_queue import QueuedJob
+from app.core.payments_store import approve_payment, create_payment_record, find_payment
 from app.core.premium import get_plan_limits
+from app.core.auth_store import create_user, read_users, write_users
 
 
 class PremiumPlanTests(unittest.TestCase):
     def test_basic_plan_limits(self) -> None:
         plan = get_plan_limits("basic", "annual", True)
 
-        self.assertEqual(plan.monthly_credits, 1000)
+        self.assertEqual(plan.monthly_credits, 1500)
         self.assertEqual(plan.max_file_size_mb, 300)
         self.assertEqual(plan.max_concurrent_conversions, 30)
         self.assertEqual(plan.priority_level, 50)
@@ -26,7 +28,7 @@ class PremiumPlanTests(unittest.TestCase):
     def test_pro_plan_uses_sixty_concurrent_conversions(self) -> None:
         plan = get_plan_limits("pro", "annual", True)
 
-        self.assertEqual(plan.monthly_credits, 3000)
+        self.assertEqual(plan.monthly_credits, 4500)
         self.assertEqual(plan.max_file_size_mb, 1024)
         self.assertEqual(plan.max_concurrent_conversions, 60)
         self.assertEqual(plan.priority_level, 100)
@@ -36,6 +38,79 @@ class PremiumPlanTests(unittest.TestCase):
 
         self.assertEqual(plan.monthly_credits, 30)
         self.assertFalse(plan.is_premium)
+
+
+class PremiumCreditPaymentTests(unittest.TestCase):
+    def test_premium_purchase_adds_credits_to_existing_balance(self) -> None:
+        original_storage = settings.storage_path
+        original_database_url = settings.database_url
+        original_smtp_host = settings.smtp_host
+        original_smtp_from_email = settings.smtp_from_email
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            settings.storage_path = Path(temp_dir)
+            settings.database_url = None
+            settings.smtp_host = None
+            settings.smtp_from_email = None
+            user = create_user("Teste", "teste@example.com", "password123", terms_accepted=True)
+            user["credits_remaining"] = 100
+            write_users([user])
+
+            payment = create_payment_record(
+                user_id=user["id"],
+                provider="mercadopago",
+                payment_type="premium",
+                amount=9.99,
+                currency="BRL",
+                metadata={"plan": "basic", "billing": "monthly", "credits": 1500},
+            )
+
+            approve_payment(payment["id"], "mp-1")
+            approved = find_payment(payment["id"])
+            users = read_users()
+
+            self.assertEqual(users[0]["credits_remaining"], 1600)
+            self.assertTrue(approved["benefit_applied"])
+
+        settings.storage_path = original_storage
+        settings.database_url = original_database_url
+        settings.smtp_host = original_smtp_host
+        settings.smtp_from_email = original_smtp_from_email
+
+    def test_repeated_payment_processing_does_not_duplicate_credits(self) -> None:
+        original_storage = settings.storage_path
+        original_database_url = settings.database_url
+        original_smtp_host = settings.smtp_host
+        original_smtp_from_email = settings.smtp_from_email
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            settings.storage_path = Path(temp_dir)
+            settings.database_url = None
+            settings.smtp_host = None
+            settings.smtp_from_email = None
+            user = create_user("Teste", "teste@example.com", "password123", terms_accepted=True)
+            user["credits_remaining"] = 100
+            write_users([user])
+
+            payment = create_payment_record(
+                user_id=user["id"],
+                provider="mercadopago",
+                payment_type="premium",
+                amount=9.99,
+                currency="BRL",
+                metadata={"plan": "basic", "billing": "monthly", "credits": 1500},
+            )
+
+            approve_payment(payment["id"], "mp-1")
+            approve_payment(payment["id"], "mp-1")
+            users = read_users()
+
+            self.assertEqual(users[0]["credits_remaining"], 1600)
+
+        settings.storage_path = original_storage
+        settings.database_url = original_database_url
+        settings.smtp_host = original_smtp_host
+        settings.smtp_from_email = original_smtp_from_email
 
 
 class ConversionHistoryCleanupTests(unittest.TestCase):

@@ -9,7 +9,9 @@ from pathlib import Path
 from uuid import uuid4
 
 from app.core.auth_store import apply_plan_to_user, find_user_by_id, read_users, write_users
+from app.core.analytics import record_analytics_event
 from app.core.config.settings import settings
+from app.core.credit_transactions import add_user_credits_once
 from app.core.database import SessionLocal, is_database_enabled
 from app.core.db_models import PaymentEventModel, PaymentModel
 from app.core.payment_notifications import send_payment_notification
@@ -23,10 +25,10 @@ PAYMENT_PROVIDERS = {"mercadopago", "paypal"}
 PAYMENT_EXPIRATION_MINUTES = 5
 
 PREMIUM_PRODUCTS = {
-    ("basic", "monthly"): {"amount": 9.99, "currency": "BRL", "credits": 1000},
-    ("basic", "annual"): {"amount": 59.88, "currency": "BRL", "credits": 1000},
-    ("pro", "monthly"): {"amount": 18.99, "currency": "BRL", "credits": 3000},
-    ("pro", "annual"): {"amount": 155.88, "currency": "BRL", "credits": 3000},
+    ("basic", "monthly"): {"amount": 9.99, "currency": "BRL", "credits": 1500},
+    ("basic", "annual"): {"amount": 59.88, "currency": "BRL", "credits": 1500},
+    ("pro", "monthly"): {"amount": 18.99, "currency": "BRL", "credits": 4500},
+    ("pro", "annual"): {"amount": 155.88, "currency": "BRL", "credits": 4500},
 }
 
 CREDIT_PACKAGES = {
@@ -253,6 +255,16 @@ def approve_payment(payment_id: str, external_payment_id: str | None = None) -> 
         )
     apply_payment_benefit(payment_id)
     approved = find_payment(payment_id) or payment
+    if approved.get("type") == "premium":
+        record_analytics_event(
+            event_type="premium_purchase_approved",
+            path="/premium",
+            referrer=None,
+            user_agent=None,
+            ip_address=None,
+            user_id=str(approved.get("user_id") or "") or None,
+            metadata={"provider": approved.get("provider"), "amount": approved.get("amount"), "plan": (approved.get("metadata") or {}).get("plan")},
+        )
     send_payment_notification(approved, "approved")
     return public_payment(approved)
 
@@ -278,16 +290,31 @@ def apply_payment_benefit(payment_id: str) -> None:
     if payment.get("type") == "premium":
         plan = str(metadata.get("plan") or "basic")
         billing = str(metadata.get("billing") or "monthly")
-        apply_plan_to_user(user, plan, billing)
+        product = PREMIUM_PRODUCTS.get((plan, billing), {})
+        credits = int(product.get("credits") or metadata.get("credits") or 0)
+        apply_plan_to_user(user, plan, billing, add_plan_credits=False)
+        write_users(users)
+        add_user_credits_once(
+            user_id=str(user_id),
+            amount=credits,
+            reason="premium_purchase",
+            source="payment",
+            source_id=str(payment_id),
+            metadata={"plan": plan, "billing": billing, "payment_type": payment.get("type")},
+        )
     elif payment.get("type") == "credits":
         credits = int(metadata.get("credits") or 0)
-        user["credits_remaining"] = int(user.get("credits_remaining", 0)) + max(credits, 0)
-        user["monthly_credits"] = max(int(user.get("monthly_credits", 0)), int(user.get("credits_remaining", 0)))
-        user["updated_at"] = _now()
+        add_user_credits_once(
+            user_id=str(user_id),
+            amount=max(credits, 0),
+            reason="credits_purchase",
+            source="payment",
+            source_id=str(payment_id),
+            metadata={"credits_package": metadata.get("credits_package"), "payment_type": payment.get("type")},
+        )
 
     payment["benefit_applied"] = True
     payment["updated_at"] = _now()
-    write_users(users)
     write_payments(payments)
 
 

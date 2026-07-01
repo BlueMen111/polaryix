@@ -28,8 +28,8 @@ class UserModel(Base):
     billing: Mapped[str] = mapped_column(String(32), default="daily", nullable=False)
     plan_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     plan_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    monthly_credits: Mapped[int] = mapped_column(Integer, default=50, nullable=False)
-    credits_remaining: Mapped[int] = mapped_column(Integer, default=50, nullable=False)
+    monthly_credits: Mapped[int] = mapped_column(Integer, default=30, nullable=False)
+    credits_remaining: Mapped[int] = mapped_column(Integer, default=30, nullable=False)
     credits_period: Mapped[str | None] = mapped_column(String(32))
     max_file_size_mb: Mapped[int] = mapped_column(Integer, default=100, nullable=False)
     max_concurrent_conversions: Mapped[int] = mapped_column(Integer, default=2, nullable=False)
@@ -117,5 +117,34 @@ class PublicStatEventModel(Base):
     operation: Mapped[str] = mapped_column(String(80), index=True, nullable=False)
     status: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
     amount: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    metadata_json: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
+
+
+class CreditTransactionModel(Base):
+    __tablename__ = "credit_transactions"
+    __table_args__ = (UniqueConstraint("source", "source_id", name="uq_credit_transactions_source"),)
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    amount: Mapped[int] = mapped_column(Integer, nullable=False)
+    reason: Mapped[str] = mapped_column(String(80), index=True, nullable=False)
+    source: Mapped[str] = mapped_column(String(80), nullable=False)
+    source_id: Mapped[str] = mapped_column(String(160), nullable=False)
+    balance_after: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    metadata_json: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
+
+
+class AnalyticsEventModel(Base):
+    __tablename__ = "analytics_events"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    event_type: Mapped[str] = mapped_column(String(80), index=True, nullable=False)
+    path: Mapped[str | None] = mapped_column(String(512), index=True)
+    referrer: Mapped[str | None] = mapped_column(String(512))
+    user_agent: Mapped[str | None] = mapped_column(String(256))
+    visitor_hash: Mapped[str | None] = mapped_column(String(128), index=True)
+    user_id: Mapped[str | None] = mapped_column(String(64), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     metadata_json: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)

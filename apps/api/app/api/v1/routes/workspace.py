@@ -10,6 +10,7 @@ from app.api.v1.routes.converter import _normalize_format, _validate_conversion_
 from app.core.auth_store import consume_user_credits
 from app.core.auth_store import get_current_user, public_user
 from app.core.conversion_jobs import create_job
+from app.core.credit_costs import CONVERSION_CREDIT_COST
 from app.core.image_tools import IMAGE_TOOL_COSTS
 from app.core.image_tools.processing import SUPPORTED_IMAGE_FORMATS, is_premium_user, should_apply_watermark, validate_image_file
 from app.core.conversion_history import (
@@ -148,7 +149,7 @@ async def convert_workspace_file(request: Request, file_id: str, target_format: 
     output_format = _normalize_format(target_format)
     _validate_conversion_or_raise(source_format, output_format)
 
-    credits_cost = 1
+    credits_cost = CONVERSION_CREDIT_COST
     consume_user_credits(str(user["id"]), credits_cost)
     priority = 10 if is_premium_user(user) else 1
     job = create_job(

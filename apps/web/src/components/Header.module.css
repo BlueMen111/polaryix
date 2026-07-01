@@ -330,8 +330,11 @@
 .conversionsDropdown {
   position: absolute;
   top: calc(100% - 10px);
-  right: -2rem;
-  width: min(720px, 92vw);
+  left: 50%;
+  right: auto;
+  width: min(720px, calc(100vw - 32px));
+  max-height: min(72vh, 560px);
+  overflow: auto;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
@@ -342,7 +345,7 @@
   opacity: 0;
   padding: 1rem;
   pointer-events: none;
-  transform: translateY(8px);
+  transform: translate(-50%, 8px);
   transition: opacity 0.2s ease, transform 0.2s ease;
   backdrop-filter: blur(18px);
 }
@@ -405,7 +408,7 @@
 .navItem.open .conversionsDropdown {
   opacity: 1;
   pointer-events: auto;
-  transform: translateY(0);
+  transform: translate(-50%, 0);
 }
 
 .conversionsDropdown section {
@@ -528,6 +531,7 @@
   .conversionsDropdown {
     position: static;
     width: 100%;
+    max-width: 100%;
     max-height: 0;
     overflow: hidden;
     grid-template-columns: 1fr;
@@ -541,7 +545,8 @@
   }
 
   .navItem.open .conversionsDropdown {
-    max-height: 640px;
+    max-height: min(70vh, 640px);
+    overflow: auto;
     padding: 0.85rem;
     pointer-events: auto;
   }

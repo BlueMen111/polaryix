@@ -24,7 +24,7 @@ FREE_PLAN = PlanLimits(
     billing="daily",
     display_name="Gratuito",
     price_monthly_brl=0,
-    monthly_credits=50,
+    monthly_credits=30,
     max_file_size_mb=100,
     max_concurrent_conversions=2,
     priority_level=0,
@@ -32,10 +32,10 @@ FREE_PLAN = PlanLimits(
 )
 
 PREMIUM_PLANS: dict[tuple[str, str], PlanLimits] = {
-    ("basic", "annual"): PlanLimits("basic", "annual", "Basic Anual", 4.99, 1000, 300, 30, 50, True),
-    ("pro", "annual"): PlanLimits("pro", "annual", "Pro Premium Anual", 12.99, 3000, 1024, 60, 100, True),
-    ("basic", "monthly"): PlanLimits("basic", "monthly", "Basic Mensal", 9.99, 1000, 300, 30, 50, True),
-    ("pro", "monthly"): PlanLimits("pro", "monthly", "Pro Premium Mensal", 18.99, 3000, 1024, 60, 100, True),
+    ("basic", "annual"): PlanLimits("basic", "annual", "Basic Anual", 4.99, 1500, 300, 30, 50, True),
+    ("pro", "annual"): PlanLimits("pro", "annual", "Pro Premium Anual", 12.99, 4500, 1024, 60, 100, True),
+    ("basic", "monthly"): PlanLimits("basic", "monthly", "Basic Mensal", 9.99, 1500, 300, 30, 50, True),
+    ("pro", "monthly"): PlanLimits("pro", "monthly", "Pro Premium Mensal", 18.99, 4500, 1024, 60, 100, True),
 }
 
 
