@@ -32,6 +32,15 @@ from app.core.conversion_history import create_conversion_record, update_convers
 from app.core.conversion_queue import submit_conversion_job
 from app.core.credit_costs import CONVERSION_CREDIT_COST, link_download_credit_cost
 from app.core.public_stats import record_public_operation
+from app.core.youtube_diagnostics import (
+    YOUTUBE_ANTI_BOT_MESSAGE,
+    YoutubeDownloadError,
+    diagnose_youtube_cookies,
+    is_youtube_anti_bot_error,
+    sanitized_ytdlp_command,
+    youtube_cookie_file_path,
+    youtube_preview_fallback,
+)
 from app.core.conversion.compatibility import (
     CONVERTIBLE_AUDIO_FORMATS,
     CONVERTIBLE_TABULAR_FORMATS,
@@ -89,21 +98,59 @@ YTDLP_HTTP_HEADERS = {
 
 
 def _yt_dlp_cookiefile() -> str | None:
-    configured = settings.youtube_cookies_file or settings.ytdlp_cookies_file
-    if not configured:
-        return None
-
-    path = Path(configured)
-    if path.exists() and path.is_file():
-        return str(path)
-    return None
+    path = youtube_cookie_file_path()
+    return str(path) if path else None
 
 
 def _apply_ytdlp_runtime_options(options: dict) -> dict:
     cookiefile = _yt_dlp_cookiefile()
     if cookiefile:
         options["cookiefile"] = cookiefile
+    if settings.ytdlp_js_runtimes:
+        js_runtimes = {}
+        for raw_runtime in settings.ytdlp_js_runtimes.split(","):
+            runtime = raw_runtime.strip()
+            if not runtime:
+                continue
+            name, _, path = runtime.partition(":")
+            js_runtimes[name.lower()] = {"path": path or None}
+        if js_runtimes:
+            options["js_runtimes"] = js_runtimes
+    if settings.ytdlp_remote_components:
+        options["remote_components"] = [part.strip() for part in settings.ytdlp_remote_components.split(",") if part.strip()]
     return options
+
+
+def _youtube_download_error_detail(exc: YoutubeDownloadError) -> dict:
+    return exc.as_detail()
+
+
+def _raise_if_youtube_environment_error(exc: Exception, url: str) -> None:
+    if _link_platform(url) != "youtube":
+        return
+
+    if is_youtube_anti_bot_error(exc):
+        diagnostic = diagnose_youtube_cookies()
+        if diagnostic.ok:
+            logger.warning(
+                "[youtube] cookies look authenticated but session/IP was refused by YouTube: url=%s command=%s",
+                _safe_url_for_log(url),
+                sanitized_ytdlp_command(url),
+            )
+        else:
+            logger.warning(
+                "[youtube] cookies file exists but is not authenticated: reason=%s url=%s command=%s",
+                diagnostic.reason,
+                _safe_url_for_log(url),
+                sanitized_ytdlp_command(url),
+            )
+
+        logger.warning("[youtube] anti-bot blocked by YouTube: url=%s", _safe_url_for_log(url))
+        raise YoutubeDownloadError(
+            reason="YOUTUBE_ANTI_BOT_BLOCKED" if diagnostic.ok else diagnostic.reason,
+            message=YOUTUBE_ANTI_BOT_MESSAGE if diagnostic.ok else (diagnostic.message or YOUTUBE_ANTI_BOT_MESSAGE),
+            fallback_available=True,
+        ) from exc
 
 
 def _normalize_format(value: str) -> str:
@@ -526,6 +573,10 @@ def _clean_error_message(value: object, url: str | None = None) -> str:
         )
 
     if platform == "youtube":
+        if is_youtube_anti_bot_error(message):
+            diagnostic = diagnose_youtube_cookies()
+            return YOUTUBE_ANTI_BOT_MESSAGE if diagnostic.ok else (diagnostic.message or YOUTUBE_ANTI_BOT_MESSAGE)
+
         private_signals = (
             "private video",
             "this video is private",
@@ -900,6 +951,7 @@ def _prepare_link_download(
             break
         except Exception as exc:
             last_error = exc
+            _raise_if_youtube_environment_error(exc, normalized_url)
             logger.warning(
                 "Link download attempt failed: platform=%s url=%s format=%s error=%r",
                 _link_platform(normalized_url),
@@ -988,6 +1040,17 @@ def _run_link_download_job(
         if history_id:
             update_conversion_record(history_id, status="failed", error_message=str(exc.detail), finished_at=datetime.now(UTC).isoformat())
         _update_link_job(job_id, status="error", progress=0, message=str(exc.detail))
+    except YoutubeDownloadError as exc:
+        if history_id:
+            update_conversion_record(history_id, status="failed", error_message=exc.message, finished_at=datetime.now(UTC).isoformat())
+        _update_link_job(
+            job_id,
+            status="error",
+            progress=0,
+            message=exc.message,
+            reason=exc.reason,
+            fallback_available=exc.fallback_available,
+        )
     except Exception as exc:
         message = f"Nao foi possivel baixar esse link: {_clean_error_message(exc, normalized_url)}"
         if history_id:
@@ -1481,7 +1544,10 @@ async def download_link(
         "noplaylist": True,
         "quiet": True,
         "no_warnings": True,
+        "http_headers": YTDLP_HTTP_HEADERS,
+        "extractor_args": {"youtube": {"player_client": ["android", "web"]}},
     }
+    _apply_ytdlp_runtime_options(ydl_opts)
 
     if requested_media == "audio":
         ydl_opts.update(
@@ -1526,7 +1592,19 @@ async def download_link(
 
     except HTTPException:
         raise
+    except YoutubeDownloadError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=_youtube_download_error_detail(exc),
+        ) from exc
     except Exception as exc:
+        try:
+            _raise_if_youtube_environment_error(exc, normalized_url)
+        except YoutubeDownloadError as typed_exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=_youtube_download_error_detail(typed_exc),
+            ) from typed_exc
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Não foi possível baixar esse link: {_clean_error_message(exc, normalized_url)}",
@@ -1580,6 +1658,20 @@ async def link_preview(url: str = Form(...)) -> dict:
             exc,
         )
         if _link_platform(normalized_url) == "youtube":
+            try:
+                _raise_if_youtube_environment_error(exc, normalized_url)
+            except YoutubeDownloadError as typed_exc:
+                preview = _youtube_oembed_preview(normalized_url) or youtube_preview_fallback(normalized_url)
+                if preview:
+                    preview["status"] = "download_blocked_external"
+                    preview["provider"] = "youtube"
+                    preview["reason"] = typed_exc.reason
+                    preview["message"] = typed_exc.message
+                    return preview
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=_youtube_download_error_detail(typed_exc),
+                ) from typed_exc
             preview = _youtube_oembed_preview(normalized_url)
             if preview:
                 return preview

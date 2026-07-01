@@ -234,7 +234,13 @@ export type PublicStats = {
 async function parseJsonError(response: Response, fallback: string): Promise<string> {
   try {
     const errorData = await response.json();
-    return typeof errorData.detail === "string" ? errorData.detail : fallback;
+    if (typeof errorData.detail === "string") {
+      return errorData.detail;
+    }
+    if (typeof errorData.detail?.message === "string") {
+      return errorData.detail.message;
+    }
+    return fallback;
   } catch {
     return fallback;
   }
@@ -562,7 +568,11 @@ async function downloadBlobResponse(response: Response, fallbackFilename: string
 
     try {
       const errorData = await response.json();
-      detail = typeof errorData.detail === "string" ? errorData.detail : detail;
+      if (typeof errorData.detail === "string") {
+        detail = errorData.detail;
+      } else if (typeof errorData.detail?.message === "string") {
+        detail = errorData.detail.message;
+      }
     } catch {
       // Mantém mensagem padrão quando o erro não é JSON.
     }

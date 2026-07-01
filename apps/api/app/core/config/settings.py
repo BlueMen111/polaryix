@@ -48,6 +48,8 @@ class Settings(BaseSettings):
     link_download_retention_minutes: int = 10
     youtube_cookies_file: str | None = None
     ytdlp_cookies_file: str | None = None
+    ytdlp_js_runtimes: str | None = None
+    ytdlp_remote_components: str | None = None
     free_storage_limit_mb: int = 25
     premium_storage_limit_mb: int = 100
     free_file_retention_hours: int = 2
