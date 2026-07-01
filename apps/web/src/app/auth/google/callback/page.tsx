@@ -31,7 +31,9 @@ export default function GoogleCallbackPage() {
     exchangeGoogleCode({ code, redirectUri })
       .then((session) => {
         persistAuthSession(session);
-        window.location.href = "/";
+        const nextPath = window.localStorage.getItem("polaryix:auth-next") || "/";
+        window.localStorage.removeItem("polaryix:auth-next");
+        window.location.href = nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : "/";
       })
       .catch((err) => {
         setStatus(err instanceof Error ? err.message : "Nao foi possivel concluir o login com Google.");

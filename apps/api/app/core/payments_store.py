@@ -23,9 +23,8 @@ PAYMENT_PROVIDERS = {"mercadopago", "paypal"}
 PAYMENT_EXPIRATION_MINUTES = 5
 
 PREMIUM_PRODUCTS = {
-    # Temporary production checkout validation price. Restore Basic to 9.99/59.88 after payment tests.
-    ("basic", "monthly"): {"amount": 1.00, "currency": "BRL", "credits": 1000},
-    ("basic", "annual"): {"amount": 1.00, "currency": "BRL", "credits": 1000},
+    ("basic", "monthly"): {"amount": 9.99, "currency": "BRL", "credits": 1000},
+    ("basic", "annual"): {"amount": 59.88, "currency": "BRL", "credits": 1000},
     ("pro", "monthly"): {"amount": 18.99, "currency": "BRL", "credits": 3000},
     ("pro", "annual"): {"amount": 155.88, "currency": "BRL", "credits": 3000},
 }
@@ -242,11 +241,9 @@ def record_payment_event(provider: str, event_id: str, event_type: str, payload:
 
 
 def approve_payment(payment_id: str, external_payment_id: str | None = None) -> dict:
-    payment = expire_pending_payment(payment_id)
+    payment = find_payment(payment_id)
     if not payment:
         raise KeyError("Payment not found.")
-    if payment.get("status") == "expired":
-        return public_payment(payment)
     if payment.get("status") != "approved":
         update_payment(
             payment_id,

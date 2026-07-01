@@ -25,7 +25,8 @@ def send_payment_notification(payment: dict, event: str) -> None:
     notification_id = f"{payment.get('id')}:{event}"
     outbox = _read_outbox()
 
-    if any(item.get("notification_id") == notification_id for item in outbox):
+    existing = next((item for item in outbox if item.get("notification_id") == notification_id), None)
+    if existing and existing.get("sent"):
         return
 
     subject, body, html_body = _message_for_event(payment, event)
@@ -40,6 +41,7 @@ def send_payment_notification(payment: dict, event: str) -> None:
         "sent": False,
         "reason": None,
         "created_at": _now(),
+        "updated_at": _now(),
     }
 
     if not recipient:
@@ -54,7 +56,10 @@ def send_payment_notification(payment: dict, event: str) -> None:
     else:
         entry["reason"] = "smtp_not_configured"
 
-    outbox.append(entry)
+    if existing:
+        existing.update(entry)
+    else:
+        outbox.append(entry)
     _write_outbox(outbox)
 
 

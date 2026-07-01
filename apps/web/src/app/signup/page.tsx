@@ -68,7 +68,7 @@ export default function SignupPage() {
         </div>
 
         <div className={styles.socialRow} aria-label={t("auth.socialSignup")}>
-          <button type="button" className={styles.googleButton} aria-label={t("auth.signupWithGoogle")} onClick={startGoogleLogin}>
+          <button type="button" className={styles.googleButton} aria-label={t("auth.signupWithGoogle")} onClick={() => startGoogleLogin()}>
             <GoogleIcon />
           </button>
         </div>

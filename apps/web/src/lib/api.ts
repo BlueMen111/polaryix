@@ -496,7 +496,10 @@ export async function getPublicStats(): Promise<PublicStats> {
   return parseJsonResponse<PublicStats>(response, "Nao foi possivel carregar as estatisticas.");
 }
 
-export function startGoogleLogin() {
+export function startGoogleLogin(nextPath?: string) {
+  if (nextPath) {
+    window.localStorage.setItem("polaryix:auth-next", nextPath);
+  }
   window.location.href = apiUrl("/auth/oauth/google/start");
 }
 

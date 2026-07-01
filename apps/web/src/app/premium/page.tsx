@@ -40,11 +40,11 @@ const proFeatures = [
 
 const plans: Record<Billing, PlanOption[]> = {
   annual: [
-    { id: "basic-annual", plan: "basic", billing: "annual", name: "Basic Anual", price: 1.00, badge: "Teste R$ 1", features: basicFeatures },
+    { id: "basic-annual", plan: "basic", billing: "annual", name: "Basic Anual", price: 4.99, badge: "Economize mais", features: basicFeatures },
     { id: "pro-annual", plan: "pro", billing: "annual", name: "Pro Anual", price: 12.99, badge: "Mais popular", features: proFeatures },
   ],
   monthly: [
-    { id: "basic-monthly", plan: "basic", billing: "monthly", name: "Basic Mensal", price: 1.00, badge: "Teste R$ 1", features: basicFeatures },
+    { id: "basic-monthly", plan: "basic", billing: "monthly", name: "Basic Mensal", price: 9.99, badge: "Essencial", features: basicFeatures },
     { id: "pro-monthly", plan: "pro", billing: "monthly", name: "Pro Mensal", price: 18.99, badge: "Maximo poder", features: proFeatures },
   ],
 };

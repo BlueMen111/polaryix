@@ -24,12 +24,30 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [nextPath, setNextPath] = useState("/");
+
+  function resolveNextPath() {
+    const params = new URLSearchParams(window.location.search);
+    const requested = params.get("next") || window.localStorage.getItem("polaryix:auth-next") || "/";
+    return requested.startsWith("/") && !requested.startsWith("//") ? requested : "/";
+  }
+
+  function redirectAfterLogin() {
+    const target = resolveNextPath();
+    window.localStorage.removeItem("polaryix:auth-next");
+    window.location.href = target;
+  }
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
     const authError = params.get("auth_error");
     const verifyEmail = params.get("verify_email");
+    const requestedNext = resolveNextPath();
+    setNextPath(requestedNext);
+    if (requestedNext !== "/") {
+      window.localStorage.setItem("polaryix:auth-next", requestedNext);
+    }
 
     if (authError) {
       const messages: Record<string, string> = {
@@ -55,7 +73,7 @@ export default function LoginPage() {
     getCurrentUser()
       .then(({ user }) => {
         persistAuthSession({ token, user });
-        window.location.href = "/";
+        redirectAfterLogin();
       })
       .catch(() => setStatus(t("auth.googleExpired")));
   }, [t]);
@@ -70,7 +88,7 @@ export default function LoginPage() {
       const session = await loginWithEmail({ email, password });
       persistAuthSession(session);
       setStatus(t("auth.loginDone"));
-      window.location.href = "/";
+      redirectAfterLogin();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : t("auth.loginError"));
     } finally {
@@ -88,7 +106,7 @@ export default function LoginPage() {
         </div>
 
         <div className={styles.socialRow} aria-label={t("auth.socialLogin")}>
-          <button type="button" className={styles.googleButton} aria-label={t("auth.loginWithGoogle")} onClick={startGoogleLogin}>
+          <button type="button" className={styles.googleButton} aria-label={t("auth.loginWithGoogle")} onClick={() => startGoogleLogin(nextPath)}>
             <GoogleIcon />
           </button>
         </div>

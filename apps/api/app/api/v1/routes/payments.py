@@ -4,6 +4,7 @@ import base64
 import hashlib
 import hmac
 import json
+from datetime import datetime, timezone
 from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request as UrlRequest
@@ -221,17 +222,16 @@ async def sandbox_approve_payment(payment_id: str) -> dict:
 @router.post("/webhooks/mercadopago")
 async def mercadopago_webhook(request: Request, x_signature: str | None = Header(default=None), x_request_id: str | None = Header(default=None)) -> dict:
     payload = await request.json()
-    signature_valid = _validate_mercadopago_signature(payload, x_signature)
-    event_id = str(payload.get("id") or x_request_id or payload.get("data", {}).get("id") or "")
+    query_resource_id = str(request.query_params.get("data.id") or request.query_params.get("id") or "")
+    external_id = str(payload.get("data", {}).get("id") or payload.get("id") or query_resource_id or "")
+    signature_valid = _validate_mercadopago_signature(external_id, x_request_id, x_signature)
+    event_id = str(payload.get("id") or x_request_id or external_id or "")
     if not event_id:
         event_id = hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
     _, is_new = record_payment_event("mercadopago", event_id, str(payload.get("type") or payload.get("action") or "payment"), payload, signature_valid)
-    if not is_new:
-        return {"ok": True, "duplicate": True}
     if settings.mercadopago_webhook_secret and not signature_valid:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Assinatura invalida.")
 
-    external_id = str(payload.get("data", {}).get("id") or payload.get("id") or "")
     provider_payment = _fetch_mercadopago_payment(external_id) if external_id and settings.mercadopago_access_token else None
     reference_id = str((provider_payment or {}).get("external_reference") or "")
     payment = find_payment(reference_id) if reference_id else (find_payment_by_external("mercadopago", external_id) if external_id else None)
@@ -241,7 +241,7 @@ async def mercadopago_webhook(request: Request, x_signature: str | None = Header
         approve_payment(str(payment["id"]), external_id)
     elif payment and status_value:
         update_payment(str(payment["id"]), status=_map_status(status_value))
-    return {"ok": True}
+    return {"ok": True, "duplicate": not is_new}
 
 
 @router.post("/webhooks/paypal")
@@ -295,7 +295,6 @@ def _create_mercadopago_checkout(payment: dict, user: dict | None) -> dict:
             "payment_method_id": "pix",
             "payer": {"email": user["email"]},
             "external_reference": payment["id"],
-            "date_of_expiration": payment.get("expires_at"),
             "metadata": {"polaryix_payment_id": payment["id"]},
         }
         data = _json_request(
@@ -326,8 +325,6 @@ def _create_mercadopago_checkout(payment: dict, user: dict | None) -> dict:
             }
         ],
         "external_reference": payment["id"],
-        "expires": True,
-        "expiration_date_to": payment.get("expires_at"),
         "back_urls": {
             "success": _frontend_url(f"/payment/success?payment_id={payment['id']}"),
             "pending": _frontend_url(f"/payment/pending?payment_id={payment['id']}"),
@@ -344,6 +341,23 @@ def _create_mercadopago_checkout(payment: dict, user: dict | None) -> dict:
         checkout_url=checkout_url,
         metadata={"provider_preference_id": data.get("id")},
     )
+
+
+def _mercadopago_expiration(value: object) -> str | None:
+    if not value:
+        return None
+
+    try:
+        expires_at = datetime.fromisoformat(str(value))
+    except ValueError:
+        return None
+
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+    offset = expires_at.strftime("%z")
+    formatted_offset = f"{offset[:3]}:{offset[3:]}" if offset else "+00:00"
+    return f"{expires_at.strftime('%Y-%m-%dT%H:%M:%S')}{formatted_offset}"
 
 
 def _create_paypal_order(payment: dict) -> dict:
@@ -458,17 +472,30 @@ def _map_status(value: str) -> str:
     return "pending"
 
 
-def _validate_mercadopago_signature(payload: dict, signature: str | None) -> bool:
+def _validate_mercadopago_signature(resource_id: str, request_id: str | None, signature: str | None) -> bool:
     if not settings.mercadopago_webhook_secret:
         return True
-    if not signature:
+    if not signature or not request_id or not resource_id:
         return False
-    digest = hmac.new(
+
+    signature_parts = {}
+    for part in signature.split(","):
+        key, _, value = part.strip().partition("=")
+        if key and value:
+            signature_parts[key] = value
+
+    timestamp = signature_parts.get("ts")
+    provider_digest = signature_parts.get("v1")
+    if not timestamp or not provider_digest:
+        return False
+
+    manifest = f"id:{resource_id};request-id:{request_id};ts:{timestamp};"
+    expected_digest = hmac.new(
         settings.mercadopago_webhook_secret.encode("utf-8"),
-        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8"),
+        manifest.encode("utf-8"),
         hashlib.sha256,
     ).hexdigest()
-    return hmac.compare_digest(signature, digest)
+    return hmac.compare_digest(provider_digest, expected_digest)
 
 
 def _validate_paypal_signature(payload: dict, headers: dict[str, str | None]) -> bool:
