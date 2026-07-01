@@ -4,6 +4,7 @@ import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "re
 import {
   AuthUser,
   ConversionJob,
+  LinkDownloadJob,
   LinkPreview,
   UsageInfo,
   UserComment,
@@ -185,6 +186,7 @@ export default function HomePage() {
   const [linkPreview, setLinkPreview] = useState<LinkPreview | null>(null);
   const [previewStatus, setPreviewStatus] = useState("");
   const [downloadProgress, setDownloadProgress] = useState(0);
+  const [preparedLinkJob, setPreparedLinkJob] = useState<LinkDownloadJob | null>(null);
   const [isConverting, setIsConverting] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
@@ -294,6 +296,9 @@ export default function HomePage() {
     if (!/^https?:\/\//i.test(normalizedUrl)) {
       return;
     }
+
+    setPreparedLinkJob(null);
+    setDownloadProgress(0);
 
     const timeout = window.setTimeout(async () => {
       setPreviewStatus("Carregando preview...");
@@ -476,6 +481,7 @@ export default function HomePage() {
 
     setIsDownloading(true);
     setDownloadProgress(0);
+    setPreparedLinkJob(null);
     const selectedOption = downloadOptions.find((option) => option.id === downloadFormat) ?? downloadOptions[0];
 
     if (selectedOption.premium && !isPremium) {
@@ -509,14 +515,34 @@ export default function HomePage() {
         throw new Error(job.message || t("home.downloadCompleteError"));
       }
 
-      const filename = await downloadLinkJobFile(job);
       setDownloadProgress(100);
-      setDownloadStatus(`Download iniciado: ${filename}`);
+      setPreparedLinkJob(job);
+      setDownloadStatus("Arquivo pronto. Clique em Baixar para salvar; ele expira em 10 minutos.");
       await refreshUsage();
     } catch (error) {
       setDownloadProgress(0);
       setDownloadStatus(error instanceof Error ? error.message : "Erro ao baixar o link.");
       await refreshUsage();
+    } finally {
+      setIsDownloading(false);
+    }
+  }
+
+  async function handlePreparedLinkDownload() {
+    if (!preparedLinkJob) {
+      return;
+    }
+
+    setIsDownloading(true);
+    setDownloadStatus("Iniciando download...");
+    try {
+      const filename = await downloadLinkJobFile(preparedLinkJob);
+      setDownloadStatus(`Download iniciado: ${filename}`);
+      setPreparedLinkJob(null);
+      setDownloadProgress(0);
+      await refreshUsage();
+    } catch (error) {
+      setDownloadStatus(error instanceof Error ? error.message : "Nao foi possivel baixar o arquivo preparado.");
     } finally {
       setIsDownloading(false);
     }
@@ -856,6 +882,11 @@ export default function HomePage() {
               <p className={styles.statusText}>
                 <StatusMessage message={downloadStatus} t={t} />
               </p>
+              {preparedLinkJob ? (
+                <button type="button" className={styles.readyDownloadButton} onClick={handlePreparedLinkDownload} disabled={isDownloading}>
+                  Baixar arquivo preparado
+                </button>
+              ) : null}
               {isTokenLimitMessage(downloadStatus) ? (
                 <a className={styles.limitNotice} href="/premium">
                   {t("home.tokenLimitDownload")}

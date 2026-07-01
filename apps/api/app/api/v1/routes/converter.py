@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import json
+import logging
 import shutil
 import subprocess
 import tempfile
@@ -11,7 +12,8 @@ from datetime import datetime, timedelta, timezone
 UTC = timezone.utc
 from functools import partial
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
+from urllib.request import urlopen
 from uuid import uuid4
 
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Request, UploadFile, status
@@ -44,6 +46,7 @@ from app.core.security.file_security import FileSecurityError, validate_file_nam
 
 
 router = APIRouter(prefix="/converter", tags=["Converter"])
+logger = logging.getLogger("polaryix.converter")
 
 IMAGE_FORMATS = {
     "PNG": {"ext": ".png", "pil": "PNG"},
@@ -83,6 +86,24 @@ YTDLP_HTTP_HEADERS = {
     "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
     "Referer": "https://www.youtube.com/",
 }
+
+
+def _yt_dlp_cookiefile() -> str | None:
+    configured = settings.youtube_cookies_file or settings.ytdlp_cookies_file
+    if not configured:
+        return None
+
+    path = Path(configured)
+    if path.exists() and path.is_file():
+        return str(path)
+    return None
+
+
+def _apply_ytdlp_runtime_options(options: dict) -> dict:
+    cookiefile = _yt_dlp_cookiefile()
+    if cookiefile:
+        options["cookiefile"] = cookiefile
+    return options
 
 
 def _normalize_format(value: str) -> str:
@@ -429,6 +450,70 @@ def _link_platform(url: str | None) -> str:
     return "generic"
 
 
+def _safe_url_for_log(url: str | None) -> str:
+    if not url:
+        return ""
+
+    parsed = urlparse(url)
+    platform = _link_platform(url)
+    if platform == "youtube":
+        video_id = _youtube_video_id(url)
+        query = urlencode({"v": video_id}) if video_id else ""
+        return parsed._replace(query=query, fragment="").geturl()
+
+    return parsed._replace(query="", fragment="").geturl()
+
+
+def _youtube_video_id(url: str) -> str | None:
+    parsed = urlparse(url)
+    hostname = (parsed.hostname or "").lower()
+    if hostname.startswith("www."):
+        hostname = hostname[4:]
+
+    if hostname == "youtu.be":
+        return parsed.path.strip("/").split("/")[0] or None
+
+    if hostname == "youtube.com" or hostname.endswith(".youtube.com"):
+        query_id = parse_qs(parsed.query).get("v", [None])[0]
+        if query_id:
+            return query_id
+        path_parts = [part for part in parsed.path.split("/") if part]
+        if len(path_parts) >= 2 and path_parts[0] in {"shorts", "embed", "live"}:
+            return path_parts[1]
+
+    return None
+
+
+def _youtube_oembed_preview(url: str) -> dict | None:
+    video_id = _youtube_video_id(url)
+    if not video_id:
+        return None
+
+    preview = {
+        "title": "Video do YouTube",
+        "thumbnail": f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg",
+        "duration": None,
+        "uploader": "YouTube",
+        "webpage_url": url,
+    }
+
+    try:
+        query = urlencode({"url": url, "format": "json"})
+        with urlopen(f"https://www.youtube.com/oembed?{query}", timeout=8) as response:
+            data = json.loads(response.read().decode("utf-8"))
+        preview.update(
+            {
+                "title": data.get("title") or preview["title"],
+                "thumbnail": data.get("thumbnail_url") or preview["thumbnail"],
+                "uploader": data.get("author_name") or preview["uploader"],
+            }
+        )
+    except Exception:
+        pass
+
+    return preview
+
+
 def _clean_error_message(value: object, url: str | None = None) -> str:
     message = ANSI_PATTERN.sub("", str(value)).strip()
     lower_message = message.lower()
@@ -440,19 +525,51 @@ def _clean_error_message(value: object, url: str | None = None) -> str:
             "Se exigir conta/login, será necessário configurar cookies no servidor para baixar esse conteúdo."
         )
 
-    if platform == "youtube" and ("cookies" in lower_message or "sign in to confirm" in lower_message or "confirm your age" in lower_message):
-        return (
-            "O YouTube não liberou o preview desse vídeo publicamente. Abra o link no navegador sem login para confirmar se ele está público. "
-            "Se exigir conta, idade ou verificação, será necessário configurar cookies do YouTube no servidor."
+    if platform == "youtube":
+        private_signals = (
+            "private video",
+            "this video is private",
+            "members-only",
+            "sign in to confirm your age",
+            "confirm your age",
+            "this video may be inappropriate",
+            "requires payment",
+            "not available in your country",
         )
+        if any(signal in lower_message for signal in private_signals):
+            return "Este vídeo do YouTube parece estar privado, restrito ou exigindo autenticação."
+
+        technical_signals = (
+            "cookies",
+            "http error",
+            "forbidden",
+            "unable to download",
+            "unable to extract",
+            "timed out",
+            "timeout",
+            "temporary failure",
+            "network is unreachable",
+            "connection reset",
+            "requested format is not available",
+            "nsig",
+            "signature",
+            "ffmpeg",
+        )
+        if any(signal in lower_message for signal in technical_signals):
+            return (
+                "Não foi possível preparar este vídeo do YouTube no servidor. O link parece público, "
+                "mas o servidor não conseguiu obter os dados do vídeo. Verifique se yt-dlp/ffmpeg "
+                "estão instalados e atualizados, e tente novamente."
+            )
 
     if "requested format is not available" in lower_message:
         return "Esse formato não está disponível para o link informado. Tente MP4, MP3 ou Full HD no Premium."
 
     if platform == "youtube" and ("http error 403" in lower_message or "forbidden" in lower_message):
         return (
-            "O YouTube bloqueou uma das URLs temporárias durante o download. "
-            "Tente novamente; o Polaryix vai alternar para um formato mais estável automaticamente."
+            "Não foi possível preparar este vídeo do YouTube no servidor. O link parece público, "
+            "mas o servidor não conseguiu obter os dados do vídeo. Verifique se yt-dlp/ffmpeg "
+            "estão instalados e atualizados, e tente novamente."
         )
 
     if "http error 403" in lower_message or "forbidden" in lower_message:
@@ -730,11 +847,11 @@ def _prepare_link_download(
         "quiet": True,
         "no_warnings": True,
         "progress_hooks": [hook],
-        "socket_timeout": 45,
-        "retries": 10,
-        "fragment_retries": 10,
-        "extractor_retries": 5,
-        "file_access_retries": 5,
+        "socket_timeout": 25,
+        "retries": 3,
+        "fragment_retries": 3,
+        "extractor_retries": 2,
+        "file_access_retries": 2,
         "continuedl": True,
         "concurrent_fragment_downloads": 1,
         "http_chunk_size": 10 * 1024 * 1024,
@@ -745,6 +862,7 @@ def _prepare_link_download(
             }
         },
     }
+    _apply_ytdlp_runtime_options(ydl_opts)
 
     if requested_media == "audio":
         ydl_opts.update(
@@ -782,6 +900,13 @@ def _prepare_link_download(
             break
         except Exception as exc:
             last_error = exc
+            logger.warning(
+                "Link download attempt failed: platform=%s url=%s format=%s error=%r",
+                _link_platform(normalized_url),
+                _safe_url_for_log(normalized_url),
+                ytdlp_format,
+                exc,
+            )
             for partial_path in output_dir.glob(f"{attempt_id}*"):
                 if partial_path.is_file():
                     partial_path.unlink(missing_ok=True)
@@ -864,7 +989,7 @@ def _run_link_download_job(
             update_conversion_record(history_id, status="failed", error_message=str(exc.detail), finished_at=datetime.now(UTC).isoformat())
         _update_link_job(job_id, status="error", progress=0, message=str(exc.detail))
     except Exception as exc:
-        message = f"Nao foi possivel baixar esse link: {_clean_error_message(exc, url)}"
+        message = f"Nao foi possivel baixar esse link: {_clean_error_message(exc, normalized_url)}"
         if history_id:
             update_conversion_record(history_id, status="failed", error_message=message, finished_at=datetime.now(UTC).isoformat())
         _update_link_job(job_id, status="error", progress=0, message=message)
@@ -1204,6 +1329,14 @@ async def create_download_link_job(
     account = _request_account(request, is_premium, premium_plan)
     selected_download_format = download_format or ("mp3" if media_type == "audio" else "mp4")
     _link_download_options(selected_download_format, bool(account["is_premium"]))
+    logger.info(
+        "Link download job requested: platform=%s url=%s format=%s media=%s premium=%s",
+        _link_platform(normalized_url),
+        _safe_url_for_log(normalized_url),
+        selected_download_format,
+        media_type,
+        bool(account["is_premium"]),
+    )
 
     job_id = uuid4().hex
     now = datetime.now(UTC).isoformat()
@@ -1235,6 +1368,7 @@ async def create_download_link_job(
         "download_url": None,
         "created_at": now,
         "updated_at": now,
+        "expires_at": (datetime.now(UTC) + timedelta(minutes=settings.link_download_retention_minutes)).isoformat(),
     }
 
     submit_conversion_job(
@@ -1260,6 +1394,18 @@ async def get_download_link_job(job_id: str) -> dict:
     if not job:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job de download não encontrado.")
 
+    expires_at = job.get("expires_at")
+    try:
+        is_expired = bool(expires_at and datetime.fromisoformat(str(expires_at)) <= datetime.now(UTC))
+    except ValueError:
+        is_expired = False
+
+    if is_expired:
+        file_path = Path(str(job.get("file_path", "")))
+        _delete_temporary_file(file_path)
+        LINK_DOWNLOAD_JOBS.pop(job_id, None)
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail="Download expirado. Prepare o arquivo novamente.")
+
     return {key: value for key, value in job.items() if key != "file_path"}
 
 
@@ -1272,11 +1418,32 @@ async def get_download_link_job_file(job_id: str) -> FileResponse:
     if job.get("status") != "ready":
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="O download ainda não está pronto.")
 
+    expires_at = job.get("expires_at")
+    try:
+        is_expired = bool(expires_at and datetime.fromisoformat(str(expires_at)) <= datetime.now(UTC))
+    except ValueError:
+        is_expired = False
+
+    if is_expired:
+        file_path = Path(str(job.get("file_path", "")))
+        _delete_temporary_file(file_path)
+        LINK_DOWNLOAD_JOBS.pop(job_id, None)
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail="Download expirado. Prepare o arquivo novamente.")
+
     file_path = Path(str(job.get("file_path", "")))
     if not file_path.exists() or file_path.stat().st_size == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Arquivo final não encontrado.")
 
-    return FileResponse(file_path, media_type="application/octet-stream", filename=str(job.get("filename") or file_path.name))
+    def cleanup_downloaded_file() -> None:
+        _delete_temporary_file(file_path)
+        LINK_DOWNLOAD_JOBS.pop(job_id, None)
+
+    return FileResponse(
+        file_path,
+        media_type="application/octet-stream",
+        filename=str(job.get("filename") or file_path.name),
+        background=BackgroundTask(cleanup_downloaded_file),
+    )
 
 
 @router.post("/download-link")
@@ -1390,10 +1557,32 @@ async def link_preview(url: str = Form(...)) -> dict:
     if not SAFE_URL_PATTERN.match(normalized_url):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Informe uma URL http ou https válida.")
 
+    preview_options = _apply_ytdlp_runtime_options(
+        {
+            "quiet": True,
+            "no_warnings": True,
+            "skip_download": True,
+            "noplaylist": True,
+            "socket_timeout": 15,
+            "http_headers": YTDLP_HTTP_HEADERS,
+            "extractor_args": {"youtube": {"player_client": ["android", "web"]}},
+        }
+    )
+
     try:
-        with yt_dlp.YoutubeDL({"quiet": True, "no_warnings": True, "skip_download": True, "noplaylist": True}) as downloader:
+        with yt_dlp.YoutubeDL(preview_options) as downloader:
             info = downloader.extract_info(normalized_url, download=False)
     except Exception as exc:
+        logger.warning(
+            "Link preview failed: platform=%s url=%s error=%r",
+            _link_platform(normalized_url),
+            _safe_url_for_log(normalized_url),
+            exc,
+        )
+        if _link_platform(normalized_url) == "youtube":
+            preview = _youtube_oembed_preview(normalized_url)
+            if preview:
+                return preview
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Não foi possível carregar o preview desse link: {_clean_error_message(exc, normalized_url)}",

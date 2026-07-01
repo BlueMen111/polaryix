@@ -46,6 +46,8 @@ class Settings(BaseSettings):
     file_retention_hours: int = 12
     cleanup_interval_hours: int = 12
     link_download_retention_minutes: int = 10
+    youtube_cookies_file: str | None = None
+    ytdlp_cookies_file: str | None = None
     free_storage_limit_mb: int = 25
     premium_storage_limit_mb: int = 100
     free_file_retention_hours: int = 2

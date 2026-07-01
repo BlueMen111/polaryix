@@ -27,6 +27,7 @@ apps/api/storage/jobs/
 apps/api/storage/usage/
 apps/api/storage/private/
 apps/api/storage/notifications/
+apps/api/storage/cookies/
 *cookies*.txt
 .DS_Store
 Thumbs.db

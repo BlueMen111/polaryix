@@ -707,6 +707,29 @@
   padding: 0 1rem;
 }
 
+.readyDownloadButton {
+  min-height: 42px;
+  border: 1px solid rgba(8, 116, 255, 0.22);
+  border-radius: 12px;
+  background: rgba(8, 116, 255, 0.08);
+  color: #0874ff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 950;
+  padding: 0 1rem;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.readyDownloadButton:hover:not(:disabled) {
+  border-color: rgba(8, 116, 255, 0.45);
+  background: rgba(8, 116, 255, 0.13);
+  transform: translateY(-1px);
+}
+
 .convertButton:disabled,
 .downloadTool button:disabled,
 .queueConvertButton:disabled {

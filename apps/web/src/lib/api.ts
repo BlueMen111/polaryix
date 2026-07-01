@@ -699,6 +699,7 @@ export type LinkDownloadJob = {
   filename?: string | null;
   download_url?: string | null;
   quality_delivered?: string | null;
+  expires_at?: string | null;
 };
 
 export async function createLinkDownloadJob(payload: {
