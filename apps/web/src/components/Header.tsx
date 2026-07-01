@@ -177,7 +177,8 @@ export function Header() {
           {user ? (
             <button type="button" className={styles.loginButton} onClick={handleLogout}>
               {user.avatar_url ? <img src={user.avatar_url} alt="" className={styles.avatar} /> : null}
-              {user.plan === "free" ? t("nav.logout") : `${user.plan} - ${t("nav.logout")}`}
+              <span className={styles.userGreeting}>Ola, {user.name?.split(" ")[0] || user.email}</span>
+              <span className={styles.logoutText}>{t("nav.logout")}</span>
             </button>
           ) : (
             <Link href="/login" className={styles.loginButton} onClick={closeMenus}>

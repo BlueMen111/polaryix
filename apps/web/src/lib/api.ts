@@ -89,6 +89,12 @@ export type AuthResponse = {
   user: AuthUser;
 };
 
+export type SignupResponse = {
+  ok: boolean;
+  message: string;
+  user: AuthUser;
+};
+
 export type UsageInfo = {
   used: number;
   limit: number;
@@ -264,7 +270,7 @@ export async function loginWithEmail(payload: { email: string; password: string 
   return parseJsonResponse<AuthResponse>(response, "Não foi possível entrar.");
 }
 
-export async function signupWithEmail(payload: { name: string; email: string; password: string; termsAccepted: boolean }): Promise<AuthResponse> {
+export async function signupWithEmail(payload: { name: string; email: string; password: string; termsAccepted: boolean }): Promise<SignupResponse> {
   const response = await fetch(apiUrl("/auth/signup"), {
     method: "POST",
     headers: apiHeaders({
@@ -282,7 +288,7 @@ export async function signupWithEmail(payload: { name: string; email: string; pa
     throw new Error(await parseJsonError(response, "Não foi possível criar a conta."));
   }
 
-  return parseJsonResponse<AuthResponse>(response, "Não foi possível criar a conta.");
+  return parseJsonResponse<SignupResponse>(response, "Não foi possível criar a conta.");
 }
 
 export async function verifyEmailToken(token: string): Promise<{ ok: boolean; message: string }> {

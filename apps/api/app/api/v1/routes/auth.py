@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+
+UTC = timezone.utc
 from urllib.parse import urlencode
 from urllib.request import Request as UrlRequest
 from urllib.request import urlopen
@@ -84,6 +86,12 @@ class AuthResponse(BaseModel):
     user: dict
 
 
+class SignupResponse(BaseModel):
+    ok: bool
+    message: str
+    user: dict
+
+
 def _normalize_email(email: str) -> str:
     normalized = email.strip().lower()
     if not EMAIL_PATTERN.match(normalized):
@@ -132,8 +140,8 @@ def _exchange_google_code(code: str, redirect_uri: str | None = None) -> dict:
         return json.loads(profile_response.read().decode("utf-8"))
 
 
-@router.post("/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
-async def signup(payload: SignupPayload) -> AuthResponse:
+@router.post("/signup", response_model=SignupResponse, status_code=status.HTTP_201_CREATED)
+async def signup(payload: SignupPayload) -> SignupResponse:
     if not payload.terms_accepted:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Aceite os termos de uso para criar sua conta.")
 
@@ -149,7 +157,11 @@ async def signup(payload: SignupPayload) -> AuthResponse:
     token, _ = create_account_token(user["id"], user["email"], "email_verification")
     send_verification_email(user["email"], user["name"], token)
 
-    return AuthResponse(token=issue_session(user["id"]), user=public_user(user))
+    return SignupResponse(
+        ok=True,
+        message="Conta criada. Enviamos um link de verificacao para o seu e-mail. Confirme a conta antes de entrar.",
+        user=public_user(user),
+    )
 
 
 @router.post("/login", response_model=AuthResponse)

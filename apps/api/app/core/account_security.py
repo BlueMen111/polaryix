@@ -5,7 +5,9 @@ import json
 import logging
 import secrets
 import smtplib
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+UTC = timezone.utc
 from email.message import EmailMessage
 from pathlib import Path
 

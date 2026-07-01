@@ -15,7 +15,16 @@ interface UseAnalysisSessionResult {
   reset: () => void;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+
+function apiUrl(path: string) {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const baseUrl = API_BASE_URL
+    ? `${API_BASE_URL.replace(/\/api\/v1$/i, "")}/api/v1`
+    : "/api/v1";
+
+  return `${baseUrl}${normalizedPath}`;
+}
 
 export function useAnalysisSession(): UseAnalysisSessionResult {
   const [session, setSession] = useState<AnalysisSession | null>(null);
@@ -42,7 +51,7 @@ export function useAnalysisSession(): UseAnalysisSessionResult {
         category: data.category,
       };
 
-      const response = await fetch(`${API_BASE_URL}/api/v1/analysis-sessions`, {
+      const response = await fetch(apiUrl("/analysis-sessions"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(backendData),
@@ -89,7 +98,7 @@ export function useAnalysisSession(): UseAnalysisSessionResult {
 
       console.log(`Uploading file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB) to session: ${sessionId}`);
 
-      const response = await fetch(`${API_BASE_URL}/api/v1/analysis-sessions/${sessionId}/files`, {
+      const response = await fetch(apiUrl(`/analysis-sessions/${sessionId}/files`), {
         method: "POST",
         body: formData,
       });
@@ -148,7 +157,7 @@ export function useAnalysisSession(): UseAnalysisSessionResult {
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/analysis-sessions/${sessionId}/progress`);
+      const response = await fetch(apiUrl(`/analysis-sessions/${sessionId}/progress`));
 
       if (!response.ok) {
         const errorData = await response.json();

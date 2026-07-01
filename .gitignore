@@ -11,6 +11,7 @@ apps/web/out/
 dist/
 build/
 logs/
+*.log
 storage/uploads/*
 storage/quarantine/*
 storage/processed/*

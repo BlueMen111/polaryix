@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+UTC = timezone.utc
 from pathlib import Path
 from uuid import uuid4
 
@@ -21,8 +23,9 @@ PAYMENT_PROVIDERS = {"mercadopago", "paypal"}
 PAYMENT_EXPIRATION_MINUTES = 5
 
 PREMIUM_PRODUCTS = {
-    ("basic", "monthly"): {"amount": 9.99, "currency": "BRL", "credits": 1000},
-    ("basic", "annual"): {"amount": 59.88, "currency": "BRL", "credits": 1000},
+    # Temporary production checkout validation price. Restore Basic to 9.99/59.88 after payment tests.
+    ("basic", "monthly"): {"amount": 1.00, "currency": "BRL", "credits": 1000},
+    ("basic", "annual"): {"amount": 1.00, "currency": "BRL", "credits": 1000},
     ("pro", "monthly"): {"amount": 18.99, "currency": "BRL", "credits": 3000},
     ("pro", "annual"): {"amount": 155.88, "currency": "BRL", "credits": 3000},
 }

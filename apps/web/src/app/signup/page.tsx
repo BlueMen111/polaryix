@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/i18n/LanguageProvider";
-import { persistAuthSession, signupWithEmail, startGoogleLogin } from "@/lib/api";
+import { signupWithEmail, startGoogleLogin } from "@/lib/api";
 import styles from "./page.module.css";
 
 function GoogleIcon() {
@@ -46,10 +46,11 @@ export default function SignupPage() {
     setStatus(t("auth.creatingAccount"));
 
     try {
-      const session = await signupWithEmail({ name, email, password, termsAccepted });
-      persistAuthSession(session);
-      setStatus("Conta criada. Enviamos um link de verificacao para o seu e-mail.");
-      window.location.href = "/";
+      const result = await signupWithEmail({ name, email, password, termsAccepted });
+      setStatus(result.message || "Conta criada. Enviamos um link de verificacao para o seu e-mail antes do login.");
+      window.setTimeout(() => {
+        window.location.href = `/login?verify_email=${encodeURIComponent(email)}`;
+      }, 2600);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : t("auth.signupError"));
     } finally {

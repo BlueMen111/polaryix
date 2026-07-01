@@ -6,7 +6,9 @@ import shutil
 import subprocess
 import tempfile
 import zipfile
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+UTC = timezone.utc
 from functools import partial
 from pathlib import Path
 from uuid import uuid4

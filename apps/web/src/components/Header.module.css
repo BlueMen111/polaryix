@@ -283,6 +283,21 @@
   margin-right: 0.45rem;
 }
 
+.userGreeting {
+  display: inline-block;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.logoutText {
+  margin-left: 0.45rem;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
 .signupButton {
   min-width: 96px;
   min-height: 38px;

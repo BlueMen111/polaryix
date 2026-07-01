@@ -3,7 +3,9 @@ from __future__ import annotations
 import tempfile
 import unittest
 from concurrent.futures import Future
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+UTC = timezone.utc
 from pathlib import Path
 
 from app.core import conversion_history

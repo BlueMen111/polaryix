@@ -29,6 +29,7 @@ export default function LoginPage() {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
     const authError = params.get("auth_error");
+    const verifyEmail = params.get("verify_email");
 
     if (authError) {
       const messages: Record<string, string> = {
@@ -39,6 +40,13 @@ export default function LoginPage() {
       setStatus(messages[authError] ?? t("auth.googleError"));
       return;
     }
+
+    if (verifyEmail) {
+      setEmail(verifyEmail);
+      setStatus("Conta criada. Verifique seu e-mail antes de entrar. Se nao encontrar o e-mail, use Reenviar verificacao.");
+      return;
+    }
+
     if (!token) {
       return;
     }
